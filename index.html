@@ -1,1709 +1,2162 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Map Planner</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@500;700&family=JetBrains+Mono:wght@500&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<title>PC-9000</title>
 <style>
-    :root {
-        --grn: #3ddc84;
-        --grn-bright: #7fffa8;
-        --grn-deep: #1d8a4c;
-        --bg-dark: #04120a;
-        --panel: rgba(8, 20, 12, 0.95);
-        --panel-solid: #0a1810;
-        --text: #d6f5e2;
-        --muted: #6f9080;
-        --border: #1a3a26;
-        --accent: #5fffb0;
-        --danger: #ff5a5a;
-    }
-    * { box-sizing: border-box; }
-    body, html {
-        margin: 0; padding: 0; height: 100%; width: 100%;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        font-weight: 600;
-        background: var(--bg-dark); color: var(--text);
-        overflow: hidden; user-select: none;
-    }
-    #toolbar, #emojiPanel, #status, #zoomCtrl, #showToolbar {
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-    }
-    #app { width: 100vw; height: 100vh; position: relative; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: radial-gradient(ellipse at center, #2a2a2a, #0a0a0a);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+  }
 
-    /* --- MAP CANVAS AREA --- */
-    #canvasWrap {
-        position: absolute; inset: 0;
-        overflow: hidden;
-        cursor: crosshair;
-        background:
-            radial-gradient(circle at 30% 30%, rgba(61,220,132,0.05), transparent 40%),
-            #050d08;
-    }
-    #mapImg, #drawCanvas {
-        position: absolute; top: 0; left: 0;
-        transform-origin: 0 0;
-        pointer-events: none;
-    }
-    #mapImg { user-select: none; -webkit-user-drag: none; }
+  /* Bannière auto-effacement, en haut de l'écran, par-dessus tout */
+  #external-timer {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: #1a0000;
+    color: #ff3030;
+    padding: 8px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    border-bottom: 2px solid #800;
+    box-shadow: 0 4px 16px rgba(255,0,0,0.5);
+    letter-spacing: 3px;
+    text-shadow: 0 0 6px #ff3030;
+    text-align: center;
+    z-index: 99990;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 50% { opacity: 0.5; } }
 
-    /* --- TOOLBAR --- */
-    #toolbar {
-        position: absolute; top: 12px; left: 12px;
-        background: var(--panel);
-        border: 1px solid var(--grn);
-        border-radius: 8px;
-        padding: 10px;
-        display: flex; flex-direction: column; gap: 6px;
-        z-index: 100;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 0 1px rgba(61,220,132,0.15);
-        width: 250px;
-        min-width: 220px;
-        max-width: 480px;
-        max-height: calc(100vh - 24px);
-        overflow-y: auto;
-        resize: horizontal;
-    }
-    #toolbar.collapsed {
-        width: 44px !important;
-        min-width: 44px;
-        padding: 6px;
-        overflow: hidden;
-        resize: none;
-    }
-    #toolbar.collapsed .tb-body { display: none; }
-    #toolbar.collapsed #tb-title { display: none; }
+  /* PC frame */
+  #pc-frame {
+    width: 1040px; height: 720px;
+    background: linear-gradient(180deg, #e8e0cb, #b5ad97);
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow:
+      inset 0 0 30px rgba(0,0,0,0.25),
+      0 30px 60px rgba(0,0,0,0.7),
+      0 0 0 4px #918a76;
+    position: relative;
+  }
+  #pc-frame::before {
+    content: 'PC-9000';
+    position: absolute;
+    bottom: 6px; left: 28px;
+    font-size: 11px;
+    color: #5a5444;
+    letter-spacing: 3px;
+    font-weight: bold;
+  }
+  #pc-frame::after {
+    content: '';
+    position: absolute;
+    bottom: 12px; right: 28px;
+    width: 12px; height: 12px;
+    background: #4caf50;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #4caf50;
+    animation: led-blink 3s infinite;
+  }
+  @keyframes led-blink { 0%, 95% { opacity: 1; } 97% { opacity: 0.3; } }
 
-    #tb-header {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 6px;
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 6px;
-        margin-bottom: 2px;
-    }
-    #tb-title {
-        color: var(--grn-bright); font-weight: bold; letter-spacing: 2px;
-        font-size: 13px;
-    }
-    #tb-toggle {
-        background: transparent; color: var(--grn);
-        border: 1px solid var(--border); cursor: pointer;
-        width: 30px; height: 26px; border-radius: 4px;
-        font-size: 14px;
-    }
-    #tb-toggle:hover { background: rgba(61,220,132,0.15); border-color: var(--grn); }
+  /* Screen */
+  #screen {
+    width: 100%; height: 100%;
+    background: #008080;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.6);
+  }
+  #screen::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg,
+      rgba(0,0,0,0.12), rgba(0,0,0,0.12) 1px,
+      transparent 1px, transparent 3px);
+    pointer-events: none;
+    z-index: 99999;
+  }
+  #screen::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+    z-index: 99998;
+  }
 
-    #toolbar h3 {
-        margin: 6px 0 4px 0; color: var(--grn);
-        font-size: 12px; letter-spacing: 2px;
-        font-weight: 800;
-        border-bottom: 1px solid var(--border); padding-bottom: 3px;
-        text-transform: uppercase;
-    }
-    .label { font-weight: 700; }
-    #tb-title { font-weight: 800; }
-    .tool-row { display: flex; gap: 4px; flex-wrap: wrap; }
-    .tool-btn {
-        background: #0e1f15; color: var(--text);
-        border: 1px solid var(--border); padding: 7px 10px;
-        cursor: pointer; border-radius: 4px;
-        font-size: 12px; min-width: 38px;
-        transition: 0.15s;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        font-weight: 700;
-    }
-    .tool-btn:hover { background: #173024; border-color: var(--grn); color: var(--grn-bright); }
-    .tool-btn.active {
-        background: var(--grn); color: #021b0c; border-color: var(--grn-bright);
-        font-weight: bold;
-        box-shadow: 0 0 8px rgba(61,220,132,0.5);
-    }
-    .tool-btn.danger { border-color: #5c1a1a; color: #ff8888; }
-    .tool-btn.danger:hover { background: #2a0c0c; border-color: var(--danger); color: var(--danger); }
+  #desktop {
+    position: absolute;
+    inset: 0;
+    padding: 14px;
+    z-index: 1;
+  }
 
-    .label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-    input[type="color"] {
-        width: 40px; height: 28px; border: 1px solid var(--border);
-        background: #0e1f15; cursor: pointer; border-radius: 4px;
-    }
-    input[type="range"] {
-        width: 100%;
-        accent-color: var(--grn);
-    }
+  .desktop-icon {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    width: 78px;
+    margin: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 11px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
+    text-align: center;
+    padding: 4px;
+    border: 1px dotted transparent;
+    user-select: none;
+  }
+  .desktop-icon:active { border: 1px dotted white; background: rgba(0,0,128,0.3); }
+  .desktop-icon .ico {
+    width: 44px; height: 44px;
+    margin-bottom: 4px;
+    background: #c0c0c0;
+    border: 1px solid #fff;
+    border-right-color: #404040;
+    border-bottom-color: #404040;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    image-rendering: pixelated;
+  }
 
-    /* --- STATUS BAR --- */
-    #status {
-        position: absolute; bottom: 12px; left: 12px;
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        padding: 6px 12px;
-        font-size: 12px; color: var(--muted);
-        z-index: 100;
-        font-family: 'Consolas', monospace;
-    }
-    #status .key { color: var(--grn); }
+  /* Windows */
+  .window {
+    position: absolute;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #404040 #404040 #fff;
+    min-width: 300px;
+    min-height: 200px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .window.maximized {
+    top: 0 !important; left: 0 !important;
+    width: 100% !important; height: calc(100% - 32px) !important;
+    border-radius: 0;
+  }
+  .window-title {
+    background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+    color: white;
+    padding: 3px 4px 3px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: move;
+    user-select: none;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .window-title.inactive { background: linear-gradient(90deg, #808080, #b0b0b0); }
+  .window-controls button {
+    width: 18px; height: 16px;
+    background: #c0c0c0;
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-size: 9px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 2px;
+    padding: 0;
+    color: #000;
+    line-height: 1;
+  }
+  .window-controls button:active {
+    border-color: #404040 #fff #fff #404040;
+  }
+  .window-body {
+    flex: 1;
+    background: #c0c0c0;
+    overflow: auto;
+    position: relative;
+    padding: 4px;
+  }
+  .window-resize {
+    position: absolute;
+    width: 14px; height: 14px;
+    bottom: 0; right: 0;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, #888 52%, #888 62%, transparent 64%, #888 72%, #888 82%, transparent 84%);
+    z-index: 10;
+  }
 
-    /* --- EMOJI PICKER --- */
-    #emojiPanel {
-        position: absolute; top: 12px; right: 12px;
-        background: var(--panel);
-        border: 1px solid var(--grn);
-        border-radius: 8px;
-        padding: 10px;
-        display: none;
-        flex-direction: column; gap: 6px;
-        z-index: 100;
-        width: 260px;
-        max-height: 400px;
-        overflow-y: auto;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.7);
-    }
-    #emojiPanel.visible { display: flex; }
-    .emoji-grid {
-        display: grid;
-        grid-template-columns: repeat(8, 1fr);
-        gap: 3px;
-    }
-    .emoji-btn {
-        background: #0e1f15; border: 1px solid var(--border);
-        font-size: 18px; padding: 4px; cursor: pointer;
-        border-radius: 3px; transition: 0.1s;
-        font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-    }
-    .emoji-btn:hover { background: var(--grn); transform: scale(1.15); }
-    .emoji-btn.selected { outline: 2px solid var(--grn-bright); background: rgba(127,255,168,0.15); }
-    #selectedEmojiPreview {
-        display: flex; align-items: center; gap: 8px;
-        background: #0e1f15; border: 1px solid var(--border);
-        padding: 6px 10px; border-radius: 4px;
-        font-size: 22px;
-        font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-    }
-    #selectedEmojiPreview span.lbl {
-        font-size: 11px; font-family: 'Inter', sans-serif;
-        font-weight: 700; color: var(--muted);
-        font-weight: 700;
-    }
-    .emoji-search {
-        background: #0e1f15; border: 1px solid var(--border);
-        color: var(--text); padding: 6px; border-radius: 4px;
-        font-size: 12px; width: 100%;
-    }
+  /* Taskbar */
+  #taskbar {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 28px;
+    background: #c0c0c0;
+    border-top: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    padding: 2px 4px;
+    z-index: 9000;
+    gap: 4px;
+  }
+  .start-button {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #404040 #404040 #fff;
+    padding: 1px 8px;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+  }
+  .start-button:active {
+    border-color: #404040 #fff #fff #404040;
+  }
+  #taskbar-items {
+    display: flex;
+    gap: 3px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .taskbar-item {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #404040 #404040 #fff;
+    padding: 1px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Courier New', monospace;
+  }
+  .taskbar-item.active {
+    border-color: #404040 #fff #fff #404040;
+    background: #a0a0a0;
+  }
+  #taskbar-clock {
+    border: 1px solid;
+    border-color: #404040 #fff #fff #404040;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
 
-    /* --- ZOOM CONTROLS --- */
-    #zoomCtrl {
-        position: absolute; bottom: 12px; right: 12px;
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        padding: 6px;
-        display: flex; gap: 4px;
-        z-index: 100;
-    }
+  /* Generic content */
+  .pad { padding: 10px; }
+  h3.app-title { margin: 0 0 8px 0; font-size: 13px; }
 
-    /* --- SHOW BUTTON when toolbar fully hidden --- */
-    #showToolbar {
-        position: absolute; top: 12px; left: 12px;
-        background: var(--panel);
-        color: var(--grn-bright);
-        border: 2px solid var(--grn);
-        padding: 10px 14px;
-        cursor: pointer; border-radius: 6px;
-        z-index: 500; display: none;
-        font-size: 15px;
-        font-weight: 700;
-        box-shadow: 0 0 12px rgba(61,220,132,0.4);
-        font-family: 'Inter', sans-serif;
-    }
-    #showToolbar.visible { display: block; }
-    #showToolbar:hover { background: var(--grn); color: #021b0c; }
+  /* Notes */
+  .notes-area {
+    width: 100%; height: 100%;
+    border: 2px solid;
+    border-color: #404040 #fff #fff #404040;
+    background: white;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 8px;
+    resize: none;
+    outline: none;
+  }
 
-    #panOverlay {
-        position: absolute; inset: 0;
-        display: none;
-        background: rgba(61,220,132,0.05);
-        pointer-events: none;
-        z-index: 50;
-        text-align: center;
-        color: var(--grn-bright);
-        font-size: 14px;
-        padding-top: 20px;
-        text-shadow: 0 0 8px rgba(0,0,0,0.9);
-    }
-    #panOverlay.active { display: block; }
+  /* Calculator */
+  .calc { padding: 8px; font-family: 'Courier New', monospace; }
+  .calc-display {
+    background: #aabb88; color: #000;
+    padding: 6px 10px;
+    text-align: right;
+    font-size: 20px;
+    border: 2px solid;
+    border-color: #404040 #fff #fff #404040;
+    margin-bottom: 8px;
+    min-height: 24px;
+  }
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .calc-grid button {
+    padding: 10px;
+    font-size: 14px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #404040 #404040 #fff;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+  }
+  .calc-grid button:active {
+    border-color: #404040 #fff #fff #404040;
+  }
 
-    #mapError {
-        position: absolute; top: 50%; left: 50%;
-        transform: translate(-50%,-50%);
-        color: var(--danger);
-        background: var(--panel);
-        border: 1px solid var(--danger);
-        padding: 16px 24px; border-radius: 6px;
-        font-size: 13px; max-width: 480px;
-        display: none; z-index: 90;
-        text-align: center;
-    }
-    #mapError.visible { display: block; }
-    #mapError small { color: var(--muted); display: block; margin-top: 8px; }
+  /* Snake */
+  .snake-info {
+    display: flex; justify-content: space-between;
+    padding: 6px 8px;
+    background: #000080; color: white;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .snake-canvas-wrap {
+    display: flex; justify-content: center; align-items: center;
+    background: #001;
+    padding: 8px;
+  }
+  #snakeCanvas {
+    background: #000;
+    border: 2px solid #404040;
+    image-rendering: pixelated;
+  }
 
-    #textInput {
-        position: absolute; z-index: 200;
-        background: rgba(8, 20, 12, 0.15);
-        backdrop-filter: blur(2px);
-        border: 1px dashed var(--grn);
-        color: var(--grn-bright);
-        padding: 2px 6px;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        border-radius: 3px;
-        outline: none;
-        display: none;
-        min-width: 120px;
-        caret-color: var(--grn-bright);
-        text-shadow: 0 0 4px rgba(0,0,0,0.85), 0 2px 4px rgba(0,0,0,0.6);
-    }
-    #textInput.visible { display: block; }
-    #textInput::placeholder { color: rgba(127,255,168,0.55); font-style: italic; }
+  /* Files */
+  .files-list {
+    background: white;
+    border: 2px solid;
+    border-color: #404040 #fff #fff #404040;
+    padding: 4px;
+    height: calc(100% - 8px);
+    overflow-y: auto;
+    font-size: 12px;
+  }
+  .file-row {
+    display: flex; align-items: center;
+    gap: 8px;
+    padding: 4px;
+    cursor: pointer;
+  }
+  .file-row:hover { background: #000080; color: white; }
 
-    /* marquee selection rect (DOM overlay) */
-    #marquee {
-        position: absolute;
-        border: 1px dashed var(--grn-bright);
-        background: rgba(61,220,132,0.12);
-        pointer-events: none;
-        display: none;
-        z-index: 60;
-    }
-    #marquee.visible { display: block; }
+  /* Darknet */
+  .darknet-window .window-title {
+    background: linear-gradient(90deg, #200, #800) !important;
+  }
+  .darknet-window .window-body {
+    background: #000 !important;
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+    padding: 0;
+  }
 
-    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+  /* Darknet lock screen */
+  .dn-lock {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .dn-lock h2 {
+    color: #f00;
+    text-shadow: 0 0 8px #f00;
+    letter-spacing: 4px;
+    margin: 8px 0 16px;
+    font-size: 18px;
+  }
+  .dn-lock-ascii {
+    color: #c00;
+    font-size: 9px;
+    line-height: 1.0;
+    letter-spacing: -0.5px;
+    white-space: pre;
+    font-family: 'Courier New', Consolas, monospace;
+    font-weight: bold;
+    text-shadow:
+      0 0 4px #f00,
+      0 0 10px rgba(255,0,0,0.6);
+    margin-bottom: 16px;
+    animation: lock-pulse 2s infinite alternate;
+  }
+  @keyframes lock-pulse {
+    from { text-shadow: 0 0 3px #f00, 0 0 8px rgba(255,0,0,0.5); filter: brightness(0.9); }
+    to { text-shadow: 0 0 6px #f00, 0 0 16px rgba(255,0,0,0.8); filter: brightness(1.1); }
+  }
+  .dn-input {
+    background: #000;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 6px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 6px;
+    outline: none;
+    width: 180px;
+  }
+  .dn-submit {
+    margin-top: 14px;
+    background: #0a0a0a;
+    color: #0f0;
+    border: 1px solid #0f0;
+    padding: 6px 16px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    letter-spacing: 2px;
+  }
+  .dn-submit:hover { background: #030; }
+  .dn-error {
+    color: #f00; margin-top: 10px;
+    font-size: 12px;
+    height: 16px;
+  }
+
+  /* Skull loading */
+  .skull-loading {
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #000;
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+    padding: 20px;
+    overflow: hidden;
+  }
+  .skull-art {
+    color: #0f0;
+    font-size: 10px;
+    line-height: 1.0;
+    letter-spacing: -0.5px;
+    white-space: pre;
+    font-family: 'Courier New', Consolas, monospace;
+    text-shadow:
+      0 0 4px #0f0,
+      0 0 10px #0f0,
+      0 0 20px rgba(0,255,0,0.5);
+    animation: skull-glow 1.8s infinite alternate;
+    font-weight: bold;
+  }
+  @keyframes skull-glow {
+    from {
+      text-shadow: 0 0 3px #0f0, 0 0 8px #0f0, 0 0 16px rgba(0,255,0,0.4);
+      transform: scale(1);
+      filter: brightness(0.9);
+    }
+    to {
+      text-shadow: 0 0 6px #0f0, 0 0 16px #0f0, 0 0 32px rgba(0,255,0,0.7);
+      transform: scale(1.03);
+      filter: brightness(1.15);
+    }
+  }
+  .skull-text {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #0f0;
+    min-height: 80px;
+    width: 80%;
+    text-align: center;
+  }
+  .skull-text .line { opacity: 0; animation: fadein 0.3s forwards; }
+  @keyframes fadein { to { opacity: 1; } }
+  .cursor { animation: blink 0.8s infinite; }
+
+  /* Wipe skull */
+  .skull-art.evil {
+    color: #ff2020;
+    text-shadow:
+      0 0 4px #f00,
+      0 0 12px #f00,
+      0 0 24px rgba(255,0,0,0.6);
+    animation: skull-evil 0.5s infinite alternate;
+  }
+  @keyframes skull-evil {
+    from {
+      text-shadow: 0 0 4px #f00, 0 0 10px #f00, 0 0 20px rgba(255,0,0,0.5);
+      transform: scale(1) rotate(-0.5deg);
+      filter: brightness(1) hue-rotate(0deg);
+    }
+    to {
+      text-shadow: 0 0 8px #f00, 0 0 22px #f00, 0 0 40px rgba(255,0,0,0.9);
+      transform: scale(1.06) rotate(0.5deg);
+      filter: brightness(1.3) hue-rotate(-10deg);
+    }
+  }
+  .data-stream {
+    color: #f00;
+    font-size: 10px;
+    white-space: pre;
+    margin-top: 10px;
+    max-height: 120px;
+    overflow: hidden;
+    width: 90%;
+    text-align: left;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* Messenger */
+  .messenger { display: flex; height: 100%; background: #1a1a1a; color: #0f0; }
+  .msg-sidebar {
+    width: 180px;
+    background: #0d0d0d;
+    border-right: 1px solid #0f0;
+    overflow-y: auto;
+  }
+  .msg-header {
+    background: #200;
+    padding: 6px 10px;
+    color: #f55;
+    font-weight: bold;
+    font-size: 11px;
+    border-bottom: 1px solid #800;
+    letter-spacing: 2px;
+  }
+  .chat-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1a1a1a;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .chat-item:hover { background: #1a1a1a; }
+  .chat-item.active { background: #002000; }
+  .chat-name { color: #0f0; font-weight: bold; }
+  .chat-preview {
+    color: #555;
+    font-size: 10px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-locked::after { content: ' 🔒'; }
+  .msg-main { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; }
+  .msg-chat-header {
+    background: #200;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #f55;
+    border-bottom: 1px solid #800;
+  }
+  .msg-messages {
+    flex: 1; overflow-y: auto;
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .msg-empty {
+    height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #555;
+    font-size: 11px;
+    text-align: center;
+  }
+  .msg-bubble {
+    margin-bottom: 8px;
+    max-width: 75%;
+    padding: 6px 10px;
+    border-radius: 4px;
+    word-wrap: break-word;
+  }
+  .msg-bubble.them { background: #1a1a1a; color: #0f0; }
+  .msg-bubble.me { background: #002000; color: #afa; margin-left: auto; text-align: right; }
+  .msg-bubble .author { font-size: 10px; color: #888; margin-bottom: 2px; }
+  .msg-img-attached {
+    display: inline-block;
+    padding: 12px 18px;
+    border: 1px dashed #0f0;
+    cursor: pointer;
+    color: #0f0;
+    background: #001000;
+    margin-top: 4px;
+  }
+  .msg-img-attached:hover { background: #002000; }
+
+  /* Minigame overlay */
+  .minigame-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+    padding: 14px;
+  }
+  .mg-title {
+    color: #0ff;
+    font-size: 14px;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+  }
+  .mg-subtitle {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .mg-time {
+    width: 80%;
+    height: 4px;
+    background: #001a00;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .mg-time-bar {
+    height: 100%;
+    background: #0ff;
+    width: 100%;
+    transition: width 0.1s linear;
+  }
+  .mg-time-label {
+    color: #0ff;
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .mg-target {
+    background: #0a0a18;
+    border: 1px solid #064;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+  }
+  .mg-target-title {
+    font-size: 10px;
+    color: #088;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .mg-sequence {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+  }
+  .mg-seq-cell {
+    background: #050a14;
+    border: 1px solid #1a3a5a;
+    padding: 4px 10px;
+    color: #0ff;
+    font-size: 14px;
+    min-width: 38px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .mg-seq-cell.next {
+    border-color: #0ff;
+    box-shadow: 0 0 8px #0ff;
+  }
+  .mg-seq-cell.done {
+    background: #002a14;
+    color: #4f0;
+    border-color: #084;
+  }
+  .mg-seq-arrow { color: #444; }
+  .mg-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    max-width: 360px;
+    width: 100%;
+  }
+  .mg-cell {
+    background: #0a0a18;
+    border: 1px solid #1a3a5a;
+    padding: 8px 4px;
+    color: #aef;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    transition: all 0.08s;
+  }
+  .mg-cell:hover { background: #14143a; }
+  .mg-cell.wrong { background: #400; border-color: #f00; }
+  .mg-cell.correct { background: #040; border-color: #0f0; }
+
+  /* Bouton Skip (activé via commande cachée du terminal) */
+  .mg-skip-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: #2a0a0a;
+    color: #ff8888;
+    border: 1px solid #ff5555;
+    padding: 5px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .mg-skip-btn:hover { background: #4a1a1a; color: #ffcccc; }
+
+  /* Pattern minigame */
+  .pat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 60px);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .pat-cell {
+    width: 60px; height: 60px;
+    background: #050a14;
+    border: 1px solid #1a3a5a;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .pat-cell.flash {
+    background: #0ff;
+    box-shadow: 0 0 16px #0ff;
+  }
+  .pat-cell.you-clicked { background: #0a0; }
+  .pat-cell.disabled { opacity: 0.5; pointer-events: none; }
+
+  /* Image viewer */
+  .img-viewer {
+    height: 100%;
+    background: #111;
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px;
+  }
+  .img-viewer img {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    border: 1px solid #0f0;
+  }
+  .img-placeholder {
+    color: #0f0;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    padding: 20px;
+    border: 1px dashed #0f0;
+  }
+
+  /* Flash message */
+  #flash-msg {
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #200;
+    color: #f55;
+    padding: 20px 40px;
+    border: 2px solid #f00;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    z-index: 99999;
+    letter-spacing: 3px;
+    box-shadow: 0 0 40px rgba(255,0,0,0.7);
+    text-align: center;
+    animation: shake 0.3s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    25% { transform: translate(-52%, -48%); }
+    75% { transform: translate(-48%, -52%); }
+  }
 </style>
 </head>
 <body>
-<div id="app">
-    <div id="canvasWrap">
-        <img id="mapImg" alt="map">
-        <canvas id="drawCanvas"></canvas>
+
+<div id="pc-frame">
+  <div id="screen">
+    <div id="external-timer">⚠ AUTO-EFFACEMENT EN COURS: <span id="external-timer-val">60</span>s ⚠</div>
+    <div id="desktop"></div>
+    <div id="windows-container"></div>
+    <div id="flash-msg"></div>
+    <div id="taskbar">
+      <button class="start-button">⊞ Démarrer</button>
+      <div id="taskbar-items"></div>
+      <div id="taskbar-clock">--:--</div>
     </div>
-    <div id="panOverlay">[ SPACE held — drag to pan ]</div>
-
-    <div id="mapError">
-        Map image could not be loaded from the host.
-        <small>You can still draw on a blank canvas, switch to the other variant, or replace the URL.</small>
-    </div>
-
-    <button id="showToolbar" title="Show toolbar">☰ Tools</button>
-    <input id="textInput" type="text" placeholder="type, then Enter">
-    <div id="marquee"></div>
-
-
-    <div id="toolbar">
-        <div id="tb-header">
-            <span id="tb-title" data-i18n="title">PLANNER</span>
-            <div style="display:flex;gap:4px;">
-                <button id="langToggle" class="tool-btn" style="min-width:32px;padding:4px 6px;" title="Language">EN</button>
-                <button id="tb-close" title="Hide toolbar" style="color:#ff8888;border-color:#5c1a1a;">✕</button>
-            </div>
-        </div>
-        <div class="tb-body">
-        <h3 data-i18n="map">MAP</h3>
-        <div class="tool-row">
-            <button class="tool-btn active" data-map="satellite" data-i18n="satellite">Satellite</button>
-            <button class="tool-btn" data-map="atlas" data-i18n="atlas">Atlas</button>
-        </div>
-
-        <h3 data-i18n="tools">TOOLS</h3>
-        <div class="tool-row">
-            <button class="tool-btn active" data-tool="select" data-i18n-title="t_select" title="Select / Move">↖</button>
-            <button class="tool-btn" data-tool="point" data-i18n-title="t_point" title="Point">●</button>
-            <button class="tool-btn" data-tool="line" data-i18n-title="t_line" title="Line (click 2 points)">╱</button>
-            <button class="tool-btn" data-tool="freedraw" data-i18n-title="t_freedraw" title="Free Draw">✎</button>
-            <button class="tool-btn" data-tool="rect" data-i18n-title="t_rect" title="Rectangle">▭</button>
-            <button class="tool-btn" data-tool="square" data-i18n-title="t_square" title="Square">◻</button>
-            <button class="tool-btn" data-tool="circle" data-i18n-title="t_circle" title="Circle">○</button>
-            <button class="tool-btn" data-tool="chain" data-i18n-title="t_chain" title="Chain — click points, press Enter / Finish / double-click to confirm">⛓</button>
-            <button class="tool-btn" data-tool="cross" data-i18n-title="t_cross" title="X marker">✕</button>
-            <button class="tool-btn" data-tool="plus" data-i18n-title="t_plus" title="Plus marker">＋</button>
-            <button class="tool-btn" data-tool="emoji" data-i18n-title="t_emoji" title="Emoji">😀</button>
-            <button class="tool-btn" data-tool="text" data-i18n-title="t_text" title="Text">T</button>
-            <button class="tool-btn" data-tool="erase" data-i18n-title="t_erase" title="Click to delete shape">🗑</button>
-        </div>
-
-        <div id="chainConfirmRow" style="display:none;" class="tool-row">
-            <button class="tool-btn" id="finishChain" style="flex:1; background:var(--grn); color:#021b0c; font-weight:bold;" data-i18n="finishChain">✓ Finish chain (Enter)</button>
-            <button class="tool-btn danger" id="cancelChain" data-i18n="cancel">Cancel</button>
-        </div>
-
-        <div id="selectionPanel" style="display:none;">
-            <h3 data-i18n="selection">SELECTION</h3>
-            <div id="selInfo" style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:700;"></div>
-            <div class="tool-row">
-                <button class="tool-btn" id="lockBtn" style="flex:1;" data-i18n="lock">🔒 Lock</button>
-                <button class="tool-btn" id="editBtn" style="flex:1;" data-i18n="edit">✎ Edit</button>
-                <button class="tool-btn danger" id="deleteBtn" data-i18n="delete">🗑</button>
-            </div>
-            <div id="selSizeRow" style="display:none;">
-                <div class="label" style="display:flex;justify-content:space-between;">
-                    <span data-i18n="textSize">Size</span><span id="selSizeVal"></span>
-                </div>
-                <input type="range" id="selSize" min="14" max="400" value="96">
-                <div class="label" style="display:flex;justify-content:space-between;">
-                    <span data-i18n="strokeWidth">Stroke</span><span id="selWidthVal"></span>
-                </div>
-                <input type="range" id="selWidth" min="1" max="40" value="3">
-            </div>
-        </div>
-
-        <div class="label" data-i18n="lineStyle">Line style</div>
-        <div class="tool-row">
-            <button class="tool-btn style-btn active" data-style="solid" data-i18n-title="solid" title="Solid">━━</button>
-            <button class="tool-btn style-btn" data-style="dashed" data-i18n-title="dashed" title="Dashed">╌╌</button>
-            <button class="tool-btn style-btn" data-style="dotted" data-i18n-title="dotted" title="Dotted">····</button>
-            <button class="tool-btn style-btn" data-style="dotdash" data-i18n-title="dotdash" title="Dot-dash">·─·─</button>
-        </div>
-
-        <div class="label" data-i18n="strokeColor">Stroke color</div>
-        <div class="tool-row" style="align-items:center;">
-            <input type="color" id="colorPick" value="#3ddc84">
-            <input type="color" id="fillPick" value="#7fffa8" title="Fill color">
-            <label style="font-size:11px;display:flex;align-items:center;gap:4px;color:var(--muted);font-weight:700;">
-                <input type="checkbox" id="fillToggle"> <span data-i18n="fill">Fill</span>
-            </label>
-        </div>
-
-        <div class="label"><span data-i18n="strokeWidth">Stroke width</span>: <span id="widthVal">3</span>px</div>
-        <input type="range" id="widthRange" min="1" max="20" value="3">
-
-        <div class="label"><span data-i18n="textSize">Emoji / text size</span>: <span id="emojiVal">96</span>px</div>
-        <input type="range" id="emojiRange" min="20" max="400" value="96">
-
-        <div class="label" data-i18n="textFont">Text font</div>
-        <select id="fontPick" style="background:#0e1f15;color:var(--text);border:1px solid var(--border);padding:6px;border-radius:4px;font-size:12px;width:100%;font-family:'Inter',sans-serif;font-weight:600;">
-            <option value="Inter">Inter (clean)</option>
-            <option value="Cinzel" selected>Cinzel (display)</option>
-            <option value="Caveat">Caveat (handwritten)</option>
-            <option value="JetBrains Mono">JetBrains Mono</option>
-            <option value="Georgia">Georgia (serif)</option>
-            <option value="Impact">Impact</option>
-        </select>
-
-        <div class="divider"></div>
-        <h3 data-i18n="actions">ACTIONS</h3>
-        <div class="tool-row">
-            <button class="tool-btn" id="undoBtn" data-i18n-title="undo" title="Undo (Ctrl+Z)"><span data-i18n="undo">↶ Undo</span></button>
-            <button class="tool-btn" id="exportPng" data-i18n="exportPng">Export PNG</button>
-        </div>
-        <div class="tool-row">
-            <button class="tool-btn" id="exportJson" data-i18n="exportJson">Export JSON</button>
-            <button class="tool-btn" id="importJson" data-i18n="importJson">Import JSON</button>
-        </div>
-        <input type="file" id="importFile" accept="application/json" style="display:none;">
-        <button class="tool-btn danger" id="resetBtn" data-i18n="resetAll">⚠ Reset All</button>
-        </div>
-    </div>
-
-    <div id="emojiPanel">
-        <div id="selectedEmojiPreview"><span class="lbl">SELECTED</span><span id="selEmojiChar">📍</span></div>
-        <input type="text" class="emoji-search" id="emojiSearch" placeholder="Search... or paste any emoji">
-        <div class="emoji-grid" id="emojiGrid"></div>
-    </div>
-
-    <div id="zoomCtrl">
-        <button class="tool-btn" id="zoomOut">−</button>
-        <button class="tool-btn" id="zoomReset">Fit</button>
-        <button class="tool-btn" id="zoomIn">+</button>
-    </div>
-
-    <div id="status">
-        <span id="statusKeys"></span> ·
-        <span id="coords">0, 0</span> ·
-        <span id="zoomLabel">100%</span>
-    </div>
+  </div>
 </div>
 
 <script>
-// =========================================================
-// MAP PLANNER
-// =========================================================
-const MAP_URLS = {
-    satellite: 'https://imgg.fr/r/L28LvmQj.jpg',
-    atlas:     'https://imgg.fr/r/Q49xK2tB.jpg'
+/* ===========================================================
+   ÉTAT GLOBAL
+   =========================================================== */
+const state = {
+  darknetUnlocked: false,
+  chatsUnlocked: {},     // chatId -> true
+  imageViewed: false,
+  wipeTimer: null,
+  wipeRemaining: 60,
+  zIndex: 100,
+  windows: {},           // id -> element
+  activeWindow: null,
+  skipEnabled: false,    // activable via la commande cachée "skip"
 };
-const FALLBACK_W = 4096, FALLBACK_H = 4096; // used if image fails
-const STORAGE_KEY  = 'mapPlannerData_v1';
-const UI_KEY       = 'mapPlannerUI_v1';
 
-const EMOJIS = [
-    '📍','📌','🚩','🏁','⭐','❤️','⚠️','❗','❓','✅','❌','🔥','💀','☠️',
-    '🏠','🏡','🏢','🏰','⛪','🕌','🏯','🗼','🏭','🏬','🏥','🏦','🏨','🏪',
-    '🌲','🌳','🌴','🌵','🌾','🌿','☘️','🍀','🌷','🌹','🌻','🌺','🌼','🍄',
-    '⛰️','🏔️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️','🛣️','🛤️','🌉','⛩️',
-    '⚓','⛵','🚤','🛥️','🛳️','⛴️','🚢','✈️','🚁','🚀','🛸','🛩️',
-    '🚗','🚕','🚙','🚌','🚓','🚑','🚒','🚚','🚛','🏍️','🛵','🚲',
-    '⚔️','🛡️','🏹','🔫','💣','🧨','💰','💎','🔑','🗝️','⚙️','🔧',
-    '👑','🎯','🎖️','🏆','🥇','🎁','📦','💼','🎪','🎭','🎨','🎲',
-    '🌟','✨','💫','🌙','☀️','⛅','☁️','🌧️','⛈️','🌩️','❄️','☂️',
-    '🐎','🐺','🦅','🦉','🐍','🐉','🦁','🐯','🐻','🐗','🦊','🦌',
-    '👤','👥','👮','🕵️','🧙','🧝','🧛','🧟','👹','👺','👻','😈'
+const DARKNET_CODE = '4271'; // ← code caché dans Notes
+
+/* ===========================================================
+   PERSISTANCE (wipe)
+   =========================================================== */
+function isWiped() { return localStorage.getItem('dn_wiped') === '1'; }
+function setWiped(v) {
+  if (v) localStorage.setItem('dn_wiped', '1');
+  else localStorage.removeItem('dn_wiped');
+}
+
+/* ===========================================================
+   HORLOGE
+   =========================================================== */
+function updateClock() {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  document.getElementById('taskbar-clock').textContent = `${h}:${m}`;
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ===========================================================
+   FLASH MESSAGE
+   =========================================================== */
+function showFlash(text, duration = 2000) {
+  const f = document.getElementById('flash-msg');
+  f.textContent = text;
+  f.style.display = 'block';
+  setTimeout(() => { f.style.display = 'none'; }, duration);
+}
+
+/* ===========================================================
+   ICÔNES DESKTOP
+   =========================================================== */
+const APPS = [
+  { id: 'notes',    name: 'Notes',     icon: '📝' },
+  { id: 'calc',     name: 'Calc',      icon: '🧮' },
+  { id: 'files',    name: 'Fichiers',  icon: '📁' },
+  { id: 'snake',    name: 'Snake',     icon: '🐍' },
+  { id: 'paint',    name: 'Paint',     icon: '🎨' },
+  { id: 'music',    name: 'Musique',   icon: '🎵' },
+  { id: 'photos',   name: 'Photos',    icon: '🖼' },
+  { id: 'memory',   name: 'Mémoire',   icon: '🧠' },
+  { id: 'darknet',  name: 'DarkNet',   icon: '☠' },
 ];
 
-let state = {
-    mapType: 'satellite',
-    shapes: [],
-    history: []
-};
+function renderDesktop() {
+  const desk = document.getElementById('desktop');
+  desk.innerHTML = '';
+  APPS.forEach(app => {
+    if (app.id === 'darknet' && isWiped()) return; // caché si wipé
+    const el = document.createElement('div');
+    el.className = 'desktop-icon';
+    el.innerHTML = `<div class="ico">${app.icon}</div><div>${app.name}</div>`;
+    el.onclick = () => openApp(app.id);
+    desk.appendChild(el);
+  });
+}
+renderDesktop();
 
-let tool = 'select';
-let stroke = '#3ddc84';
-let fill   = '#7fffa8';
-let useFill = false;
-let strokeWidth = 3;
-let emojiSize = 96;
-let selectedEmoji = '📍';
-let lineStyle = 'solid';
-let textFont = 'Cinzel';
-let lang = 'en';
-let selectedIdxs = new Set();
-let hoverIdx = -1;
-let editingTextIdx = -1;
-let marquee = null; // {x1,y1,x2,y2} in world coords while dragging
-// GTA V world map bounds — pixel (0,0) top-left -> world (-4000, 8000),
-// pixel (W,H) bottom-right -> world (4500, -4000). Y is inverted because
-// GTA's +Y is north (image top) while pixel Y increases downward.
-const WORLD_TL = { x: -4000, y:  8000 };
-const WORLD_BR = { x:  4500, y: -4000 };
-function toDisplayCoords(wx, wy) {
-    const fx = (mapNaturalW > 0) ? (wx / mapNaturalW) : 0;
-    const fy = (mapNaturalH > 0) ? (wy / mapNaturalH) : 0;
-    return {
-        x: Math.round(WORLD_TL.x + (WORLD_BR.x - WORLD_TL.x) * fx),
-        y: Math.round(WORLD_TL.y + (WORLD_BR.y - WORLD_TL.y) * fy)
+/* ===========================================================
+   SYSTÈME DE FENÊTRES
+   =========================================================== */
+function makeWindow({ id, title, body, width = 520, height = 380, x, y, darknet = false, onClose = null }) {
+  if (state.windows[id]) {
+    focusWindow(state.windows[id]);
+    return state.windows[id];
+  }
+  const win = document.createElement('div');
+  win.className = 'window' + (darknet ? ' darknet-window' : '');
+  win.dataset.id = id;
+  win.style.width = width + 'px';
+  win.style.height = height + 'px';
+  if (x === undefined) x = 60 + Math.random() * 80;
+  if (y === undefined) y = 30 + Math.random() * 60;
+  win.style.left = x + 'px';
+  win.style.top = y + 'px';
+  win.style.zIndex = ++state.zIndex;
+
+  win.innerHTML = `
+    <div class="window-title">
+      <span>${title}</span>
+      <div class="window-controls">
+        <button data-action="min">_</button>
+        <button data-action="max">▢</button>
+        <button data-action="close">✕</button>
+      </div>
+    </div>
+    <div class="window-body"></div>
+    <div class="window-resize"></div>
+  `;
+  win.querySelector('.window-body').appendChild(body);
+
+  // Title drag
+  const titleBar = win.querySelector('.window-title');
+  let dragOffset = null;
+  titleBar.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+    if (win.classList.contains('maximized')) return;
+    focusWindow(win);
+    const rect = win.getBoundingClientRect();
+    const containerRect = document.getElementById('screen').getBoundingClientRect();
+    dragOffset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      cx: containerRect.left,
+      cy: containerRect.top
     };
-}
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragOffset || !win.parentElement) return;
+    const nx = Math.max(0, e.clientX - dragOffset.x - dragOffset.cx);
+    const ny = Math.max(0, e.clientY - dragOffset.y - dragOffset.cy);
+    win.style.left = nx + 'px';
+    win.style.top = ny + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragOffset = null; });
 
-const I18N = {
-    en: {
-        title: 'PLANNER',
-        map: 'MAP', satellite: 'Satellite', atlas: 'Atlas',
-        tools: 'TOOLS', actions: 'ACTIONS', selection: 'SELECTION',
-        t_select: 'Select / Move', t_point: 'Point', t_line: 'Line — click two points',
-        t_freedraw: 'Free draw', t_rect: 'Rectangle', t_square: 'Square', t_circle: 'Circle',
-        t_chain: 'Chain — click points, Enter / dbl-click to finish',
-        t_cross: 'X marker', t_plus: 'Plus marker', t_emoji: 'Emoji', t_text: 'Text',
-        t_erase: 'Click a shape to delete it',
-        finishChain: '✓ Finish chain (Enter)', cancel: 'Cancel',
-        lineStyle: 'Line style', solid: 'Solid', dashed: 'Dashed', dotted: 'Dotted', dotdash: 'Dot-dash',
-        strokeColor: 'Stroke color', fill: 'Fill',
-        strokeWidth: 'Stroke width', textSize: 'Emoji / text size', textFont: 'Text font',
-        undo: '↶ Undo', exportPng: 'Export PNG', exportJson: 'Export JSON', importJson: 'Import JSON',
-        resetAll: '⚠ Reset All',
-        lock: '🔒 Lock', unlock: '🔓 Unlock', edit: '✎ Edit', delete: '🗑',
-        statusKeys: ['SPACE pan', 'WHEEL zoom', 'CTRL+Z undo', 'ENTER / DBL-CLICK finish chain'],
-        wipeConfirm: 'Wipe ALL drawings? This cannot be undone.',
-        textPlaceholder: 'Type your text, then press Enter',
-        locked: 'Locked', selectionInfo: (n, t) => `${n} (${t})`,
-        showToolbar: '☰ Tools',
-        mapError: 'Map image could not be loaded.',
-        mapErrorSmall: 'You can still draw, switch to the other variant, or replace the URL.',
-        spaceHint: '[ SPACE held — drag to pan ]'
-    },
-    fr: {
-        title: 'PLANIFICATEUR',
-        map: 'CARTE', satellite: 'Satellite', atlas: 'Atlas',
-        tools: 'OUTILS', actions: 'ACTIONS', selection: 'SÉLECTION',
-        t_select: 'Sélectionner / Déplacer', t_point: 'Point', t_line: 'Ligne — cliquez deux points',
-        t_freedraw: 'Dessin libre', t_rect: 'Rectangle', t_square: 'Carré', t_circle: 'Cercle',
-        t_chain: 'Chaîne — cliquez les points, Entrée / double-clic pour finir',
-        t_cross: 'Marqueur X', t_plus: 'Marqueur +', t_emoji: 'Émoji', t_text: 'Texte',
-        t_erase: 'Cliquez une forme pour la supprimer',
-        finishChain: '✓ Terminer la chaîne (Entrée)', cancel: 'Annuler',
-        lineStyle: 'Style de ligne', solid: 'Plein', dashed: 'Tirets', dotted: 'Pointillé', dotdash: 'Point-tiret',
-        strokeColor: 'Couleur du trait', fill: 'Remplir',
-        strokeWidth: 'Épaisseur', textSize: 'Taille émoji / texte', textFont: 'Police de texte',
-        undo: '↶ Annuler', exportPng: 'Exporter PNG', exportJson: 'Exporter JSON', importJson: 'Importer JSON',
-        resetAll: '⚠ Tout effacer',
-        lock: '🔒 Verrouiller', unlock: '🔓 Déverrouiller', edit: '✎ Modifier', delete: '🗑',
-        statusKeys: ['ESPACE déplacer', 'MOLETTE zoom', 'CTRL+Z annuler', 'ENTRÉE / DOUBLE-CLIC finir chaîne'],
-        wipeConfirm: 'Effacer TOUS les dessins ? Action irréversible.',
-        textPlaceholder: 'Tapez votre texte, puis appuyez sur Entrée',
-        locked: 'Verrouillé', selectionInfo: (n, t) => `${n} (${t})`,
-        showToolbar: '☰ Outils',
-        mapError: "L'image de la carte n'a pas pu être chargée.",
-        mapErrorSmall: 'Vous pouvez quand même dessiner ou changer de variante.',
-        spaceHint: '[ ESPACE maintenu — glisser pour déplacer ]'
-    }
-};
-function t(key) { return I18N[lang][key] ?? I18N.en[key] ?? key; }
-function applyLang() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const k = el.dataset.i18n;
-        const v = t(k);
-        if (typeof v === 'string') el.textContent = v;
-    });
-    document.querySelectorAll('[data-i18n-title]').forEach(el => {
-        const k = el.dataset.i18nTitle;
-        const v = t(k);
-        if (typeof v === 'string') el.title = v;
-    });
-    document.getElementById('langToggle').textContent = lang === 'en' ? 'FR' : 'EN';
-    document.getElementById('showToolbar').textContent = t('showToolbar');
-    document.getElementById('textInput').placeholder = t('textPlaceholder');
-    document.getElementById('panOverlay').textContent = t('spaceHint');
-    const me = document.getElementById('mapError');
-    if (me) me.innerHTML = `${t('mapError')}<small>${t('mapErrorSmall')}</small>`;
-    const keys = t('statusKeys');
-    document.getElementById('statusKeys').innerHTML =
-        keys.map(k => `<span class="key">${k}</span>`).join(' · ');
-    refreshSelectionPanel();
-}
-
-let view = { x: 0, y: 0, scale: 1 };
-let mapNaturalW = FALLBACK_W, mapNaturalH = FALLBACK_H;
-let mapLoaded = false;
-let minScale = 0.05;     // recomputed in fitView()
-const SNAP_PX = 12;      // screen-space snap distance for endpoints
-const FILL_ALPHA = 0.35; // transparency for shape fills
-
-let isPanning = false, spaceDown = false;
-let panStart = null;
-let drawing = null;
-let freePoints = [];
-let chainPoints = [];
-let linePointFirst = null;
-let snapHover = null;   // world coord {x,y} where the cursor is currently snapping
-
-const wrap = document.getElementById('canvasWrap');
-const mapImg = document.getElementById('mapImg');
-const canvas = document.getElementById('drawCanvas');
-const ctx = canvas.getContext('2d');
-
-// ----- LOAD / SAVE -----
-function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ mapType: state.mapType, shapes: state.shapes })); }
-    catch(e) {}
-}
-function load() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const d = JSON.parse(raw);
-        if (d.mapType) state.mapType = d.mapType;
-        if (Array.isArray(d.shapes)) state.shapes = d.shapes;
-    } catch(e) {}
-}
-function saveUI() {
-    try { localStorage.setItem(UI_KEY, JSON.stringify({
-        collapsed: tb.classList.contains('collapsed'),
-        width: tb.style.width
-    })); } catch(e) {}
-}
-function loadUI() {
-    try {
-        const d = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
-        if (d.collapsed) tb.classList.add('collapsed');
-        if (d.width && !d.collapsed) tb.style.width = d.width;
-    } catch(e) {}
-}
-function pushHistory() {
-    state.history.push(JSON.stringify(state.shapes));
-    if (state.history.length > 50) state.history.shift();
-}
-function undo() {
-    if (!state.history.length) return;
-    state.shapes = JSON.parse(state.history.pop());
-    render(); save();
-}
-
-// ----- CANVAS SIZE -----
-function sizeCanvas(w, h) {
-    mapNaturalW = w; mapNaturalH = h;
-    canvas.width = w; canvas.height = h;
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-}
-
-// ----- MAP -----
-function setMap(type) {
-    state.mapType = type;
-    document.querySelectorAll('[data-map]').forEach(b =>
-        b.classList.toggle('active', b.dataset.map === type));
-    document.getElementById('mapError').classList.remove('visible');
-    mapImg.style.display = '';
-    mapLoaded = false;
-    mapImg.src = MAP_URLS[type];
-    save();
-}
-mapImg.addEventListener('load', () => {
-    mapLoaded = true;
-    const w = mapImg.naturalWidth || FALLBACK_W;
-    const h = mapImg.naturalHeight || FALLBACK_H;
-    mapImg.style.width = w + 'px';
-    mapImg.style.height = h + 'px';
-    sizeCanvas(w, h);
-    fitView();
-    render();
-});
-mapImg.addEventListener('error', () => {
-    mapLoaded = false;
-    document.getElementById('mapError').classList.add('visible');
-    mapImg.style.display = 'none';
-    sizeCanvas(FALLBACK_W, FALLBACK_H);
-    fitView();
-    render();
-});
-
-// ----- VIEW -----
-function applyTransform() {
-    const t = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
-    mapImg.style.transform = t;
-    canvas.style.transform = t;
-    document.getElementById('zoomLabel').textContent = Math.round(view.scale*100) + '%';
-}
-function fitView() {
-    const w = wrap.clientWidth, h = wrap.clientHeight;
-    const s = Math.min(w / mapNaturalW, h / mapNaturalH);
-    minScale = s * 0.6;
-    view.scale = s;
-    view.x = (w - mapNaturalW * s) / 2;
-    view.y = (h - mapNaturalH * s) / 2;
-    applyTransform();
-}
-function screenToWorld(sx, sy) {
-    const rect = wrap.getBoundingClientRect();
-    return {
-        x: (sx - rect.left - view.x) / view.scale,
-        y: (sy - rect.top  - view.y) / view.scale
-    };
-}
-function zoomAt(sx, sy, factor) {
-    const w = screenToWorld(sx, sy);
-    view.scale = Math.max(minScale, Math.min(20, view.scale * factor));
-    const rect = wrap.getBoundingClientRect();
-    view.x = (sx - rect.left) - w.x * view.scale;
-    view.y = (sy - rect.top)  - w.y * view.scale;
-    applyTransform();
-}
-
-// ----- BOUNDING BOX -----
-function boundsOf(s) {
-    const pad = (s.width || 2) * 0.6;
-    switch (s.type) {
-        case 'point':  { const r=(s.width||3)*1.8 + pad; return {x:s.x-r,y:s.y-r,w:r*2,h:r*2}; }
-        case 'line':   { const x1=Math.min(s.x1,s.x2), y1=Math.min(s.y1,s.y2);
-                          return {x:x1-pad, y:y1-pad, w:Math.abs(s.x2-s.x1)+pad*2, h:Math.abs(s.y2-s.y1)+pad*2}; }
-        case 'rect': case 'square': return {x:s.x-pad, y:s.y-pad, w:s.w+pad*2, h:s.h+pad*2};
-        case 'circle': return {x:s.x-s.r-pad, y:s.y-s.r-pad, w:s.r*2+pad*2, h:s.r*2+pad*2};
-        case 'freedraw': case 'chain': {
-            let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-            for (const p of s.points){ if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; }
-            return {x:minX-pad, y:minY-pad, w:(maxX-minX)+pad*2, h:(maxY-minY)+pad*2};
-        }
-        case 'emoji':  { const r=s.size*0.55; return {x:s.x-r,y:s.y-r,w:r*2,h:r*2}; }
-        case 'cross': case 'plus': { const r=s.size+pad; return {x:s.x-r,y:s.y-r,w:r*2,h:r*2}; }
-        case 'text': {
-            // approximate
-            const w = (s.text||'').length * s.size * 0.55;
-            return {x:s.x-pad, y:s.y-pad, w:w+pad*2, h:s.size+pad*2};
-        }
-    }
-    return {x:0,y:0,w:0,h:0};
-}
-function drawHitbox(c, b, isSelected, isLocked) {
-    c.save();
-    const dash = 6 / view.scale;
-    c.lineWidth = (isSelected ? 2 : 1.5) / view.scale;
-    c.strokeStyle = isLocked ? '#ffaa44' : (isSelected ? '#7fffa8' : 'rgba(127,255,168,0.55)');
-    c.setLineDash(isSelected ? [] : [dash, dash*0.6]);
-    c.strokeRect(b.x, b.y, b.w, b.h);
-    if (isSelected) {
-        // corner handles
-        const hs = 6 / view.scale;
-        c.fillStyle = c.strokeStyle;
-        [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]].forEach(([hx,hy]) => {
-            c.fillRect(hx-hs/2, hy-hs/2, hs, hs);
-        });
-    }
-    if (isLocked) {
-        c.font = `${14/view.scale}px sans-serif`;
-        c.fillStyle = '#ffaa44';
-        c.textBaseline = 'top'; c.textAlign = 'left';
-        c.fillText('🔒', b.x + 4/view.scale, b.y + 4/view.scale);
-    }
-    c.restore();
-}
-
-// ----- SNAP TO EXISTING ENDPOINTS -----
-function getAllEndpoints() {
-    const pts = [];
-    for (const s of state.shapes) {
-        switch (s.type) {
-            case 'point': pts.push({x:s.x, y:s.y}); break;
-            case 'line':  pts.push({x:s.x1,y:s.y1}); pts.push({x:s.x2,y:s.y2}); break;
-            case 'chain':
-            case 'freedraw':
-                if (s.points && s.points.length) {
-                    pts.push(s.points[0]);
-                    pts.push(s.points[s.points.length-1]);
-                    // also let internal vertices act as join points for chains
-                    if (s.type === 'chain') for (let i=1;i<s.points.length-1;i++) pts.push(s.points[i]);
-                }
-                break;
-        }
-    }
-    return pts;
-}
-function snapPoint(w) {
-    const tol = SNAP_PX / view.scale;
-    let best = null, bestD = tol;
-    for (const p of getAllEndpoints()) {
-        const d = dist(w.x, w.y, p.x, p.y);
-        if (d <= bestD) { bestD = d; best = p; }
-    }
-    // also snap to current in-progress chain points
-    for (const p of chainPoints) {
-        const d = dist(w.x, w.y, p.x, p.y);
-        if (d <= bestD) { bestD = d; best = p; }
-    }
-    if (linePointFirst) {
-        const d = dist(w.x, w.y, linePointFirst.x, linePointFirst.y);
-        if (d <= bestD) { bestD = d; best = linePointFirst; }
-    }
-    return best ? {x: best.x, y: best.y, snapped: true} : {x: w.x, y: w.y, snapped: false};
-}
-
-// ----- RENDER -----
-function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!mapLoaded) {
-        // subtle grid so the user can see they're drawing on something
-        ctx.save();
-        ctx.fillStyle = '#06160e';
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.strokeStyle = 'rgba(61,220,132,0.08)';
-        ctx.lineWidth = 1;
-        const step = 200;
-        for (let x=0; x<canvas.width; x+=step){
-            ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
-        }
-        for (let y=0; y<canvas.height; y+=step){
-            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
-        }
-        ctx.restore();
-    }
-    for (const s of state.shapes) drawShape(ctx, s);
-    if (drawing && drawing.type) drawShape(ctx, drawing, true);
-    if (chainPoints.length) drawChainPreview();
-    if (linePointFirst) drawLineFirstMarker();
-    if (snapHover) drawSnapIndicator();
-
-    // Hover hitbox (light) — only in select / erase mode and not on a selected shape
-    if ((tool === 'select' || tool === 'erase') && hoverIdx >= 0 && !selectedIdxs.has(hoverIdx)) {
-        const s = state.shapes[hoverIdx];
-        if (s) drawHitbox(ctx, boundsOf(s), false, !!s.locked);
-    }
-    // Selection hitboxes
-    for (const idx of selectedIdxs) {
-        const s = state.shapes[idx];
-        if (s) drawHitbox(ctx, boundsOf(s), true, !!s.locked);
-    }
-    // Marquee selection rectangle
-    if (marquee) {
-        ctx.save();
-        const mx = Math.min(marquee.x1, marquee.x2);
-        const my = Math.min(marquee.y1, marquee.y2);
-        const mw = Math.abs(marquee.x2 - marquee.x1);
-        const mh = Math.abs(marquee.y2 - marquee.y1);
-        ctx.fillStyle = 'rgba(61,220,132,0.10)';
-        ctx.fillRect(mx, my, mw, mh);
-        ctx.strokeStyle = '#7fffa8';
-        ctx.lineWidth = 1.5 / view.scale;
-        ctx.setLineDash([6 / view.scale, 4 / view.scale]);
-        ctx.strokeRect(mx, my, mw, mh);
-        ctx.restore();
-    }
-}
-function drawSnapIndicator() {
-    const r = 10 / view.scale;
-    ctx.save();
-    ctx.strokeStyle = '#7fffa8';
-    ctx.lineWidth = 2 / view.scale;
-    ctx.setLineDash([4 / view.scale, 3 / view.scale]);
-    ctx.beginPath();
-    ctx.arc(snapHover.x, snapHover.y, r, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(127,255,168,0.4)';
-    ctx.beginPath();
-    ctx.arc(snapHover.x, snapHover.y, r*0.4, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-}
-function hexToRgba(hex, alpha) {
-    if (!hex) return `rgba(255,255,255,${alpha})`;
-    let h = hex.replace('#','');
-    if (h.length === 3) h = h.split('').map(c=>c+c).join('');
-    const r = parseInt(h.slice(0,2),16);
-    const g = parseInt(h.slice(2,4),16);
-    const b = parseInt(h.slice(4,6),16);
-    return `rgba(${r},${g},${b},${alpha})`;
-}
-function dashFor(style, w) {
-    switch(style) {
-        case 'dashed':  return [w*4, w*2.5];
-        case 'dotted':  return [0.1, w*2];
-        case 'dotdash': return [w*4, w*2, 0.1, w*2];
-        default:        return [];
-    }
-}
-function drawShape(c, s, isPreview=false) {
-    c.save();
-    c.strokeStyle = s.stroke || '#fff';
-    c.fillStyle   = s.useFill ? hexToRgba(s.fill || s.stroke, FILL_ALPHA) : 'rgba(0,0,0,0)';
-    c.lineWidth   = s.width  || 2;
-    const ls = s.lineStyle || 'solid';
-    if (ls === 'dotted') c.lineCap = 'round'; else c.lineCap = 'round';
-    c.lineJoin = 'round';
-    c.setLineDash(dashFor(ls, s.width||2));
-    if (isPreview) c.globalAlpha = 0.7;
-
-    switch(s.type) {
-        case 'point':
-            c.beginPath();
-            c.arc(s.x, s.y, (s.width||3)*1.8, 0, Math.PI*2);
-            c.fillStyle = s.stroke; c.fill();
-            c.lineWidth = 1.5; c.strokeStyle = '#fff'; c.stroke();
-            break;
-        case 'line':
-            c.beginPath(); c.moveTo(s.x1, s.y1); c.lineTo(s.x2, s.y2); c.stroke();
-            break;
-        case 'rect':
-        case 'square':
-            c.beginPath(); c.rect(s.x, s.y, s.w, s.h);
-            if (s.useFill) c.fill(); c.stroke();
-            break;
-        case 'circle':
-            c.beginPath(); c.arc(s.x, s.y, s.r, 0, Math.PI*2);
-            if (s.useFill) c.fill(); c.stroke();
-            break;
-        case 'freedraw':
-            if (s.points.length < 2) break;
-            c.beginPath();
-            c.moveTo(s.points[0].x, s.points[0].y);
-            if (s.points.length === 2) {
-                c.lineTo(s.points[1].x, s.points[1].y);
-            } else {
-                // quadratic-smoothed path → rounded curves between points
-                for (let i = 1; i < s.points.length - 1; i++) {
-                    const xc = (s.points[i].x + s.points[i+1].x) / 2;
-                    const yc = (s.points[i].y + s.points[i+1].y) / 2;
-                    c.quadraticCurveTo(s.points[i].x, s.points[i].y, xc, yc);
-                }
-                const last = s.points[s.points.length - 1];
-                c.lineTo(last.x, last.y);
-            }
-            c.stroke();
-            break;
-        case 'chain':
-            if (s.points.length < 2) break;
-            c.beginPath(); c.moveTo(s.points[0].x, s.points[0].y);
-            for (let i=1;i<s.points.length;i++) c.lineTo(s.points[i].x, s.points[i].y);
-            c.stroke();
-            c.setLineDash([]);
-            for (const p of s.points) {
-                c.beginPath();
-                c.arc(p.x, p.y, (s.width||3)*1.6, 0, Math.PI*2);
-                c.fillStyle = s.stroke; c.fill();
-                c.lineWidth = 1.5; c.strokeStyle = '#fff'; c.stroke();
-            }
-            break;
-        case 'emoji':
-            c.font = `${s.size}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
-            c.textAlign = 'center'; c.textBaseline = 'middle';
-            c.fillText(s.emoji, s.x, s.y);
-            break;
-        case 'cross': {
-            const r = s.size || 18;
-            c.lineCap = 'round';
-            c.beginPath();
-            c.moveTo(s.x - r, s.y - r); c.lineTo(s.x + r, s.y + r);
-            c.moveTo(s.x + r, s.y - r); c.lineTo(s.x - r, s.y + r);
-            c.stroke();
-            break;
-        }
-        case 'plus': {
-            const r = s.size || 18;
-            c.lineCap = 'round';
-            c.beginPath();
-            c.moveTo(s.x - r, s.y); c.lineTo(s.x + r, s.y);
-            c.moveTo(s.x, s.y - r); c.lineTo(s.x, s.y + r);
-            c.stroke();
-            break;
-        }
-        case 'text':
-            const fam = s.font || 'Cinzel';
-            const weight = (fam === 'Cinzel') ? '700' : (fam === 'Inter' ? '600' : '500');
-            c.font = `${weight} ${s.size}px "${fam}", 'Segoe UI', sans-serif`;
-            c.textAlign = 'left'; c.textBaseline = 'top';
-            c.fillStyle = s.stroke;
-            c.strokeStyle = 'rgba(0,0,0,0.85)';
-            c.lineWidth = Math.max(3, s.size * 0.12);
-            c.lineJoin = 'round';
-            c.miterLimit = 2;
-            c.strokeText(s.text, s.x, s.y);
-            c.fillText(s.text, s.x, s.y);
-            break;
-    }
-    c.restore();
-}
-function drawChainPreview() {
-    ctx.save();
-    ctx.strokeStyle = stroke; ctx.lineWidth = strokeWidth;
-    ctx.setLineDash([6,4]);
-    ctx.beginPath();
-    ctx.moveTo(chainPoints[0].x, chainPoints[0].y);
-    for (let i=1;i<chainPoints.length;i++) ctx.lineTo(chainPoints[i].x, chainPoints[i].y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    for (const p of chainPoints) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, strokeWidth*1.6, 0, Math.PI*2);
-        ctx.fillStyle = stroke; ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-    }
-    ctx.restore();
-}
-function drawLineFirstMarker() {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(linePointFirst.x, linePointFirst.y, strokeWidth*1.6, 0, Math.PI*2);
-    ctx.fillStyle = stroke; ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.restore();
-}
-
-// ----- HIT TEST -----
-function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
-function distToSegment(px,py,x1,y1,x2,y2){
-    const dx=x2-x1, dy=y2-y1, len2=dx*dx+dy*dy || 1;
-    let t=((px-x1)*dx+(py-y1)*dy)/len2;
-    t=Math.max(0,Math.min(1,t));
-    return dist(px,py, x1+t*dx, y1+t*dy);
-}
-function hitTest(wx, wy) {
-    const tol = 8 / view.scale;
-    for (let i = state.shapes.length - 1; i >= 0; i--) {
-        const s = state.shapes[i];
-        const w = (s.width||2) + tol;
-        switch(s.type) {
-            case 'point':  if (dist(wx,wy,s.x,s.y) <= w*2) return i; break;
-            case 'line':   if (distToSegment(wx,wy,s.x1,s.y1,s.x2,s.y2) <= w) return i; break;
-            case 'rect': case 'square': {
-                const x1=s.x, y1=s.y, x2=s.x+s.w, y2=s.y+s.h;
-                if (s.useFill) { if (wx>=Math.min(x1,x2)&&wx<=Math.max(x1,x2)&&wy>=Math.min(y1,y2)&&wy<=Math.max(y1,y2)) return i; }
-                else {
-                    if (distToSegment(wx,wy,x1,y1,x2,y1)<=w||
-                        distToSegment(wx,wy,x2,y1,x2,y2)<=w||
-                        distToSegment(wx,wy,x2,y2,x1,y2)<=w||
-                        distToSegment(wx,wy,x1,y2,x1,y1)<=w) return i;
-                }
-                break;
-            }
-            case 'circle': {
-                const d=dist(wx,wy,s.x,s.y);
-                if (s.useFill) { if (d<=s.r) return i; }
-                else { if (Math.abs(d-s.r)<=w) return i; }
-                break;
-            }
-            case 'freedraw': case 'chain':
-                for (let k=1;k<s.points.length;k++){
-                    if (distToSegment(wx,wy,s.points[k-1].x,s.points[k-1].y,s.points[k].x,s.points[k].y)<=w) return i;
-                }
-                break;
-            case 'emoji': if (dist(wx,wy,s.x,s.y) <= s.size*0.6) return i; break;
-            case 'cross':
-            case 'plus':  if (dist(wx,wy,s.x,s.y) <= s.size + w) return i; break;
-            case 'text':  if (wx>=s.x && wx<=s.x+s.text.length*s.size*0.6 && wy>=s.y && wy<=s.y+s.size) return i; break;
-        }
-    }
-    return -1;
-}
-
-// ----- INPUT -----
-wrap.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
-    const w = screenToWorld(e.clientX, e.clientY);
-
-    if (spaceDown) {
-        isPanning = true;
-        panStart = { mx: e.clientX, my: e.clientY, vx: view.x, vy: view.y };
-        wrap.style.cursor = 'grabbing';
-        return;
-    }
-
-    if (tool === 'select') {
-        const idx = hitTest(w.x, w.y);
-        const additive = e.shiftKey || e.ctrlKey || e.metaKey;
-        if (idx >= 0) {
-            if (additive) {
-                if (selectedIdxs.has(idx)) selectedIdxs.delete(idx);
-                else selectedIdxs.add(idx);
-            } else if (!selectedIdxs.has(idx)) {
-                selectedIdxs.clear();
-                selectedIdxs.add(idx);
-            }
-            refreshSelectionPanel();
-            // begin drag of all currently selected (skip locked)
-            const movable = [...selectedIdxs].filter(i => !state.shapes[i].locked);
-            if (movable.length) {
-                drawing = {
-                    multiDrag: true,
-                    startW: w,
-                    origMap: Object.fromEntries(movable.map(i => [i, JSON.parse(JSON.stringify(state.shapes[i]))]))
-                };
-            }
-            render();
-        } else {
-            if (!additive) selectedIdxs.clear();
-            refreshSelectionPanel();
-            // begin marquee
-            drawing = { marquee: true, startW: w, additive };
-            marquee = { x1:w.x, y1:w.y, x2:w.x, y2:w.y };
-            render();
-        }
-        return;
-    }
-    if (tool === 'erase') {
-        const idx = hitTest(w.x, w.y);
-        if (idx >= 0 && !state.shapes[idx].locked) {
-            pushHistory(); state.shapes.splice(idx,1);
-            const newSel = new Set();
-            for (const i of selectedIdxs) {
-                if (i === idx) continue;
-                newSel.add(i > idx ? i - 1 : i);
-            }
-            selectedIdxs = newSel;
-            refreshSelectionPanel();
-            save(); render();
-        }
-        return;
-    }
-    if (tool === 'point') {
-        const sp = snapPoint(w);
-        pushHistory();
-        state.shapes.push({ type:'point', x:sp.x, y:sp.y, stroke, width:strokeWidth });
-        save(); render(); return;
-    }
-    if (tool === 'line') {
-        const sp = snapPoint(w);
-        if (!linePointFirst) { linePointFirst = {x:sp.x, y:sp.y}; render(); }
-        else {
-            pushHistory();
-            state.shapes.push({ type:'line', x1:linePointFirst.x, y1:linePointFirst.y, x2:sp.x, y2:sp.y, stroke, width:strokeWidth, lineStyle });
-            linePointFirst = null; save(); render();
-        }
-        return;
-    }
-    if (tool === 'chain') {
-        const sp = snapPoint(w);
-        chainPoints.push({x:sp.x, y:sp.y});
-        updateChainConfirmUI();
-        render();
-        return;
-    }
-    if (tool === 'freedraw') {
-        freePoints = [w];
-        drawing = { type:'freedraw', points: freePoints, stroke, width: strokeWidth, lineStyle };
-        return;
-    }
-    if (tool === 'rect' || tool === 'square' || tool === 'circle') {
-        drawing = { type: tool, _startX: w.x, _startY: w.y, stroke, fill, useFill, width: strokeWidth, lineStyle };
-        if (tool === 'circle') { drawing.x = w.x; drawing.y = w.y; drawing.r = 0; }
-        else { drawing.x = w.x; drawing.y = w.y; drawing.w = 0; drawing.h = 0; }
-        return;
-    }
-    if (tool === 'emoji') {
-        pushHistory();
-        state.shapes.push({ type:'emoji', x:w.x, y:w.y, emoji:selectedEmoji, size:emojiSize });
-        save(); render(); return;
-    }
-    if (tool === 'cross' || tool === 'plus') {
-        pushHistory();
-        state.shapes.push({ type: tool, x:w.x, y:w.y, size: emojiSize*0.7, stroke, width: strokeWidth });
-        save(); render(); return;
-    }
-    if (tool === 'text') {
-        openTextInput(e.clientX, e.clientY, w);
-        return;
-    }
-});
-
-wrap.addEventListener('mousemove', (e) => {
-    const w = screenToWorld(e.clientX, e.clientY);
-    const d = toDisplayCoords(w.x, w.y);
-    document.getElementById('coords').textContent = `${d.x}, ${d.y}`;
-
-    if (isPanning) {
-        view.x = panStart.vx + (e.clientX - panStart.mx);
-        view.y = panStart.vy + (e.clientY - panStart.my);
-        applyTransform();
-        return;
-    }
-
-    // snap hover indicator (only for tools that link endpoints)
-    const prevSnap = snapHover;
-    if (tool === 'point' || tool === 'line' || tool === 'chain') {
-        const sp = snapPoint(w);
-        snapHover = sp.snapped ? {x:sp.x, y:sp.y} : null;
-    } else {
-        snapHover = null;
-    }
-    const snapChanged = (!!prevSnap !== !!snapHover) ||
-        (snapHover && prevSnap && (snapHover.x!==prevSnap.x||snapHover.y!==prevSnap.y));
-
-    // hover-hitbox for select / erase
-    let hoverChanged = false;
-    if (tool === 'select' || tool === 'erase') {
-        const newHover = hitTest(w.x, w.y);
-        if (newHover !== hoverIdx) { hoverIdx = newHover; hoverChanged = true; }
-        if (!spaceDown && !isPanning) {
-            wrap.style.cursor = (newHover >= 0)
-                ? (state.shapes[newHover] && state.shapes[newHover].locked ? 'not-allowed' :
-                    (tool === 'erase' ? 'crosshair' : 'move'))
-                : 'crosshair';
-        }
-    } else if (hoverIdx !== -1) { hoverIdx = -1; hoverChanged = true; }
-
-    if (snapChanged || hoverChanged) render();
-
-    if (!drawing) return;
-
-    if (drawing.marquee) {
-        marquee.x2 = w.x; marquee.y2 = w.y;
-        render(); return;
-    }
-    if (drawing.multiDrag) {
-        const dx = w.x - drawing.startW.x;
-        const dy = w.y - drawing.startW.y;
-        for (const [iStr, o] of Object.entries(drawing.origMap)) {
-            const i = +iStr; const s = state.shapes[i]; if (!s) continue;
-            if (o.type==='point'||o.type==='circle'||o.type==='emoji'||o.type==='text'||o.type==='cross'||o.type==='plus') {
-                s.x = o.x + dx; s.y = o.y + dy;
-            } else if (o.type==='line') {
-                s.x1=o.x1+dx; s.y1=o.y1+dy; s.x2=o.x2+dx; s.y2=o.y2+dy;
-            } else if (o.type==='rect'||o.type==='square') {
-                s.x = o.x + dx; s.y = o.y + dy;
-            } else if (o.type==='freedraw'||o.type==='chain') {
-                s.points = o.points.map(p => ({x:p.x+dx, y:p.y+dy}));
-            }
-        }
-        render(); return;
-    }
-
-    if (drawing.type === 'freedraw') { freePoints.push(w); render(); return; }
-    if (drawing.type === 'rect') {
-        drawing.x = Math.min(w.x, drawing._startX);
-        drawing.y = Math.min(w.y, drawing._startY);
-        drawing.w = Math.abs(w.x - drawing._startX);
-        drawing.h = Math.abs(w.y - drawing._startY);
-        render(); return;
-    }
-    if (drawing.type === 'square') {
-        const dx = w.x - drawing._startX, dy = w.y - drawing._startY;
-        const sz = Math.max(Math.abs(dx), Math.abs(dy));
-        drawing.x = drawing._startX + (dx<0 ? -sz : 0);
-        drawing.y = drawing._startY + (dy<0 ? -sz : 0);
-        drawing.w = sz; drawing.h = sz;
-        render(); return;
-    }
-    if (drawing.type === 'circle') {
-        drawing.r = dist(w.x, w.y, drawing._startX, drawing._startY);
-        render(); return;
-    }
-});
-
-wrap.addEventListener('mouseup', () => {
-    if (isPanning) { isPanning = false; wrap.style.cursor = spaceDown ? 'grab' : 'crosshair'; return; }
-    if (!drawing) return;
-    if (drawing.marquee) {
-        // build selection from marquee rect
-        const mx1 = Math.min(marquee.x1, marquee.x2);
-        const my1 = Math.min(marquee.y1, marquee.y2);
-        const mx2 = Math.max(marquee.x1, marquee.x2);
-        const my2 = Math.max(marquee.y1, marquee.y2);
-        const trivial = (mx2-mx1) < 2/view.scale && (my2-my1) < 2/view.scale;
-        if (!trivial) {
-            const newHits = new Set();
-            for (let i = 0; i < state.shapes.length; i++) {
-                const b = boundsOf(state.shapes[i]);
-                if (b.x >= mx1 && b.x + b.w <= mx2 && b.y >= my1 && b.y + b.h <= my2) newHits.add(i);
-            }
-            if (drawing.additive) for (const i of newHits) selectedIdxs.add(i);
-            else selectedIdxs = newHits;
-        }
-        marquee = null; drawing = null;
-        refreshSelectionPanel();
-        render();
-        return;
-    }
-    if (drawing.multiDrag) {
-        // only push history if actually moved
-        const moved = Object.entries(drawing.origMap).some(([iStr, o]) => {
-            const s = state.shapes[+iStr]; if (!s) return false;
-            if (o.x !== undefined && (s.x !== o.x || s.y !== o.y)) return true;
-            if (o.x1 !== undefined && (s.x1 !== o.x1 || s.y1 !== o.y1)) return true;
-            if (o.points && s.points && s.points[0] && o.points[0] && s.points[0].x !== o.points[0].x) return true;
-            return false;
-        });
-        if (moved) { pushHistory(); save(); }
-        drawing = null; return;
-    }
-    if (drawing.type === 'freedraw' && freePoints.length > 1) {
-        pushHistory();
-        state.shapes.push({ type:'freedraw', points: freePoints.slice(), stroke, width: strokeWidth, lineStyle });
-    }
-    if ((drawing.type === 'rect' || drawing.type === 'square') && drawing.w > 2 && drawing.h > 2) {
-        pushHistory();
-        const {_startX,_startY,...clean} = drawing;
-        clean.lineStyle = lineStyle;
-        state.shapes.push(clean);
-    }
-    if (drawing.type === 'circle' && drawing.r > 2) {
-        pushHistory();
-        const {_startX,_startY,...clean} = drawing;
-        clean.lineStyle = lineStyle;
-        state.shapes.push(clean);
-    }
-    drawing = null; freePoints = [];
-    save(); render();
-});
-
-function finishChain() {
-    if (tool !== 'chain') return;
-    if (chainPoints.length < 2) { chainPoints = []; updateChainConfirmUI(); render(); return; }
-    pushHistory();
-    state.shapes.push({ type:'chain', points: chainPoints.slice(), stroke, width: strokeWidth, lineStyle });
-    chainPoints = [];
-    updateChainConfirmUI();
-    save(); render();
-}
-function cancelChain() {
-    chainPoints = [];
-    updateChainConfirmUI();
-    render();
-}
-function updateChainConfirmUI() {
-    const row = document.getElementById('chainConfirmRow');
-    row.style.display = (tool === 'chain' && chainPoints.length > 0) ? 'flex' : 'none';
-}
-
-wrap.addEventListener('dblclick', (e) => {
-    if (tool === 'chain') { finishChain(); return; }
-    if (tool === 'select') {
-        const w = screenToWorld(e.clientX, e.clientY);
-        const idx = hitTest(w.x, w.y);
-        if (idx >= 0 && state.shapes[idx].type === 'text' && !state.shapes[idx].locked) {
-            selectedIdxs = new Set([idx]);
-            refreshSelectionPanel();
-            openTextInput(e.clientX, e.clientY, {x:state.shapes[idx].x, y:state.shapes[idx].y}, idx);
-        }
-    }
-});
-
-wrap.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
-    zoomAt(e.clientX, e.clientY, factor);
-}, { passive: false });
-
-// ----- KEYBOARD -----
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !spaceDown && !isTyping(e.target)) {
-        spaceDown = true;
-        wrap.style.cursor = 'grab';
-        document.getElementById('panOverlay').classList.add('active');
-        e.preventDefault();
-    }
-    if (e.key === 'Escape') { cancelChain(); linePointFirst = null; drawing = null; render(); }
-    if ((e.key === 'Enter') && !isTyping(e.target)) {
-        if (tool === 'chain' && chainPoints.length >= 2) { e.preventDefault(); finishChain(); }
-    }
-    if ((e.ctrlKey||e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !isTyping(e.target) && selectedIdxs.size) {
-        e.preventDefault();
-        document.getElementById('deleteBtn').click();
-    }
-    if ((e.ctrlKey||e.metaKey) && e.key === 'a' && !isTyping(e.target) && (tool === 'select' || tool === 'erase')) {
-        e.preventDefault();
-        selectedIdxs = new Set(state.shapes.map((_, i) => i));
-        refreshSelectionPanel(); render();
-    }
-});
-window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space') {
-        spaceDown = false;
-        wrap.style.cursor = 'crosshair';
-        document.getElementById('panOverlay').classList.remove('active');
-    }
-});
-function isTyping(el){ return el && (el.tagName==='INPUT'||el.tagName==='TEXTAREA'); }
-
-// ----- INLINE TEXT INPUT -----
-const textInput = document.getElementById('textInput');
-let textInputWorld = null;
-function openTextInput(sx, sy, w, existingIdx) {
-    textInputWorld = w;
-    editingTextIdx = (existingIdx !== undefined) ? existingIdx : -1;
-    textInput.value = (editingTextIdx >= 0) ? (state.shapes[editingTextIdx].text || '') : '';
-    // size & font match what will be drawn so it looks like in-place editing
-    const onScreenSize = Math.max(14, Math.min(64, emojiSize * view.scale * 0.55));
-    const fontFam = (editingTextIdx >= 0 ? state.shapes[editingTextIdx].font : textFont) || 'Cinzel';
-    textInput.style.fontFamily = `"${fontFam}", 'Inter', sans-serif`;
-    textInput.style.fontSize = onScreenSize + 'px';
-    textInput.style.left = (sx - 8) + 'px';
-    textInput.style.top  = (sy - onScreenSize * 0.8) + 'px';
-    textInput.classList.add('visible');
-    setTimeout(() => { textInput.focus(); textInput.select(); }, 10);
-}
-function commitTextInput() {
-    if (!textInput.classList.contains('visible')) return;
-    const txt = textInput.value.trim();
-    textInput.classList.remove('visible');
-    if (!textInputWorld) { editingTextIdx = -1; return; }
-    pushHistory();
-    if (editingTextIdx >= 0) {
-        if (txt) state.shapes[editingTextIdx].text = txt;
-        else {
-            state.shapes.splice(editingTextIdx, 1);
-            const newSel = new Set();
-            for (const i of selectedIdxs) {
-                if (i === editingTextIdx) continue;
-                newSel.add(i > editingTextIdx ? i - 1 : i);
-            }
-            selectedIdxs = newSel;
-        }
-    } else if (txt) {
-        state.shapes.push({
-            type:'text', x:textInputWorld.x, y:textInputWorld.y,
-            text:txt, size:emojiSize, stroke, font: textFont
-        });
-    }
-    editingTextIdx = -1;
-    textInputWorld = null;
-    refreshSelectionPanel();
-    save(); render();
-}
-function cancelTextInput() {
-    textInput.classList.remove('visible');
-    textInputWorld = null;
-    editingTextIdx = -1;
-}
-textInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter')  { e.preventDefault(); commitTextInput(); }
-    if (e.key === 'Escape') { e.preventDefault(); cancelTextInput(); }
+  // Resize
+  const resize = win.querySelector('.window-resize');
+  let resizing = null;
+  resize.addEventListener('mousedown', (e) => {
     e.stopPropagation();
-});
-textInput.addEventListener('blur', commitTextInput);
+    if (win.classList.contains('maximized')) return;
+    resizing = { x: e.clientX, y: e.clientY, w: win.offsetWidth, h: win.offsetHeight };
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!resizing) return;
+    win.style.width = Math.max(260, resizing.w + (e.clientX - resizing.x)) + 'px';
+    win.style.height = Math.max(180, resizing.h + (e.clientY - resizing.y)) + 'px';
+  });
+  document.addEventListener('mouseup', () => { resizing = null; });
 
-// ----- TOOLBAR -----
-const tb = document.getElementById('toolbar');
-const showBtn = document.getElementById('showToolbar');
-function setToolbarHidden(hidden) {
-    if (hidden) {
-        tb.style.display = 'none';
-        showBtn.classList.add('visible');
-    } else {
-        tb.style.display = '';
-        tb.classList.remove('collapsed');
-        showBtn.classList.remove('visible');
-    }
-    try { localStorage.setItem('mapPlannerHidden', hidden ? '1' : '0'); } catch(e) {}
-}
-document.getElementById('tb-close').addEventListener('click', () => setToolbarHidden(true));
-showBtn.addEventListener('click', () => setToolbarHidden(false));
-// Persist resize width when user drags the corner
-new ResizeObserver(() => { if (!tb.classList.contains('collapsed')) saveUI(); }).observe(tb);
+  // Controls
+  win.querySelector('[data-action="close"]').onclick = () => {
+    if (onClose) onClose();
+    win.remove();
+    delete state.windows[id];
+    renderTaskbar();
+  };
+  win.querySelector('[data-action="max"]').onclick = () => {
+    win.classList.toggle('maximized');
+  };
+  win.querySelector('[data-action="min"]').onclick = () => {
+    win.style.display = 'none';
+    renderTaskbar();
+  };
+  win.addEventListener('mousedown', () => focusWindow(win));
 
-document.querySelectorAll('[data-tool]').forEach(b => {
-    b.addEventListener('click', () => {
-        if (tool === 'chain' && chainPoints.length >= 2 && b.dataset.tool !== 'chain') finishChain();
-        else chainPoints = [];
-        tool = b.dataset.tool;
-        document.querySelectorAll('[data-tool]').forEach(x => x.classList.toggle('active', x===b));
-        linePointFirst = null; drawing = null;
-        if (tool !== 'select' && tool !== 'erase') {
-            selectedIdxs.clear(); hoverIdx = -1; refreshSelectionPanel();
-        }
-        document.getElementById('emojiPanel').classList.toggle('visible', tool==='emoji');
-        updateChainConfirmUI();
-        render();
-    });
-});
-
-document.querySelectorAll('.style-btn').forEach(b => {
-    b.addEventListener('click', () => {
-        lineStyle = b.dataset.style;
-        document.querySelectorAll('.style-btn').forEach(x => x.classList.toggle('active', x===b));
-    });
-});
-document.getElementById('fontPick').addEventListener('change', e => textFont = e.target.value);
-document.getElementById('finishChain').addEventListener('click', finishChain);
-document.getElementById('cancelChain').addEventListener('click', cancelChain);
-
-// ----- SELECTION PANEL -----
-function refreshSelectionPanel() {
-    const panel = document.getElementById('selectionPanel');
-    const sizeRow = document.getElementById('selSizeRow');
-    if (selectedIdxs.size === 0) {
-        panel.style.display = 'none';
-        if (sizeRow) sizeRow.style.display = 'none';
-        return;
-    }
-    panel.style.display = '';
-    const ids = [...selectedIdxs];
-    const allLocked = ids.every(i => state.shapes[i] && state.shapes[i].locked);
-    if (ids.length === 1) {
-        const s = state.shapes[ids[0]];
-        document.getElementById('selInfo').textContent =
-            t('selectionInfo')(s.type.toUpperCase(), s.locked ? t('locked') : '#'+ (ids[0]+1));
-        document.getElementById('editBtn').style.display = (s.type === 'text' && !s.locked) ? '' : 'none';
-    } else {
-        document.getElementById('selInfo').textContent = `${ids.length} ${lang==='fr'?'éléments':'items'}`;
-        document.getElementById('editBtn').style.display = 'none';
-    }
-    document.getElementById('lockBtn').textContent = allLocked ? t('unlock') : t('lock');
-    // size editor — visible if any selected shape has a size or width property
-    if (sizeRow) {
-        const hasSize = ids.some(i => {
-            const s = state.shapes[i]; return s && (s.size !== undefined || s.width !== undefined);
-        });
-        sizeRow.style.display = hasSize ? '' : 'none';
-        if (hasSize) {
-            const firstWithSize = state.shapes[ids.find(i => state.shapes[i] && state.shapes[i].size !== undefined)];
-            const firstWithWidth = state.shapes[ids.find(i => state.shapes[i] && state.shapes[i].width !== undefined)];
-            const sizeSlider = document.getElementById('selSize');
-            const widthSlider = document.getElementById('selWidth');
-            if (firstWithSize && sizeSlider) {
-                sizeSlider.parentElement.style.display = '';
-                sizeSlider.value = firstWithSize.size;
-                document.getElementById('selSizeVal').textContent = firstWithSize.size;
-            } else if (sizeSlider) sizeSlider.parentElement.style.display = 'none';
-            if (firstWithWidth && widthSlider) {
-                widthSlider.parentElement.style.display = '';
-                widthSlider.value = firstWithWidth.width;
-                document.getElementById('selWidthVal').textContent = firstWithWidth.width;
-            } else if (widthSlider) widthSlider.parentElement.style.display = 'none';
-        }
-    }
-}
-document.getElementById('lockBtn').addEventListener('click', () => {
-    if (selectedIdxs.size === 0) return;
-    pushHistory();
-    const ids = [...selectedIdxs];
-    const allLocked = ids.every(i => state.shapes[i].locked);
-    for (const i of ids) state.shapes[i].locked = !allLocked;
-    refreshSelectionPanel(); save(); render();
-});
-document.getElementById('deleteBtn').addEventListener('click', () => {
-    if (selectedIdxs.size === 0) return;
-    pushHistory();
-    const toDelete = [...selectedIdxs].filter(i => !state.shapes[i].locked).sort((a,b)=>b-a);
-    for (const i of toDelete) state.shapes.splice(i, 1);
-    selectedIdxs.clear();
-    refreshSelectionPanel(); save(); render();
-});
-document.getElementById('editBtn').addEventListener('click', () => {
-    if (selectedIdxs.size !== 1) return;
-    const idx = [...selectedIdxs][0];
-    const s = state.shapes[idx];
-    if (s.type !== 'text' || s.locked) return;
-    const rect = wrap.getBoundingClientRect();
-    const sx = rect.left + view.x + s.x * view.scale;
-    const sy = rect.top  + view.y + s.y * view.scale;
-    openTextInput(sx, sy, {x:s.x, y:s.y}, idx);
-});
-
-document.getElementById('selSize').addEventListener('input', e => {
-    if (!selectedIdxs.size) return;
-    const v = +e.target.value;
-    document.getElementById('selSizeVal').textContent = v;
-    for (const i of selectedIdxs) {
-        const s = state.shapes[i];
-        if (s && s.size !== undefined && !s.locked) s.size = v;
-    }
-    save(); render();
-});
-document.getElementById('selWidth').addEventListener('input', e => {
-    if (!selectedIdxs.size) return;
-    const v = +e.target.value;
-    document.getElementById('selWidthVal').textContent = v;
-    for (const i of selectedIdxs) {
-        const s = state.shapes[i];
-        if (s && s.width !== undefined && !s.locked) s.width = v;
-    }
-    save(); render();
-});
-// Color changes also apply to current selection if any (and update defaults)
-function applyToSelection(prop, value) {
-    if (!selectedIdxs.size) return false;
-    let any = false;
-    for (const i of selectedIdxs) {
-        const s = state.shapes[i];
-        if (s && !s.locked && s[prop] !== undefined) { s[prop] = value; any = true; }
-    }
-    if (any) { save(); render(); }
-    return any;
+  document.getElementById('windows-container').appendChild(win);
+  state.windows[id] = win;
+  focusWindow(win);
+  renderTaskbar();
+  return win;
 }
 
-// ----- LANGUAGE -----
-document.getElementById('langToggle').addEventListener('click', () => {
-    lang = (lang === 'en') ? 'fr' : 'en';
-    try { localStorage.setItem('mapPlannerLang', lang); } catch(e) {}
-    applyLang();
-});
-document.querySelectorAll('[data-map]').forEach(b => {
-    b.addEventListener('click', () => setMap(b.dataset.map));
-});
-document.getElementById('colorPick').addEventListener('input', e => {
-    stroke = e.target.value;
-    applyToSelection('stroke', stroke);
-});
-document.getElementById('fillPick').addEventListener('input', e => {
-    fill = e.target.value;
-    applyToSelection('fill', fill);
-});
-document.getElementById('fillToggle').addEventListener('change', e => {
-    useFill = e.target.checked;
-    applyToSelection('useFill', useFill);
-});
-document.getElementById('widthRange').addEventListener('input', e => {
-    strokeWidth = +e.target.value;
-    document.getElementById('widthVal').textContent = strokeWidth;
-    applyToSelection('width', strokeWidth);
-});
-document.getElementById('emojiRange').addEventListener('input', e => {
-    emojiSize = +e.target.value;
-    document.getElementById('emojiVal').textContent = emojiSize;
-    applyToSelection('size', emojiSize);
-});
-
-// ----- ZOOM BUTTONS -----
-document.getElementById('zoomIn').addEventListener('click', () => {
-    const r = wrap.getBoundingClientRect();
-    zoomAt(r.left + r.width/2, r.top + r.height/2, 1.25);
-});
-document.getElementById('zoomOut').addEventListener('click', () => {
-    const r = wrap.getBoundingClientRect();
-    zoomAt(r.left + r.width/2, r.top + r.height/2, 1/1.25);
-});
-document.getElementById('zoomReset').addEventListener('click', fitView);
-
-// ----- EMOJI PICKER -----
-const grid = document.getElementById('emojiGrid');
-function updateSelectedEmoji() {
-    document.getElementById('selEmojiChar').textContent = selectedEmoji;
-    grid.querySelectorAll('.emoji-btn').forEach(b =>
-        b.classList.toggle('selected', b.textContent === selectedEmoji));
+function focusWindow(win) {
+  Object.values(state.windows).forEach(w => {
+    w.querySelector('.window-title').classList.add('inactive');
+  });
+  win.querySelector('.window-title').classList.remove('inactive');
+  win.style.zIndex = ++state.zIndex;
+  win.style.display = '';
+  state.activeWindow = win;
+  renderTaskbar();
 }
-function renderEmoji(filter='') {
-    grid.innerHTML = '';
-    EMOJIS.filter(e => !filter || e.includes(filter)).forEach(em => {
-        const b = document.createElement('button');
-        b.className = 'emoji-btn'; b.textContent = em;
-        if (em === selectedEmoji) b.classList.add('selected');
-        b.addEventListener('click', () => {
-            selectedEmoji = em;
-            updateSelectedEmoji();
-        });
-        grid.appendChild(b);
-    });
-}
-renderEmoji();
-updateSelectedEmoji();
-document.getElementById('emojiSearch').addEventListener('input', e => {
-    const v = e.target.value.trim();
-    if (v.length) {
-        const ch = [...v][0];
-        if (ch && (ch.length > 1 || /\p{Emoji}/u.test(ch))) {
-            selectedEmoji = ch;
-            updateSelectedEmoji();
-        }
-    }
-    renderEmoji();
-});
 
-// ----- ACTIONS -----
-document.getElementById('undoBtn').addEventListener('click', undo);
-document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!confirm(t('wipeConfirm'))) return;
-    pushHistory();
-    state.shapes = [];
-    selectedIdxs.clear(); hoverIdx = -1;
-    refreshSelectionPanel();
-    save(); render();
-});
-
-document.getElementById('exportPng').addEventListener('click', () => {
-    const off = document.createElement('canvas');
-    off.width = mapNaturalW; off.height = mapNaturalH;
-    const octx = off.getContext('2d');
-    if (mapLoaded) {
-        try { octx.drawImage(mapImg, 0, 0, mapNaturalW, mapNaturalH); }
-        catch(e) {}
-    } else {
-        octx.fillStyle = '#06160e';
-        octx.fillRect(0,0,off.width,off.height);
-    }
-    for (const s of state.shapes) drawShape(octx, s);
-    try {
-        const url = off.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = url; a.download = `map-${state.mapType}-${Date.now()}.png`;
-        document.body.appendChild(a); a.click(); a.remove();
-    } catch(e) {
-        alert('PNG export blocked because the map image host does not allow cross-origin canvas reads. Use Export JSON instead.');
-    }
-});
-
-document.getElementById('exportJson').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({mapType:state.mapType, shapes:state.shapes}, null, 2)],
-                         {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `map-plan-${Date.now()}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-});
-document.getElementById('importJson').addEventListener('click', () => document.getElementById('importFile').click());
-document.getElementById('importFile').addEventListener('change', (e) => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-        try {
-            const d = JSON.parse(r.result);
-            pushHistory();
-            if (d.mapType) setMap(d.mapType);
-            if (Array.isArray(d.shapes)) state.shapes = d.shapes;
-            save(); render();
-        } catch(err) { alert('Invalid JSON'); }
+function renderTaskbar() {
+  const tb = document.getElementById('taskbar-items');
+  tb.innerHTML = '';
+  Object.entries(state.windows).forEach(([id, win]) => {
+    const item = document.createElement('div');
+    item.className = 'taskbar-item' + (win === state.activeWindow && win.style.display !== 'none' ? ' active' : '');
+    item.textContent = win.querySelector('.window-title span').textContent;
+    item.onclick = () => {
+      if (win.style.display === 'none') { win.style.display = ''; focusWindow(win); }
+      else if (state.activeWindow === win) { win.style.display = 'none'; renderTaskbar(); }
+      else { focusWindow(win); }
     };
-    r.readAsText(f);
+    tb.appendChild(item);
+  });
+}
+
+/* ===========================================================
+   OUVERTURE D'APPLICATIONS
+   =========================================================== */
+function openApp(id) {
+  switch (id) {
+    case 'notes':    return openNotes();
+    case 'snake':    return openSnake();
+    case 'calc':     return openCalc();
+    case 'files':    return openFiles();
+    case 'paint':    return openPaint();
+    case 'music':    return openMusic();
+    case 'photos':   return openPhotos();
+    case 'memory':   return openMemory();
+    case 'terminal': return openTerminal();
+    case 'darknet':  return openDarknet();
+  }
+}
+
+/* ===========================================================
+   APP: NOTES (contient le code caché + détecte raptorreset)
+   =========================================================== */
+const DEFAULT_NOTES = `=== Notes Personnelles ===
+
+Choses à pas oublier:
+- Anniversaire Maman le 12/04
+- Appeler le plombier 06.12.34.56.78
+- Code wifi voisin : 4271azerty
+- Récupérer le colis lundi
+- Réserver restaurant le 18
+
+Idée cadeau Marie : casque audio
+Film à revoir : Le Cercle Rouge
+
+À faire ce mois :
+- Vidange voiture
+- Renouveler abonnement
+- Acheter cadeau Paul
+
+`;
+
+function openNotes() {
+  const body = document.createElement('div');
+  body.style.height = '100%';
+  body.style.padding = '4px';
+  const ta = document.createElement('textarea');
+  ta.className = 'notes-area';
+  ta.value = DEFAULT_NOTES;
+  body.appendChild(ta);
+
+  ta.addEventListener('input', () => {
+    // (rien de spécial - juste un bloc-notes normal)
+  });
+
+  makeWindow({ id: 'notes', title: 'Notes - bloc.txt', body, width: 460, height: 360 });
+}
+
+/* ===========================================================
+   APP: CALCULATRICE
+   =========================================================== */
+function openCalc() {
+  const body = document.createElement('div');
+  body.className = 'calc';
+  body.innerHTML = `
+    <div class="calc-display" id="calcDisp">0</div>
+    <div class="calc-grid">
+      ${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+','C','±','%',''].map(k =>
+        k === '' ? '<div></div>' : `<button data-k="${k}">${k}</button>`
+      ).join('')}
+    </div>
+  `;
+  let cur = '0', prev = null, op = null, replace = true;
+  body.querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      const k = b.dataset.k;
+      const disp = body.querySelector('#calcDisp');
+      if (k === 'C') { cur = '0'; prev = null; op = null; replace = true; }
+      else if (k === '±') { cur = String(-parseFloat(cur)); }
+      else if (k === '%') { cur = String(parseFloat(cur)/100); }
+      else if ('+-*/'.includes(k)) {
+        if (prev !== null && op && !replace) {
+          cur = String(compute(parseFloat(prev), parseFloat(cur), op));
+        }
+        prev = cur; op = k; replace = true;
+      }
+      else if (k === '=') {
+        if (prev !== null && op) {
+          cur = String(compute(parseFloat(prev), parseFloat(cur), op));
+          prev = null; op = null; replace = true;
+        }
+      }
+      else {
+        if (replace) { cur = (k === '.' ? '0.' : k); replace = false; }
+        else { if (k === '.' && cur.includes('.')) return; cur += k; }
+      }
+      disp.textContent = cur;
+    };
+  });
+  function compute(a, b, o) {
+    if (o === '+') return a + b;
+    if (o === '-') return a - b;
+    if (o === '*') return a * b;
+    if (o === '/') return b === 0 ? 'ERR' : a / b;
+  }
+  makeWindow({ id: 'calc', title: 'Calculatrice', body, width: 240, height: 320 });
+}
+
+/* ===========================================================
+   APP: SNAKE
+   =========================================================== */
+function openSnake() {
+  const body = document.createElement('div');
+  body.innerHTML = `
+    <div class="snake-info">
+      <span>Score: <span id="snakeScore">0</span></span>
+      <span>Flèches ← ↑ ↓ →</span>
+    </div>
+    <div class="snake-canvas-wrap"><canvas id="snakeCanvas" width="320" height="320"></canvas></div>
+  `;
+  setTimeout(() => initSnake(body), 50);
+  makeWindow({ id: 'snake', title: 'Snake', body, width: 360, height: 400, onClose: () => { if (window._snakeStop) window._snakeStop(); } });
+}
+function initSnake(container) {
+  const c = container.querySelector('#snakeCanvas');
+  const scoreEl = container.querySelector('#snakeScore');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const SIZE = 20, COLS = 16;
+  let snake = [{x: 8, y: 8}];
+  let dir = {x: 1, y: 0};
+  let food = randFood();
+  let score = 0, alive = true;
+  function randFood() {
+    while(true) {
+      const f = { x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*COLS) };
+      if (!snake.some(s => s.x===f.x && s.y===f.y)) return f;
+    }
+  }
+  const key = (e) => {
+    if (e.key === 'ArrowUp' && dir.y !== 1) dir = {x:0,y:-1};
+    else if (e.key === 'ArrowDown' && dir.y !== -1) dir = {x:0,y:1};
+    else if (e.key === 'ArrowLeft' && dir.x !== 1) dir = {x:-1,y:0};
+    else if (e.key === 'ArrowRight' && dir.x !== -1) dir = {x:1,y:0};
+  };
+  document.addEventListener('keydown', key);
+  const loop = setInterval(() => {
+    if (!alive) return;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if (head.x<0||head.x>=COLS||head.y<0||head.y>=COLS||snake.some(s=>s.x===head.x&&s.y===head.y)) {
+      alive = false;
+      ctx.fillStyle = '#f00'; ctx.font = '20px monospace';
+      ctx.fillText('GAME OVER', 90, 160);
+      return;
+    }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score++; scoreEl.textContent = score; food = randFood();
+    } else snake.pop();
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,320,320);
+    ctx.fillStyle = '#0f0';
+    snake.forEach(s => ctx.fillRect(s.x*SIZE+1, s.y*SIZE+1, SIZE-2, SIZE-2));
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(food.x*SIZE+2, food.y*SIZE+2, SIZE-4, SIZE-4);
+  }, 130);
+  window._snakeStop = () => { clearInterval(loop); document.removeEventListener('keydown', key); };
+}
+
+/* ===========================================================
+   APP: FICHIERS
+   =========================================================== */
+const FILES = [
+  { name: 'README.txt', icon: '📄', content: 'Bienvenue sur PC-9000.\nSystème: PC-OS v3.1.4\nUtilisateur: Lazaro\n\n(c) 1999' },
+  { name: 'photos.dir', icon: '📁', content: '[Dossier vide]' },
+  { name: 'backup.zip', icon: '🗜', content: '[Fichier compressé - corrompu]' },
+  { name: 'config.sys', icon: '⚙', content: 'BOOT=AUTO\nMEM=640K\nSCREEN=VGA' },
+  { name: 'old_chat.log', icon: '📄', content: '[chat archive 1998]\n> hey\n> yo\n> a+\n[fin]' },
+];
+
+function openFiles() {
+  const body = document.createElement('div');
+  body.style.height = '100%';
+  const list = document.createElement('div');
+  list.className = 'files-list';
+  FILES.forEach(f => {
+    const r = document.createElement('div');
+    r.className = 'file-row';
+    r.innerHTML = `<span>${f.icon}</span><span>${f.name}</span>`;
+    r.onclick = () => alert(f.content);
+    list.appendChild(r);
+  });
+  body.appendChild(list);
+  makeWindow({ id: 'files', title: 'Fichiers - C:\\', body, width: 320, height: 320 });
+}
+
+/* ===========================================================
+   APP: PAINT
+   =========================================================== */
+function openPaint() {
+  const body = document.createElement('div');
+  body.style.padding = '0';
+  body.innerHTML = `
+    <div style="display:flex; gap:4px; padding:4px; background:#a0a0a0; border-bottom:1px solid #404040; flex-wrap:wrap;">
+      <button class="pnt-color" data-c="#000" style="background:#000;width:22px;height:22px;border:2px solid #fff;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#fff" style="background:#fff;width:22px;height:22px;border:2px solid #404040;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#f00" style="background:#f00;width:22px;height:22px;border:1px solid #404040;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#0a0" style="background:#0a0;width:22px;height:22px;border:1px solid #404040;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#00f" style="background:#00f;width:22px;height:22px;border:1px solid #404040;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#ff0" style="background:#ff0;width:22px;height:22px;border:1px solid #404040;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#f0f" style="background:#f0f;width:22px;height:22px;border:1px solid #404040;cursor:pointer;"></button>
+      <button class="pnt-color" data-c="#0ff" style="background:#0ff;width:22px;height:22px;border:1px solid #404040;cursor:pointer;"></button>
+      <input type="range" id="pntSize" min="1" max="20" value="3" style="width:80px;">
+      <button id="pntClear" style="font-family:monospace;cursor:pointer;">Clear</button>
+    </div>
+    <canvas id="pntCanvas" width="500" height="300" style="background:#fff;cursor:crosshair;display:block;"></canvas>
+  `;
+  setTimeout(() => {
+    const c = body.querySelector('#pntCanvas');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    let color = '#000', size = 3, drawing = false;
+    body.querySelectorAll('.pnt-color').forEach(b => {
+      b.onclick = () => {
+        color = b.dataset.c;
+        body.querySelectorAll('.pnt-color').forEach(x => x.style.border = '1px solid #404040');
+        b.style.border = '2px solid #fff';
+      };
+    });
+    body.querySelector('#pntSize').oninput = (e) => size = parseInt(e.target.value);
+    body.querySelector('#pntClear').onclick = () => ctx.clearRect(0,0,500,300);
+    c.onmousedown = (e) => { drawing = true; const r=c.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX-r.left,e.clientY-r.top); };
+    c.onmousemove = (e) => {
+      if (!drawing) return;
+      const r=c.getBoundingClientRect();
+      ctx.lineTo(e.clientX-r.left, e.clientY-r.top);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    };
+    c.onmouseup = c.onmouseleave = () => drawing = false;
+  }, 50);
+  makeWindow({ id: 'paint', title: 'Paint - sans-titre.bmp', body, width: 540, height: 380 });
+}
+
+/* ===========================================================
+   APP: MUSIQUE
+   =========================================================== */
+function openMusic() {
+  const tracks = [
+    { t: 'untitled_01.mp3',  d: '3:24' },
+    { t: 'noise_loop.mp3',   d: '1:12' },
+    { t: 'demo_track.mp3',   d: '4:07' },
+    { t: 'static_void.mp3',  d: '2:55' },
+    { t: 'last_call.mp3',    d: '5:18' },
+  ];
+  const body = document.createElement('div');
+  body.style.padding = '8px';
+  body.style.color = '#000';
+  body.style.fontFamily = 'Courier New, monospace';
+  body.innerHTML = `
+    <div style="background:#000;color:#0f0;padding:10px;text-align:center;border:2px inset #c0c0c0;margin-bottom:8px;">
+      <div style="font-size:11px;letter-spacing:2px;">♪ NOW PLAYING ♪</div>
+      <div id="musTitle" style="font-size:14px;margin-top:4px;">— rien —</div>
+      <div id="musTime" style="font-size:10px;margin-top:4px;">0:00 / 0:00</div>
+      <div style="margin-top:8px;height:4px;background:#001;">
+        <div id="musBar" style="height:100%;background:#0f0;width:0%;transition:width 0.3s;"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px;">
+      <button id="musPrev" style="padding:4px 10px;font-family:monospace;cursor:pointer;">⏮</button>
+      <button id="musPlay" style="padding:4px 10px;font-family:monospace;cursor:pointer;">▶</button>
+      <button id="musNext" style="padding:4px 10px;font-family:monospace;cursor:pointer;">⏭</button>
+    </div>
+    <div style="background:#fff;border:2px inset #c0c0c0;max-height:120px;overflow-y:auto;font-size:12px;">
+      ${tracks.map((tr,i)=>`<div class="mus-row" data-i="${i}" style="padding:4px 8px;cursor:pointer;display:flex;justify-content:space-between;">
+        <span>${i+1}. ${tr.t}</span><span>${tr.d}</span>
+      </div>`).join('')}
+    </div>
+  `;
+  let idx = 0, playing = false, progress = 0, inter = null;
+  function setTrack(i) {
+    idx = (i + tracks.length) % tracks.length;
+    progress = 0;
+    body.querySelector('#musTitle').textContent = tracks[idx].t;
+    body.querySelector('#musTime').textContent = '0:00 / ' + tracks[idx].d;
+    body.querySelector('#musBar').style.width = '0%';
+    body.querySelectorAll('.mus-row').forEach(r => r.style.background = '');
+    const row = body.querySelector(`.mus-row[data-i="${idx}"]`);
+    if (row) row.style.background = '#000080', row.style.color = '#fff';
+  }
+  function play() {
+    playing = !playing;
+    body.querySelector('#musPlay').textContent = playing ? '⏸' : '▶';
+    if (inter) clearInterval(inter);
+    if (playing) {
+      inter = setInterval(() => {
+        progress = (progress + 1) % 240;
+        body.querySelector('#musBar').style.width = (progress/240*100) + '%';
+        const m = Math.floor(progress/60), s = String(progress%60).padStart(2,'0');
+        body.querySelector('#musTime').textContent = `${m}:${s} / ${tracks[idx].d}`;
+      }, 1000);
+    }
+  }
+  body.querySelector('#musPlay').onclick = play;
+  body.querySelector('#musPrev').onclick = () => setTrack(idx-1);
+  body.querySelector('#musNext').onclick = () => setTrack(idx+1);
+  body.querySelectorAll('.mus-row').forEach(r => r.onclick = () => setTrack(parseInt(r.dataset.i)));
+  setTrack(0);
+  makeWindow({ id: 'music', title: 'WinAmpo 1.2', body, width: 340, height: 320,
+    onClose: () => { if (inter) clearInterval(inter); }
+  });
+}
+
+/* ===========================================================
+   APP: PHOTOS
+   =========================================================== */
+function openPhotos() {
+  // Placeholders (color blocks). Tu peux remplacer par tes vrais src d'images.
+  const photos = [
+    { name: 'IMG_0001.bmp', color: '#446688', label: 'plage' },
+    { name: 'IMG_0002.bmp', color: '#884444', label: 'chien' },
+    { name: 'IMG_0003.bmp', color: '#448844', label: 'forêt' },
+    { name: 'IMG_0004.bmp', color: '#777777', label: 'route' },
+    { name: 'IMG_0005.bmp', color: '#aa8844', label: 'café' },
+    { name: 'IMG_0006.bmp', color: '#332244', label: 'nuit' },
+  ];
+  const body = document.createElement('div');
+  body.style.padding = '6px';
+  body.style.background = '#fff';
+  body.innerHTML = `
+    <div id="photoGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+      ${photos.map((p,i)=>`<div class="photo-thumb" data-i="${i}" style="cursor:pointer;border:1px solid #404040;">
+        <div style="background:${p.color};height:80px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;letter-spacing:2px;">${p.label}</div>
+        <div style="background:#c0c0c0;padding:2px 4px;font-size:10px;font-family:monospace;">${p.name}</div>
+      </div>`).join('')}
+    </div>
+  `;
+  body.querySelectorAll('.photo-thumb').forEach(t => {
+    t.onclick = () => {
+      const p = photos[parseInt(t.dataset.i)];
+      const w = document.createElement('div');
+      w.style.padding = '8px';
+      w.style.background = '#000';
+      w.style.height = '100%';
+      w.innerHTML = `<div style="background:${p.color};height:calc(100% - 30px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;letter-spacing:6px;border:1px solid #fff;">${p.label.toUpperCase()}</div>
+        <div style="color:#fff;text-align:center;font-family:monospace;font-size:11px;padding-top:6px;">${p.name}</div>`;
+      makeWindow({ id: 'photo_' + p.name, title: '🖼 ' + p.name, body: w, width: 360, height: 320 });
+    };
+  });
+  makeWindow({ id: 'photos', title: 'Photos', body, width: 360, height: 320 });
+}
+
+/* ===========================================================
+   APP: MÉMOIRE - formes colorées, révèle le code DarkNet
+   =========================================================== */
+function openMemory() {
+  // 8 formes uniques avec couleur dédiée
+  const shapes = [
+    { sym: '●', color: '#e53935', name: 'cercle' },
+    { sym: '■', color: '#1e88e5', name: 'carré' },
+    { sym: '▲', color: '#43a047', name: 'triangle' },
+    { sym: '★', color: '#fdd835', name: 'étoile' },
+    { sym: '◆', color: '#8e24aa', name: 'losange' },
+    { sym: '♥', color: '#ec407a', name: 'cœur' },
+    { sym: '⬢', color: '#fb8c00', name: 'hexagone' },
+    { sym: '✦', color: '#00acc1', name: 'éclat' },
+  ];
+  const deck = [...shapes, ...shapes].sort(() => Math.random() - 0.5);
+  let flipped = [], matched = 0, locked = false, moves = 0;
+
+  const body = document.createElement('div');
+  body.style.padding = '10px';
+  body.style.background = '#c0c0c0';
+  body.style.height = '100%';
+  body.style.overflow = 'auto';
+  body.innerHTML = `
+    <div style="font-family:monospace;font-size:12px;margin-bottom:6px;">
+      Coups: <span id="memMoves">0</span> · Paires: <span id="memMatch">0</span>/8
+    </div>
+    <div id="memGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;"></div>
+    <div id="memMsg" style="margin-top:10px;font-family:monospace;font-size:11px;min-height:40px;"></div>
+  `;
+  const grid = body.querySelector('#memGrid');
+
+  deck.forEach((s, i) => {
+    const c = document.createElement('div');
+    c.dataset.sym = s.sym;
+    c.dataset.color = s.color;
+    c.dataset.i = i;
+    c.style.cssText = `
+      height: 62px;
+      background: linear-gradient(135deg, #1a3a8a, #000080);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      color: transparent;
+      cursor: pointer;
+      border: 2px outset #fff;
+      user-select: none;
+      transition: background 0.15s;
+    `;
+    // Motif au dos
+    c.innerHTML = '<span style="color:rgba(255,255,255,0.15);font-size:18px;">▨</span>';
+
+    c.onclick = () => {
+      if (locked || c.dataset.flipped === '1' || c.dataset.matched === '1') return;
+      // Retourner
+      c.style.background = '#fff';
+      c.innerHTML = `<span style="color:${c.dataset.color};font-size:34px;text-shadow:1px 1px 2px rgba(0,0,0,0.2);">${c.dataset.sym}</span>`;
+      c.dataset.flipped = '1';
+      flipped.push(c);
+
+      if (flipped.length === 2) {
+        moves++;
+        body.querySelector('#memMoves').textContent = moves;
+        locked = true;
+        const [a, b] = flipped;
+        if (a.dataset.sym === b.dataset.sym) {
+          // Match
+          setTimeout(() => {
+            a.dataset.matched = '1'; b.dataset.matched = '1';
+            a.style.background = '#d4f8d4'; b.style.background = '#d4f8d4';
+            a.style.borderColor = '#080';
+            b.style.borderColor = '#080';
+            matched++;
+            body.querySelector('#memMatch').textContent = matched;
+            flipped = []; locked = false;
+            if (matched === 8) {
+              body.querySelector('#memMsg').innerHTML = `
+                <div style="border:2px solid #080;background:#e0ffe0;padding:8px;text-align:center;font-family:monospace;">
+                  <div style="color:#080;font-weight:bold;letter-spacing:2px;">★ MÉMOIRE PARFAITE ★</div>
+                  <div style="font-size:10px;color:#444;margin-top:3px;">Score : ${moves} coups</div>
+                  <div style="margin-top:8px;color:#000;font-size:12px;">Fragment de données déchiffré :</div>
+                  <div style="margin-top:4px;color:#000080;font-size:18px;font-weight:bold;letter-spacing:6px;">${DARKNET_CODE}</div>
+                  <div style="font-size:9px;color:#666;margin-top:4px;">[ accès // protocole sahp ]</div>
+                </div>
+              `;
+            }
+          }, 350);
+        } else {
+          // Pas de match
+          setTimeout(() => {
+            a.style.background = 'linear-gradient(135deg, #1a3a8a, #000080)';
+            b.style.background = 'linear-gradient(135deg, #1a3a8a, #000080)';
+            a.innerHTML = '<span style="color:rgba(255,255,255,0.15);font-size:18px;">▨</span>';
+            b.innerHTML = '<span style="color:rgba(255,255,255,0.15);font-size:18px;">▨</span>';
+            a.dataset.flipped = ''; b.dataset.flipped = '';
+            flipped = []; locked = false;
+          }, 750);
+        }
+      }
+    };
+    grid.appendChild(c);
+  });
+  makeWindow({ id: 'memory', title: '🧠 Mémoire', body, width: 340, height: 400 });
+}
+
+/* ===========================================================
+   APP: TERMINAL (CACHÉ - non listé dans le bureau)
+   Ouvert via Ctrl+Alt+T
+   Accepte la commande secrète qui restaure le DarkNet.
+   =========================================================== */
+function openTerminal() {
+  const body = document.createElement('div');
+  body.style.cssText = 'background:#000;color:#ccc;font-family:Courier New,monospace;padding:8px;height:100%;overflow-y:auto;font-size:12px;';
+  body.innerHTML = `
+    <div id="termOut"></div>
+    <div style="display:flex;">
+      <span style="color:#0f0;">C:\\&gt;&nbsp;</span>
+      <input id="termIn" style="flex:1;background:transparent;border:0;color:#ccc;font-family:monospace;font-size:12px;outline:none;">
+    </div>
+  `;
+  const win = makeWindow({ id: 'terminal', title: 'C:\\COMMAND.COM', body, width: 460, height: 300 });
+  const out = body.querySelector('#termOut');
+  const inp = body.querySelector('#termIn');
+  setTimeout(() => inp.focus(), 100);
+
+  function print(t, color) {
+    const d = document.createElement('div');
+    d.textContent = t;
+    if (color) d.style.color = color;
+    out.appendChild(d);
+    body.scrollTop = body.scrollHeight;
+  }
+  print('PC-OS [Version 3.1.4]');
+  print('(C) 1999 PC-Corp. Tous droits réservés.');
+  print('');
+
+  inp.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const cmd = inp.value.trim();
+    print('C:\\> ' + cmd, '#0f0');
+    inp.value = '';
+    const lc = cmd.toLowerCase();
+    if (lc === '') return;
+    if (lc === 'raptorreset') {
+      // Restauration silencieuse - aucun message qui dévoile l'effet
+      setWiped(false);
+      renderDesktop();
+      print('OK.', '#888');
+      return;
+    }
+    if (lc === 'skip') {
+      state.skipEnabled = !state.skipEnabled;
+      print('skip: ' + (state.skipEnabled ? 'ON' : 'OFF'), '#888');
+      return;
+    }
+    if (lc === 'help' || lc === '?') {
+      print('Commandes disponibles:');
+      print('  dir, cls, ver, date, time, echo, whoami, exit');
+      return;
+    }
+    if (lc === 'cls' || lc === 'clear') { out.innerHTML = ''; return; }
+    if (lc === 'ver') { print('PC-OS v3.1.4'); return; }
+    if (lc === 'whoami') { print('lazaro'); return; }
+    if (lc === 'date') { print(new Date().toLocaleDateString()); return; }
+    if (lc === 'time') { print(new Date().toLocaleTimeString()); return; }
+    if (lc === 'dir') {
+      print(' Répertoire de C:\\');
+      print('');
+      print(' README   TXT       128  01/01/1999');
+      print(' CONFIG   SYS        64  01/01/1999');
+      print(' COMMAND  COM     16384  01/01/1999');
+      print(' USER     DIR       <DIR>');
+      print('');
+      print('        4 fichier(s)');
+      return;
+    }
+    if (lc.startsWith('echo ')) { print(cmd.slice(5)); return; }
+    if (lc === 'exit') { win.querySelector('[data-action="close"]').click(); return; }
+    print(`Commande ou nom de fichier incorrect: ${cmd}`, '#f55');
+  });
+}
+
+/* ===========================================================
+   RACCOURCI CACHÉ : Ctrl+Alt+T → ouvre le Terminal
+   (Personne n'est censé connaître ce raccourci)
+   =========================================================== */
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.altKey && (e.key === 't' || e.key === 'T')) {
+    e.preventDefault();
+    openTerminal();
+  }
 });
 
-// ----- INIT -----
-load();
-loadUI();
-try { lang = localStorage.getItem('mapPlannerLang') || 'en'; } catch(e) {}
-try {
-    if (localStorage.getItem('mapPlannerHidden') === '1') setToolbarHidden(true);
-} catch(e) {}
-applyLang();
-sizeCanvas(FALLBACK_W, FALLBACK_H);
-fitView();
-render();
-setMap(state.mapType);
+/* ===========================================================
+   APP: DARKNET
+   =========================================================== */
+function openDarknet() {
+  if (state.darknetUnlocked) {
+    openMessenger();
+    return;
+  }
+  const body = document.createElement('div');
+  body.innerHTML = `
+    <div class="dn-lock">
+      <pre class="dn-lock-ascii">         ▄▄█████▄▄
+      ▄███████████▄
+     ███▀░░░░░░░▀███
+    ██░░░░░░░░░░░░░██
+    ██░▄███▄░▄███▄░██
+    ██░█▀▀▀█░█▀▀▀█░██
+    ██░░▀▀▀░░░▀▀▀░░██
+    ██░░░░▄███▄░░░░██
+     ██░░░▀███▀░░░██
+      ██░██████░██
+       ██▀▀░▀▀▀██
+         █████</pre>
+      <h2>ACCÈS RESTREINT</h2>
+      <div style="font-size:10px; color:#0f0; margin-bottom:10px; letter-spacing:2px;">PROTOCOLE SAHP-X // CODE REQUIS</div>
+      <input class="dn-input" id="dnCode" maxlength="4" placeholder="****">
+      <button class="dn-submit" id="dnSubmit">▸ CONNEXION</button>
+      <div class="dn-error" id="dnErr"></div>
+    </div>
+  `;
+  const win = makeWindow({ id: 'darknet', title: '☠ DarkNet Terminal', body, width: 440, height: 380, darknet: true });
+  const input = body.querySelector('#dnCode');
+  const err = body.querySelector('#dnErr');
+  setTimeout(() => input.focus(), 100);
+  const tryCode = () => {
+    if (input.value === DARKNET_CODE) {
+      state.darknetUnlocked = true;
+      // close lock, open skull loader then messenger
+      win.remove();
+      delete state.windows.darknet;
+      openDarknetLoading();
+    } else {
+      err.textContent = '> CODE INVALIDE';
+      input.value = '';
+      input.style.borderColor = '#f00';
+      setTimeout(() => input.style.borderColor = '#0f0', 600);
+    }
+  };
+  body.querySelector('#dnSubmit').onclick = tryCode;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') tryCode(); });
+}
+
+/* ===========================================================
+   DARKNET: LOADING (crâne parlant)
+   =========================================================== */
+const SKULL_ART = `         ▄▄█████▄▄
+      ▄███████████▄
+     ███▀▀░░░░░▀▀███
+    ██░░░░░░░░░░░░░██
+    ██░▄███▄░▄███▄░██
+    ██░█████░█████░██
+    ██░░▀█▀░░░▀█▀░░██
+    ██░░░░▄███▄░░░░██
+     ██░░░░▀▀▀░░░░██
+      ██░██████░██
+       ██▀▀░▀▀░▀██
+         ██████`;
+
+const SKULL_BIG = `                    ▄▄▄████▄▄▄
+                ▄██████████████▄
+            ▄████████████████████▄
+          ▄████████████████████████▄
+         ██████░░░░░░░░░░░░░░░░██████
+        █████░░░░░░░░░░░░░░░░░░░░█████
+       █████░░░░░░░░░░░░░░░░░░░░░░░█████
+      █████░░░░░░░░░░░░░░░░░░░░░░░░░█████
+      ████░░░░░▄████▄░░░░░░░░▄████▄░░░░████
+     ████░░░░░███████░░░░░░░░███████░░░░████
+     ████░░░░░███████░░░░░░░░███████░░░░████
+     ████░░░░░░▀███▀░░░░░░░░░░▀███▀░░░░░░████
+      ████░░░░░░░░░░░░░░▄░░░░░░░░░░░░░░░████
+      ████░░░░░░░░░░░░░███░░░░░░░░░░░░░░████
+       ████░░░░░░░░░░░█████░░░░░░░░░░░████
+        █████░░░░░░░░░░▀▀▀░░░░░░░░░░█████
+         █████▄░░▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄░░▄█████
+          ██████░██░██░██░██░██░██░██████
+            █████▀▀░▀▀░▀▀░▀▀░▀▀░▀▀█████
+              ████████████████████████
+                ▀████████████████▀
+                   ▀▀████████▀▀`;
+
+function openDarknetLoading() {
+  const body = document.createElement('div');
+  body.innerHTML = `
+    <div class="skull-loading">
+      <pre class="skull-art">${SKULL_BIG}</pre>
+      <div class="skull-text" id="skullText"></div>
+    </div>
+  `;
+  const win = makeWindow({ id: 'darknet', title: '☠ DarkNet Terminal', body, width: 480, height: 420, darknet: true });
+  const txtBox = body.querySelector('#skullText');
+  const lines = [
+    '> Établissement du tunnel TOR...',
+    '> Couches d\'oignon : 7/7 ✓',
+    '> "Bienvenue dans le vide, mortel."',
+    '> Décryptage des canaux...',
+    '> "Tes secrets seront miens..."',
+    '> Connexion établie ▓▓▓▓▓▓▓▓ 100%',
+  ];
+  let i = 0;
+  const inter = setInterval(() => {
+    if (i >= lines.length) {
+      clearInterval(inter);
+      setTimeout(() => {
+        win.remove();
+        delete state.windows.darknet;
+        openMessenger();
+      }, 700);
+      return;
+    }
+    const d = document.createElement('div');
+    d.className = 'line';
+    d.textContent = lines[i];
+    txtBox.appendChild(d);
+    i++;
+  }, 550);
+}
+
+/* ===========================================================
+   DARKNET: MESSAGERIE
+   ===========================================================
+   ↓↓↓ ZONE ÉDITABLE - MODIFIE LES MESSAGES CI-DESSOUS ↓↓↓
+   ===========================================================
+*/
+const CHATS = [
+  // ── Chats anodins (en haut) ──────────────────────────────
+  {
+    id: 'marc', name: 'Marc', preview: 'le match était fou',
+    messages: [
+      { who: 'them', name: 'Marc',   text: 'tas vu le match hier ?' },
+      { who: 'me',   name: 'Lazaro', text: 'ouais dingue le 3e but' },
+      { who: 'them', name: 'Marc',   text: 'le gardien dormait mdr' },
+      { who: 'me',   name: 'Lazaro', text: 'on regarde le prochain ensemble ?' },
+      { who: 'them', name: 'Marc',   text: 'ok tu ramènes les bières' },
+    ],
+  },
+  {
+    id: 'equipe', name: 'Équipe2024', preview: 'réunion lundi 9h',
+    messages: [
+      { who: 'them', name: 'Sam',    text: 'réunion lundi 9h pour tous' },
+      { who: 'them', name: 'Lina',   text: 'reçu' },
+      { who: 'them', name: 'Tom',    text: 'je peux pas avant 10h' },
+      { who: 'them', name: 'Sam',    text: 'ok 10h alors' },
+      { who: 'me',   name: 'Lazaro', text: 'ok' },
+    ],
+  },
+  {
+    id: 'nadia', name: 'Nadia', preview: 'tu passes vendredi ?',
+    messages: [
+      { who: 'them', name: 'Nadia',  text: 'hey ça va ?' },
+      { who: 'me',   name: 'Lazaro', text: 'oui et toi ?' },
+      { who: 'them', name: 'Nadia',  text: 'tranquille. tu passes vendredi ?' },
+      { who: 'me',   name: 'Lazaro', text: 'oui j\'ramène quoi ?' },
+      { who: 'them', name: 'Nadia',  text: 'juste toi ahah' },
+    ],
+  },
+
+  // ── CHAT IMPORTANT (Lazaro <-> Ari) — AU MILIEU ──────────
+  // ↓ MODIFIE LES MESSAGES ICI ↓
+  {
+    id: 'ari',
+    name: 'Ari',
+    important: true,
+    preview: 'mercredi 21h confirmé',
+    messages: [
+      { who: 'them', name: 'Ari',    text: 'salut. tout est prêt ?' },
+      { who: 'me',   name: 'Lazaro', text: 'ouais. on tient toujours sur mercredi 21h ?' },
+      { who: 'them', name: 'Ari',    text: 'oui. transport armes confirmé.' },
+      { who: 'them', name: 'Ari',    text: 'changement de lieu : parking sud niveau -2.' },
+      { who: 'me',   name: 'Lazaro', text: 'combien de caisses ?' },
+      { who: 'them', name: 'Ari',    text: '4 caisses. 2 longues, 2 courtes. munitions séparées.' },
+      { who: 'them', name: 'Ari',    text: 'tu prends le van blanc, plaques refaites.' },
+      { who: 'me',   name: 'Lazaro', text: 'qui est sur place ?' },
+      { who: 'them', name: 'Ari',    text: 'moi, Dimi, et le contact. pas plus.' },
+      { who: 'them', name: 'Ari',    text: 'voilà la photo du point de chute. mémorise et oublie.' },
+      // IMAGE - le src est remplacé par 'raptorremplacemoi' pour que tu le retrouves
+      { who: 'them', name: 'Ari',    text: '', image: 'raptorremplacemoi' },
+      { who: 'me',   name: 'Lazaro', text: 'reçu. à mercredi.' },
+    ],
+  },
+
+  // ── Chats anodins (en bas) ───────────────────────────────
+  {
+    id: 'vlad', name: 'Vlad_K', preview: 'le colis arrive demain',
+    messages: [
+      { who: 'them', name: 'Vlad_K', text: 'salam frère' },
+      { who: 'me',   name: 'Lazaro', text: 'ça va ?' },
+      { who: 'them', name: 'Vlad_K', text: 'le colis arrive demain matin' },
+      { who: 'them', name: 'Vlad_K', text: 'rdv habituel, café du port' },
+      { who: 'me',   name: 'Lazaro', text: 'ok je serai là' },
+      { who: 'them', name: 'Vlad_K', text: 'amène le matériel de pêche on parlera tranquille' },
+    ],
+  },
+  {
+    id: 'leo', name: 'Leo', preview: 'tu m\'as pas répondu...',
+    messages: [
+      { who: 'them', name: 'Leo',    text: 'frérot t\'es passé où' },
+      { who: 'them', name: 'Leo',    text: 'on devait se voir hier' },
+      { who: 'me',   name: 'Lazaro', text: 'désolé j\'ai été pris' },
+      { who: 'them', name: 'Leo',    text: 'tu m\'oublies hein' },
+    ],
+  },
+  {
+    id: 'sysbot', name: 'SystemBot', preview: '[auto] mise à jour disponible',
+    messages: [
+      { who: 'them', name: 'SystemBot', text: '[AUTO] Mise à jour TOR disponible' },
+      { who: 'them', name: 'SystemBot', text: '[AUTO] 3 nœuds compromis - rotation effectuée' },
+      { who: 'them', name: 'SystemBot', text: '[AUTO] Backup chiffré OK' },
+    ],
+  },
+];
+/* ↑↑↑ FIN DE LA ZONE ÉDITABLE ↑↑↑ */
+
+function openMessenger() {
+  const body = document.createElement('div');
+  body.className = 'messenger';
+  body.innerHTML = `
+    <div class="msg-sidebar">
+      <div class="msg-header">▸ CONTACTS</div>
+      <div id="chatList"></div>
+    </div>
+    <div class="msg-main">
+      <div class="msg-chat-header" id="chatHeader">— Aucun chat sélectionné —</div>
+      <div class="msg-messages" id="chatMessages">
+        <div class="msg-empty">Sélectionne un contact à gauche.<br>Une vérification d'identité sera requise.</div>
+      </div>
+    </div>
+  `;
+  const win = makeWindow({
+    id: 'darknet', title: '☠ DarkNet Messenger',
+    body, width: 640, height: 460, darknet: true
+  });
+
+  const list = body.querySelector('#chatList');
+  function renderList() {
+    list.innerHTML = '';
+    CHATS.forEach(c => {
+      const it = document.createElement('div');
+      it.className = 'chat-item' + (state.chatsUnlocked[c.id] ? '' : ' chat-locked');
+      it.innerHTML = `<div class="chat-name">${c.name}</div><div class="chat-preview">${c.preview}</div>`;
+      it.onclick = () => {
+        if (state.chatsUnlocked[c.id]) {
+          renderChat(c);
+        } else {
+          startSequenceMinigame(body, () => {
+            state.chatsUnlocked[c.id] = true;
+            renderList();
+            renderChat(c);
+          });
+        }
+      };
+      list.appendChild(it);
+    });
+  }
+  renderList();
+
+  function renderChat(c) {
+    body.querySelector('#chatHeader').textContent = '▸ ' + c.name;
+    const cm = body.querySelector('#chatMessages');
+    cm.innerHTML = '';
+    c.messages.forEach(m => {
+      const b = document.createElement('div');
+      b.className = 'msg-bubble ' + m.who;
+      let html = `<div class="author">${m.name}</div>`;
+      if (m.text) html += escapeHtml(m.text);
+      if (m.image) {
+        html += `<div><span class="msg-img-attached" data-img="${m.image}">📎 [pièce-jointe : image.jpg]</span></div>`;
+      }
+      b.innerHTML = html;
+      cm.appendChild(b);
+    });
+    cm.scrollTop = cm.scrollHeight;
+    // bind image clicks
+    cm.querySelectorAll('.msg-img-attached').forEach(el => {
+      el.onclick = () => startPatternMinigame(body, () => openImage(el.dataset.img));
+    });
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+}
+
+/* ===========================================================
+   MINIJEU 1 : Séquence de codes hex (pour ouvrir un chat)
+   =========================================================== */
+function startSequenceMinigame(parentBody, onSuccess) {
+  // pick 4 distinct hex
+  const allCodes = [];
+  for (let i = 0; i < 25; i++) {
+    let c;
+    do {
+      c = Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2,'0');
+    } while (allCodes.includes(c));
+    allCodes.push(c);
+  }
+  const target = [];
+  while (target.length < 4) {
+    const c = allCodes[Math.floor(Math.random()*allCodes.length)];
+    if (!target.includes(c)) target.push(c);
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'minigame-overlay';
+  overlay.innerHTML = `
+    <div class="mg-title">DÉCRYPTAGE — PROTOCOLE SAHP</div>
+    <div class="mg-subtitle">CLIQUEZ LES CODES DANS L'ORDRE INDIQUÉ</div>
+    <div class="mg-time-label" id="mgTime">15.0s</div>
+    <div class="mg-time"><div class="mg-time-bar" id="mgBar"></div></div>
+    <div class="mg-target">
+      <div class="mg-target-title">SÉQUENCE CIBLE</div>
+      <div class="mg-sequence" id="mgSeq"></div>
+    </div>
+    <div class="mg-grid" id="mgGrid"></div>
+    ${state.skipEnabled ? '<button class="mg-skip-btn" id="mgSkip">▸ SKIP</button>' : ''}
+  `;
+  parentBody.appendChild(overlay);
+  if (state.skipEnabled) {
+    overlay.querySelector('#mgSkip').onclick = () => {
+      alive = false;
+      clearInterval(timerInt);
+      overlay.remove();
+      onSuccess();
+    };
+  }
+
+  const seqBox = overlay.querySelector('#mgSeq');
+  target.forEach((t, i) => {
+    if (i) { const a = document.createElement('span'); a.className = 'mg-seq-arrow'; a.textContent = '▸'; seqBox.appendChild(a); }
+    const c = document.createElement('span'); c.className = 'mg-seq-cell'; c.textContent = t; c.dataset.idx = i;
+    seqBox.appendChild(c);
+  });
+  seqBox.querySelector('[data-idx="0"]').classList.add('next');
+
+  const grid = overlay.querySelector('#mgGrid');
+  allCodes.forEach(c => {
+    const cell = document.createElement('div');
+    cell.className = 'mg-cell';
+    cell.textContent = c;
+    cell.onclick = () => clickCell(cell, c);
+    grid.appendChild(cell);
+  });
+
+  let idx = 0;
+  let alive = true;
+
+  function clickCell(cell, val) {
+    if (!alive) return;
+    if (val === target[idx]) {
+      cell.classList.add('correct');
+      cell.style.pointerEvents = 'none';
+      seqBox.querySelector(`[data-idx="${idx}"]`).classList.remove('next');
+      seqBox.querySelector(`[data-idx="${idx}"]`).classList.add('done');
+      idx++;
+      if (idx >= target.length) {
+        alive = false;
+        clearInterval(timerInt);
+        setTimeout(() => { overlay.remove(); onSuccess(); }, 250);
+      } else {
+        seqBox.querySelector(`[data-idx="${idx}"]`).classList.add('next');
+      }
+    } else {
+      cell.classList.add('wrong');
+      alive = false;
+      clearInterval(timerInt);
+      fullReset('SÉQUENCE INVALIDE — RÉINITIALISATION');
+    }
+  }
+
+  // timer
+  const start = Date.now();
+  const total = 15000;
+  const bar = overlay.querySelector('#mgBar');
+  const tlab = overlay.querySelector('#mgTime');
+  const timerInt = setInterval(() => {
+    const elapsed = Date.now() - start;
+    const rem = Math.max(0, total - elapsed);
+    bar.style.width = (rem/total*100) + '%';
+    tlab.textContent = (rem/1000).toFixed(1) + 's';
+    if (rem <= 0) {
+      alive = false;
+      clearInterval(timerInt);
+      fullReset('TEMPS ÉCOULÉ — RÉINITIALISATION');
+    }
+  }, 80);
+}
+
+/* ===========================================================
+   MINIJEU 2 : Pattern Memory (pour ouvrir l'image)
+   =========================================================== */
+function startPatternMinigame(parentBody, onSuccess) {
+  const overlay = document.createElement('div');
+  overlay.className = 'minigame-overlay';
+  overlay.innerHTML = `
+    <div class="mg-title">SCAN BIOMÉTRIQUE</div>
+    <div class="mg-subtitle">RÉPÉTEZ LA SÉQUENCE LUMINEUSE</div>
+    <div class="mg-time-label" id="patTime">15.0s</div>
+    <div class="mg-time"><div class="mg-time-bar" id="patBar"></div></div>
+    <div class="pat-grid" id="patGrid"></div>
+    <div id="patStatus" style="margin-top:10px; color:#0ff; font-size:11px; letter-spacing:2px;">MÉMORISEZ...</div>
+    ${state.skipEnabled ? '<button class="mg-skip-btn" id="patSkip">▸ SKIP</button>' : ''}
+  `;
+  parentBody.appendChild(overlay);
+  if (state.skipEnabled) {
+    overlay.querySelector('#patSkip').onclick = () => {
+      alive = false;
+      if (timerInt) clearInterval(timerInt);
+      clearInterval(playInt);
+      overlay.remove();
+      onSuccess();
+    };
+  }
+
+  const grid = overlay.querySelector('#patGrid');
+  const cells = [];
+  for (let i = 0; i < 9; i++) {
+    const c = document.createElement('div');
+    c.className = 'pat-cell disabled';
+    c.dataset.i = i;
+    grid.appendChild(c);
+    cells.push(c);
+  }
+
+  // generate sequence of 4
+  const seq = [];
+  while (seq.length < 4) {
+    const r = Math.floor(Math.random()*9);
+    if (seq[seq.length-1] !== r) seq.push(r);
+  }
+
+  let alive = true;
+  let pos = 0;
+  let timerStarted = false;
+  let timerInt = null;
+
+  // play sequence
+  let p = 0;
+  const playInt = setInterval(() => {
+    if (p >= seq.length) {
+      clearInterval(playInt);
+      overlay.querySelector('#patStatus').textContent = 'À VOTRE TOUR';
+      cells.forEach(c => c.classList.remove('disabled'));
+      startTimer();
+      return;
+    }
+    const cell = cells[seq[p]];
+    cell.classList.add('flash');
+    setTimeout(() => cell.classList.remove('flash'), 380);
+    p++;
+  }, 600);
+
+  function startTimer() {
+    timerStarted = true;
+    const start = Date.now();
+    const total = 15000;
+    const bar = overlay.querySelector('#patBar');
+    const tlab = overlay.querySelector('#patTime');
+    timerInt = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const rem = Math.max(0, total - elapsed);
+      bar.style.width = (rem/total*100) + '%';
+      tlab.textContent = (rem/1000).toFixed(1) + 's';
+      if (rem <= 0) {
+        alive = false;
+        clearInterval(timerInt);
+        fullReset('TEMPS ÉCOULÉ — RÉINITIALISATION');
+      }
+    }, 80);
+  }
+
+  cells.forEach(c => {
+    c.onclick = () => {
+      if (!alive || !timerStarted) return;
+      const i = parseInt(c.dataset.i);
+      if (i === seq[pos]) {
+        c.classList.add('you-clicked');
+        setTimeout(() => c.classList.remove('you-clicked'), 250);
+        pos++;
+        if (pos >= seq.length) {
+          alive = false;
+          clearInterval(timerInt);
+          setTimeout(() => { overlay.remove(); onSuccess(); }, 300);
+        }
+      } else {
+        alive = false;
+        clearInterval(timerInt);
+        c.style.background = '#400';
+        fullReset('SÉQUENCE INVALIDE — RÉINITIALISATION');
+      }
+    };
+  });
+}
+
+/* ===========================================================
+   OUVRIR L'IMAGE + LANCER LE TIMER 60s
+   =========================================================== */
+function openImage(src) {
+  const body = document.createElement('div');
+  body.style.height = '100%';
+  body.innerHTML = `
+    <div class="img-viewer">
+      ${src === 'raptorremplacemoi'
+        ? '<div class="img-placeholder">[ raptorremplacemoi ]<br><br>Remplace ce lien<br>dans le fichier HTML<br>par l\'URL de ton image.</div>'
+        : `<img src="${src}" alt="image" onerror="this.outerHTML='<div class=\\'img-placeholder\\'>Erreur de chargement<br>['+this.src+']</div>'">`
+      }
+    </div>
+  `;
+  makeWindow({ id: 'imgview_' + Date.now(), title: '☠ image.jpg', body, width: 480, height: 400, darknet: true });
+
+  // start 60s wipe timer (only first time)
+  if (!state.imageViewed) {
+    state.imageViewed = true;
+    startWipeTimer();
+  }
+}
+
+/* ===========================================================
+   TIMER 60s AU-DESSUS DU PC
+   =========================================================== */
+function startWipeTimer() {
+  state.wipeRemaining = 60;
+  const ext = document.getElementById('external-timer');
+  const val = document.getElementById('external-timer-val');
+  ext.style.display = 'block';
+  val.textContent = state.wipeRemaining;
+  state.wipeTimer = setInterval(() => {
+    state.wipeRemaining--;
+    val.textContent = state.wipeRemaining;
+    if (state.wipeRemaining <= 0) {
+      clearInterval(state.wipeTimer);
+      state.wipeTimer = null;
+      ext.style.display = 'none';
+      doWipe();
+    }
+  }, 1000);
+}
+
+/* ===========================================================
+   WIPE : crâne qui mange les données, puis l'appli disparaît
+   =========================================================== */
+function doWipe() {
+  // close all darknet-related windows except keep one for animation
+  Object.entries(state.windows).forEach(([id, w]) => {
+    if (w.classList.contains('darknet-window')) {
+      w.remove();
+      delete state.windows[id];
+    }
+  });
+
+  // open wipe window
+  const body = document.createElement('div');
+  body.innerHTML = `
+    <div class="skull-loading">
+      <pre class="skull-art evil" id="evilSkull">${SKULL_BIG}</pre>
+      <div class="skull-text" id="wipeText" style="color:#f55;"></div>
+      <div class="data-stream" id="dataStream"></div>
+    </div>
+  `;
+  const win = makeWindow({ id: 'darknet', title: '☠ EFFACEMENT', body, width: 520, height: 460, darknet: true });
+  renderTaskbar();
+
+  const wt = body.querySelector('#wipeText');
+  const ds = body.querySelector('#dataStream');
+  const phrases = [
+    '> "J\'AI FAIM..."',
+    '> Effacement des messages...',
+    '> "MIAM MIAM MIAM..."',
+    '> Effacement des images...',
+    '> "DÉLICIEUX, TES SECRETS..."',
+    '> Effacement des contacts...',
+    '> "ENCOREEE..."',
+    '> Effacement des logs...',
+    '> "TOUT DISPARAÎT..."',
+    '> EFFACEMENT TERMINÉ.',
+  ];
+  let i = 0;
+  const inter = setInterval(() => {
+    if (i >= phrases.length) {
+      clearInterval(inter);
+      setTimeout(() => {
+        win.remove();
+        delete state.windows.darknet;
+        setWiped(true);
+        renderDesktop();
+        renderTaskbar();
+      }, 1000);
+      return;
+    }
+    const d = document.createElement('div');
+    d.className = 'line';
+    d.textContent = phrases[i];
+    wt.appendChild(d);
+    // ajoute du bruit de données
+    let stream = '';
+    for (let k = 0; k < 4; k++) {
+      let row = '';
+      for (let j = 0; j < 40; j++) {
+        row += Math.random() > 0.5
+          ? String.fromCharCode(33 + Math.floor(Math.random()*90))
+          : ' ';
+      }
+      stream += row + '\n';
+    }
+    ds.textContent = stream;
+    i++;
+  }, 700);
+}
+
+/* ===========================================================
+   RESET COMPLET (sur échec d'un minijeu)
+   =========================================================== */
+function fullReset(reason) {
+  showFlash(reason || 'RÉINITIALISATION');
+  state.darknetUnlocked = false;
+  state.chatsUnlocked = {};
+  state.imageViewed = false;
+  state.wipeRemaining = 60;
+  if (state.wipeTimer) { clearInterval(state.wipeTimer); state.wipeTimer = null; }
+  document.getElementById('external-timer').style.display = 'none';
+
+  // close all darknet & image windows
+  Object.entries({...state.windows}).forEach(([id, w]) => {
+    if (w.classList.contains('darknet-window') || id.startsWith('imgview_')) {
+      w.remove();
+      delete state.windows[id];
+    }
+  });
+  renderTaskbar();
+}
+
 </script>
 </body>
 </html>
