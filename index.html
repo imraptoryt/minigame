@@ -6,29 +6,161 @@
 <style>
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 20px;
-    background: radial-gradient(ellipse at center, #2a2a2a, #0a0a0a);
-    font-family: 'Courier New', monospace;
+    margin: 0; padding: 0;
+    background: radial-gradient(ellipse at center, #1a0a1a, #050505);
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Helvetica Neue', sans-serif;
     min-height: 100vh;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Bannière auto-effacement, en haut de l'écran, par-dessus tout */
+  /* === TÉLÉPHONE === */
+  #pc-frame {
+    width: min(420px, 96vw);
+    height: min(900px, 96vh);
+    background: linear-gradient(135deg, #1c1c22 0%, #0a0a0d 50%, #1c1c22 100%);
+    border-radius: 46px;
+    padding: 8px;
+    box-shadow:
+      inset 0 0 0 1.5px #3a3a40,
+      inset 0 1px 2px rgba(255,255,255,0.06),
+      0 20px 60px rgba(0,0,0,0.85),
+      0 0 100px rgba(255,80,150,0.08);
+    position: relative;
+    z-index: 2;
+  }
+  /* Bouton volume */
+  #pc-frame::before {
+    content: '';
+    position: absolute;
+    left: -3px; top: 130px;
+    width: 4px; height: 90px;
+    background: linear-gradient(90deg, #0a0a0d, #2a2a30 50%, #0a0a0d);
+    border-radius: 2px 0 0 2px;
+    box-shadow: 0 110px 0 -2px #2a2a30, 0 110px 0 #0a0a0d;
+  }
+  /* Bouton power */
+  #pc-frame::after {
+    content: '';
+    position: absolute;
+    right: -3px; top: 160px;
+    width: 4px; height: 110px;
+    background: linear-gradient(-90deg, #0a0a0d, #2a2a30 50%, #0a0a0d);
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* Dynamic island */
+  .phone-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 30px;
+    background: #000;
+    border-radius: 18px;
+    z-index: 99992;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.8);
+  }
+  .phone-island::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    width: 7px; height: 7px;
+    background: #0a0a18;
+    border-radius: 50%;
+    box-shadow: inset 0 0 2px rgba(80,80,120,0.4);
+  }
+
+  /* Status bar */
+  .status-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 28px 0;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9988;
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    pointer-events: none;
+    letter-spacing: 0.3px;
+  }
+  .status-bar .indicators {
+    display: flex; gap: 6px;
+    font-size: 13px;
+    align-items: center;
+  }
+  .status-bar .battery {
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 3px;
+    padding: 0 3px;
+    font-size: 9px;
+    font-weight: bold;
+    position: relative;
+    height: 12px;
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(90deg, #fff 0% 80%, transparent 80%);
+    color: #000;
+    min-width: 24px;
+    justify-content: center;
+  }
+  .status-bar .battery::after {
+    content: '';
+    position: absolute;
+    right: -3px; top: 3px;
+    width: 2px; height: 6px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 0 1px 1px 0;
+  }
+
+  /* Home indicator */
+  .home-bar {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 5px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 3px;
+    z-index: 9991;
+  }
+
+  /* Fissure écran (subtile) */
+  .screen-crack {
+    position: absolute;
+    top: 90px; right: 32px;
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+    z-index: 99995;
+    opacity: 0.55;
+  }
+
   #external-timer {
     display: none;
     position: absolute;
-    top: 0; left: 0; right: 0;
-    background: #1a0000;
+    top: 52px; left: 10px; right: 10px;
+    background: rgba(40,0,0,0.95);
     color: #ff3030;
-    padding: 8px 20px;
+    padding: 10px 14px;
     font-family: 'Courier New', monospace;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: bold;
-    border-bottom: 2px solid #800;
+    border: 1px solid #800;
+    border-radius: 14px;
     box-shadow: 0 4px 16px rgba(255,0,0,0.5);
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-shadow: 0 0 6px #ff3030;
     text-align: center;
     z-index: 99990;
@@ -36,48 +168,39 @@
   }
   @keyframes blink { 50% { opacity: 0.5; } }
 
-  /* PC frame */
-  #pc-frame {
-    width: 1040px; height: 720px;
-    background: linear-gradient(180deg, #e8e0cb, #b5ad97);
-    border-radius: 22px;
-    padding: 28px;
-    box-shadow:
-      inset 0 0 30px rgba(0,0,0,0.25),
-      0 30px 60px rgba(0,0,0,0.7),
-      0 0 0 4px #918a76;
-    position: relative;
-  }
-  #pc-frame::before {
-    content: 'PC-9000';
-    position: absolute;
-    bottom: 6px; left: 28px;
-    font-size: 11px;
-    color: #5a5444;
-    letter-spacing: 3px;
-    font-weight: bold;
-  }
-  #pc-frame::after {
-    content: '';
-    position: absolute;
-    bottom: 12px; right: 28px;
-    width: 12px; height: 12px;
-    background: #4caf50;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #4caf50;
-    animation: led-blink 3s infinite;
-  }
-  @keyframes led-blink { 0%, 95% { opacity: 1; } 97% { opacity: 0.3; } }
-
   /* Screen */
   #screen {
     width: 100%; height: 100%;
-    background: #008080;
-    border-radius: 8px;
+    background:
+      radial-gradient(1.5px 1.5px at 6% 8%,  #fff, transparent 60%),
+      radial-gradient(1px 1px at 12% 15%,    #fff, transparent 60%),
+      radial-gradient(2px 2px at 22% 4%,     #fff, transparent 60%),
+      radial-gradient(1px 1px at 30% 12%,    #aef, transparent 60%),
+      radial-gradient(1.5px 1.5px at 42% 7%, #fff, transparent 60%),
+      radial-gradient(1px 1px at 54% 18%,    #fff, transparent 60%),
+      radial-gradient(2px 2px at 65% 5%,     #fff, transparent 60%),
+      radial-gradient(1px 1px at 75% 14%,    #fce, transparent 60%),
+      radial-gradient(1.5px 1.5px at 86% 9%, #fff, transparent 60%),
+      radial-gradient(1px 1px at 94% 19%,    #aef, transparent 60%),
+      radial-gradient(ellipse 70% 18% at 50% 78%, rgba(255,180,80,0.55), transparent 60%),
+      radial-gradient(ellipse 90% 25% at 50% 80%, rgba(255,80,150,0.35), transparent 70%),
+      linear-gradient(180deg,
+        #050116 0%,
+        #150626 20%,
+        #3a0a5a 45%,
+        #80105a 62%,
+        #ff3080 75%,
+        #ff6040 86%,
+        #ffaa40 100%);
+    background-attachment: local;
+    border-radius: 38px;
     position: relative;
     overflow: hidden;
-    box-shadow: inset 0 0 100px rgba(0,0,0,0.6);
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.4);
   }
+  /* Suppression scanlines + vignette (style CRT pas adapté au phone) */
+  #screen::before,
+  #screen::after { display: none; }
   #screen::before {
     content: '';
     position: absolute; inset: 0;
@@ -95,6 +218,20 @@
     z-index: 99998;
   }
 
+  /* Watermark discret sur le bureau */
+  .desktop-wm {
+    position: absolute;
+    bottom: 50px; right: 20px;
+    color: rgba(255,255,255,0.18);
+    font-size: 11px;
+    letter-spacing: 4px;
+    font-family: 'Courier New', monospace;
+    text-align: right;
+    line-height: 1.4;
+    pointer-events: none;
+    user-select: none;
+  }
+
   #desktop {
     position: absolute;
     inset: 0;
@@ -102,98 +239,166 @@
     z-index: 1;
   }
 
-  .desktop-icon {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    width: 78px;
-    margin: 8px;
-    cursor: pointer;
-    color: white;
-    font-size: 11px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
-    text-align: center;
-    padding: 4px;
-    border: 1px dotted transparent;
-    user-select: none;
-  }
-  .desktop-icon:active { border: 1px dotted white; background: rgba(0,0,128,0.3); }
-  .desktop-icon .ico {
-    width: 44px; height: 44px;
-    margin-bottom: 4px;
-    background: #c0c0c0;
-    border: 1px solid #fff;
-    border-right-color: #404040;
-    border-bottom-color: #404040;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
-    image-rendering: pixelated;
+  #desktop {
+    position: absolute;
+    top: 50px; left: 0; right: 0; bottom: 26px;
+    padding: 20px 16px 10px;
+    z-index: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px 6px;
+    align-content: start;
   }
 
-  /* Windows */
+  .desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    font-size: 10px;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    text-align: center;
+    user-select: none;
+    transition: transform 0.12s;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+  .desktop-icon:hover { transform: scale(1.04); }
+  .desktop-icon:active { transform: scale(0.92); }
+  .desktop-icon .ico {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8f8fb 0%, #c8c8d0 100%);
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    margin-bottom: 5px;
+    box-shadow:
+      0 4px 10px rgba(0,0,0,0.35),
+      inset 0 -2px 3px rgba(0,0,0,0.08),
+      inset 0 1px 1px rgba(255,255,255,0.6);
+  }
+  /* Couleurs spécifiques pour certaines apps (style iOS) */
+  .desktop-icon[data-app="notes"] .ico    { background: linear-gradient(135deg, #fff5b0, #fcd34d); }
+  .desktop-icon[data-app="calc"] .ico     { background: linear-gradient(135deg, #555, #1a1a1a); color: #fff; }
+  .desktop-icon[data-app="files"] .ico    { background: linear-gradient(135deg, #60a5fa, #2563eb); }
+  .desktop-icon[data-app="snake"] .ico    { background: linear-gradient(135deg, #86efac, #16a34a); }
+  .desktop-icon[data-app="paint"] .ico    { background: linear-gradient(135deg, #fda4af, #e11d48); }
+  .desktop-icon[data-app="music"] .ico    { background: linear-gradient(135deg, #f0abfc, #c026d3); }
+  .desktop-icon[data-app="photos"] .ico   { background: linear-gradient(135deg, #fbbf24, #ea580c, #ec4899); }
+  .desktop-icon[data-app="memory"] .ico   { background: linear-gradient(135deg, #a78bfa, #6d28d9); }
+  .desktop-icon[data-app="minesweeper"] .ico { background: linear-gradient(135deg, #6b7280, #1f2937); }
+  .desktop-icon[data-app="pong"] .ico     { background: linear-gradient(135deg, #fde047, #ca8a04); }
+  .desktop-icon[data-app="morpion"] .ico  { background: linear-gradient(135deg, #67e8f9, #0891b2); }
+  .desktop-icon[data-app="taupes"] .ico   { background: linear-gradient(135deg, #d2b48c, #8b4513); }
+  .desktop-icon[data-app="darknet"] .ico  { background: linear-gradient(135deg, #18181b, #450a0a); color: #ff3030; box-shadow: 0 4px 14px rgba(255,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2); }
+
+  /* Windows = applications phone en plein écran */
   .window {
-    position: absolute;
-    background: #c0c0c0;
-    border: 2px solid;
-    border-color: #fff #404040 #404040 #fff;
-    min-width: 300px;
-    min-height: 200px;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    position: absolute !important;
+    top: 0 !important; left: 0 !important;
+    width: 100% !important; height: 100% !important;
+    background: #f2f2f7;
+    border: none;
+    border-radius: 0;
+    min-width: 0; min-height: 0;
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    animation: win-open 0.22s ease-out;
   }
-  .window.maximized {
-    top: 0 !important; left: 0 !important;
-    width: 100% !important; height: calc(100% - 32px) !important;
-    border-radius: 0;
+  @keyframes win-open {
+    from { transform: scale(1.05); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
   }
+  .window.maximized { /* déjà plein écran par défaut */ }
+
   .window-title {
-    background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
-    color: white;
-    padding: 3px 4px 3px 6px;
+    background: linear-gradient(180deg, #f8f8fa, #e8e8eb);
+    color: #000;
+    padding: 0 14px;
+    padding-top: 44px; /* sous la status bar */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 11px;
-    font-weight: bold;
-    cursor: move;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: default;
     user-select: none;
-    height: 22px;
+    height: 88px;
     flex-shrink: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    font-family: -apple-system, system-ui, sans-serif;
   }
-  .window-title.inactive { background: linear-gradient(90deg, #808080, #b0b0b0); }
-  .window-controls button {
-    width: 18px; height: 16px;
-    background: #c0c0c0;
-    border: 1px solid;
-    border-color: #fff #404040 #404040 #fff;
-    font-size: 9px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-left: 2px;
-    padding: 0;
+  .window-title.inactive { background: linear-gradient(180deg, #f8f8fa, #e8e8eb); }
+  .window-title > span:first-child {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 0 12px;
+  }
+  .window-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .window-controls button[data-action="min"],
+  .window-controls button[data-action="max"] { display: none; }
+  .window-controls button[data-action="close"] {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(120,120,128,0.18);
+    border: none;
     color: #000;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 0;
+    cursor: pointer;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
   }
-  .window-controls button:active {
-    border-color: #404040 #fff #fff #404040;
+  .window-controls button[data-action="close"]:active {
+    background: rgba(120,120,128,0.35);
+    transform: scale(0.92);
   }
+
   .window-body {
     flex: 1;
-    background: #c0c0c0;
+    background: #f2f2f7;
     overflow: auto;
     position: relative;
-    padding: 4px;
+    padding: 0;
   }
-  .window-resize {
-    position: absolute;
-    width: 14px; height: 14px;
-    bottom: 0; right: 0;
-    cursor: nwse-resize;
-    background: linear-gradient(135deg, transparent 50%, #888 52%, #888 62%, transparent 64%, #888 72%, #888 82%, transparent 84%);
-    z-index: 10;
+  .window-resize { display: none !important; }
+
+  /* Apps DarkNet : header sombre */
+  .darknet-window .window-title {
+    background: linear-gradient(180deg, #1a0a0a, #2a0505) !important;
+    color: #ff5050;
+    border-bottom: 1px solid #500;
   }
+  .darknet-window .window-controls button[data-action="close"] {
+    background: rgba(255,80,80,0.18);
+    color: #ff9090;
+  }
+  .darknet-window .window-controls button[data-action="close"]:active {
+    background: rgba(255,80,80,0.35);
+  }
+  .darknet-window .window-body {
+    background: #000 !important;
+  }
+
+  /* Taskbar caché en mode phone */
+  #taskbar { display: none !important; }
 
   /* Taskbar */
   #taskbar {
@@ -573,7 +778,8 @@
   .minigame-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.95);
+    background:
+      radial-gradient(ellipse at center, rgba(0,30,40,0.92) 0%, rgba(0,0,0,0.98) 80%);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -582,36 +788,80 @@
     color: #0f0;
     font-family: 'Courier New', monospace;
     padding: 14px;
+    overflow: hidden;
   }
+  /* Grille animée derrière */
+  .minigame-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    animation: mg-grid-scroll 8s linear infinite;
+    z-index: 0;
+  }
+  @keyframes mg-grid-scroll {
+    from { background-position: 0 0; }
+    to   { background-position: 24px 24px; }
+  }
+  /* Scanlines */
+  .minigame-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+      transparent, transparent 2px,
+      rgba(0,255,255,0.04) 2px, rgba(0,255,255,0.04) 3px);
+    pointer-events: none;
+    z-index: 0;
+    animation: mg-scan 6s linear infinite;
+  }
+  @keyframes mg-scan {
+    from { transform: translateY(0); }
+    to   { transform: translateY(40px); }
+  }
+  /* Tout le contenu du minijeu doit être au-dessus des décors */
+  .minigame-overlay > * { position: relative; z-index: 1; }
   .mg-title {
     color: #0ff;
-    font-size: 14px;
-    letter-spacing: 4px;
+    font-size: 16px;
+    letter-spacing: 5px;
     margin-bottom: 6px;
+    text-shadow: 0 0 6px #0ff, 0 0 14px rgba(0,255,255,0.6);
+    font-weight: bold;
   }
   .mg-subtitle {
     font-size: 10px;
-    color: #888;
+    color: #088;
     letter-spacing: 2px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 4px rgba(0,200,200,0.4);
   }
   .mg-time {
     width: 80%;
-    height: 4px;
-    background: #001a00;
+    height: 5px;
+    background: #001a20;
     margin-bottom: 12px;
     overflow: hidden;
+    border: 1px solid #044;
+    box-shadow: 0 0 8px rgba(0,255,255,0.3);
   }
   .mg-time-bar {
     height: 100%;
-    background: #0ff;
+    background: linear-gradient(90deg, #0ff, #08c, #0ff);
     width: 100%;
     transition: width 0.1s linear;
+    box-shadow: 0 0 12px #0ff;
   }
   .mg-time-label {
     color: #0ff;
-    font-size: 11px;
+    font-size: 12px;
     margin-bottom: 8px;
+    text-shadow: 0 0 6px #0ff;
+    letter-spacing: 2px;
   }
   .mg-target {
     background: #0a0a18;
@@ -660,19 +910,33 @@
     width: 100%;
   }
   .mg-cell {
-    background: #0a0a18;
-    border: 1px solid #1a3a5a;
+    background: linear-gradient(135deg, #0a1428 0%, #050a14 100%);
+    border: 1px solid #1a4a7a;
     padding: 8px 4px;
     color: #aef;
     font-size: 13px;
     cursor: pointer;
     text-align: center;
     font-family: 'Courier New', monospace;
-    transition: all 0.08s;
+    font-weight: bold;
+    transition: all 0.1s;
+    box-shadow: inset 0 0 8px rgba(0,80,160,0.2);
   }
-  .mg-cell:hover { background: #14143a; }
-  .mg-cell.wrong { background: #400; border-color: #f00; }
-  .mg-cell.correct { background: #040; border-color: #0f0; }
+  .mg-cell:hover {
+    background: linear-gradient(135deg, #14245a 0%, #0a1430 100%);
+    border-color: #0ff;
+    box-shadow: 0 0 8px rgba(0,255,255,0.4), inset 0 0 8px rgba(0,255,255,0.2);
+  }
+  .mg-cell.wrong {
+    background: linear-gradient(135deg, #600 0%, #200 100%);
+    border-color: #f00;
+    box-shadow: 0 0 12px rgba(255,0,0,0.6);
+  }
+  .mg-cell.correct {
+    background: linear-gradient(135deg, #060 0%, #020 100%);
+    border-color: #0f0;
+    box-shadow: 0 0 12px rgba(0,255,0,0.5);
+  }
 
   /* Bouton Skip (activé via commande cachée du terminal) */
   .mg-skip-btn {
@@ -699,16 +963,21 @@
   }
   .pat-cell {
     width: 60px; height: 60px;
-    background: #050a14;
-    border: 1px solid #1a3a5a;
+    background: linear-gradient(135deg, #0a1428 0%, #050a14 100%);
+    border: 1px solid #1a4a7a;
     cursor: pointer;
     transition: all 0.1s;
+    box-shadow: inset 0 0 6px rgba(0,80,160,0.2);
   }
   .pat-cell.flash {
-    background: #0ff;
-    box-shadow: 0 0 16px #0ff;
+    background: linear-gradient(135deg, #0ff 0%, #08c 100%);
+    box-shadow: 0 0 20px #0ff, 0 0 40px rgba(0,255,255,0.5);
+    border-color: #fff;
   }
-  .pat-cell.you-clicked { background: #0a0; }
+  .pat-cell.you-clicked {
+    background: linear-gradient(135deg, #0a0 0%, #060 100%);
+    box-shadow: 0 0 14px rgba(0,255,0,0.6);
+  }
   .pat-cell.disabled { opacity: 0.5; pointer-events: none; }
 
   /* Image viewer */
@@ -761,11 +1030,44 @@
 <div id="pc-frame">
   <div id="screen">
     <div id="external-timer">⚠ AUTO-EFFACEMENT EN COURS: <span id="external-timer-val">60</span>s ⚠</div>
+    <div class="phone-island"></div>
+    <div class="status-bar">
+      <span id="status-time">21:30</span>
+      <span class="indicators">
+        <span title="signal">●●●</span>
+        <span title="wifi">⌒</span>
+        <span class="battery">87</span>
+      </span>
+    </div>
     <div id="desktop"></div>
+    <!-- Petite fissure subtile en haut à droite -->
+    <div class="screen-crack">
+      <svg viewBox="0 0 200 200" style="width:100%;height:100%;">
+        <g stroke="rgba(255,255,255,0.55)" stroke-width="0.7" fill="none" stroke-linecap="round">
+          <path d="M 100 100 L 55 65"/>
+          <path d="M 100 100 L 80 35"/>
+          <path d="M 100 100 L 130 55"/>
+          <path d="M 100 100 L 165 80"/>
+          <path d="M 100 100 L 175 130"/>
+          <path d="M 100 100 L 145 165"/>
+          <path d="M 100 100 L 85 175"/>
+          <path d="M 100 100 L 35 145"/>
+          <path d="M 100 100 L 28 95"/>
+          <path d="M 75 80 L 60 75"/>
+          <path d="M 125 80 L 140 70"/>
+          <path d="M 130 125 L 150 140"/>
+          <path d="M 75 130 L 60 145"/>
+          <path d="M 90 80 L 95 60"/>
+        </g>
+        <circle cx="100" cy="100" r="2.5" fill="rgba(255,255,255,0.5)"/>
+        <circle cx="100" cy="100" r="6" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.4"/>
+      </svg>
+    </div>
     <div id="windows-container"></div>
     <div id="flash-msg"></div>
+    <div class="home-bar"></div>
     <div id="taskbar">
-      <button class="start-button">⊞ Démarrer</button>
+      <button class="start-button">⊞</button>
       <div id="taskbar-items"></div>
       <div id="taskbar-clock">--:--</div>
     </div>
@@ -806,7 +1108,10 @@ function updateClock() {
   const d = new Date();
   const h = String(d.getHours()).padStart(2, '0');
   const m = String(d.getMinutes()).padStart(2, '0');
-  document.getElementById('taskbar-clock').textContent = `${h}:${m}`;
+  const tb = document.getElementById('taskbar-clock');
+  const sb = document.getElementById('status-time');
+  if (tb) tb.textContent = `${h}:${m}`;
+  if (sb) sb.textContent = `${h}:${m}`;
 }
 setInterval(updateClock, 1000); updateClock();
 
@@ -824,15 +1129,19 @@ function showFlash(text, duration = 2000) {
    ICÔNES DESKTOP
    =========================================================== */
 const APPS = [
-  { id: 'notes',    name: 'Notes',     icon: '📝' },
-  { id: 'calc',     name: 'Calc',      icon: '🧮' },
-  { id: 'files',    name: 'Fichiers',  icon: '📁' },
-  { id: 'snake',    name: 'Snake',     icon: '🐍' },
-  { id: 'paint',    name: 'Paint',     icon: '🎨' },
-  { id: 'music',    name: 'Musique',   icon: '🎵' },
-  { id: 'photos',   name: 'Photos',    icon: '🖼' },
-  { id: 'memory',   name: 'Mémoire',   icon: '🧠' },
-  { id: 'darknet',  name: 'DarkNet',   icon: '☠' },
+  { id: 'notes',       name: 'Notes',     icon: '📝' },
+  { id: 'calc',        name: 'Calc',      icon: '🧮' },
+  { id: 'files',       name: 'Fichiers',  icon: '📁' },
+  { id: 'paint',       name: 'Paint',     icon: '🎨' },
+  { id: 'music',       name: 'Musique',   icon: '🎵' },
+  { id: 'photos',      name: 'Photos',    icon: '🖼' },
+  { id: 'snake',       name: 'Snake',     icon: '🐍' },
+  { id: 'memory',      name: 'Mémoire',   icon: '🧠' },
+  { id: 'minesweeper', name: 'Démineur',  icon: '💣' },
+  { id: 'pong',        name: 'Pong',      icon: '🏓' },
+  { id: 'morpion',     name: 'Morpion',   icon: '⭕' },
+  { id: 'taupes',      name: 'Taupes',    icon: '🔨' },
+  { id: 'darknet',     name: 'DarkNet',   icon: '☠' },
 ];
 
 function renderDesktop() {
@@ -842,6 +1151,7 @@ function renderDesktop() {
     if (app.id === 'darknet' && isWiped()) return; // caché si wipé
     const el = document.createElement('div');
     el.className = 'desktop-icon';
+    el.dataset.app = app.id;
     el.innerHTML = `<div class="ico">${app.icon}</div><div>${app.name}</div>`;
     el.onclick = () => openApp(app.id);
     desk.appendChild(el);
@@ -977,16 +1287,20 @@ function renderTaskbar() {
    =========================================================== */
 function openApp(id) {
   switch (id) {
-    case 'notes':    return openNotes();
-    case 'snake':    return openSnake();
-    case 'calc':     return openCalc();
-    case 'files':    return openFiles();
-    case 'paint':    return openPaint();
-    case 'music':    return openMusic();
-    case 'photos':   return openPhotos();
-    case 'memory':   return openMemory();
-    case 'terminal': return openTerminal();
-    case 'darknet':  return openDarknet();
+    case 'notes':       return openNotes();
+    case 'snake':       return openSnake();
+    case 'calc':        return openCalc();
+    case 'files':       return openFiles();
+    case 'paint':       return openPaint();
+    case 'music':       return openMusic();
+    case 'photos':      return openPhotos();
+    case 'memory':      return openMemory();
+    case 'minesweeper': return openMinesweeper();
+    case 'pong':        return openPong();
+    case 'morpion':     return openMorpion();
+    case 'taupes':      return openTaupes();
+    case 'terminal':    return openTerminal();
+    case 'darknet':     return openDarknet();
   }
 }
 
@@ -1430,6 +1744,392 @@ function openMemory() {
 }
 
 /* ===========================================================
+   APP: DÉMINEUR
+   =========================================================== */
+function openMinesweeper() {
+  const ROWS = 10, COLS = 10, MINES = 15;
+  const grid = [], revealed = [], flagged = [];
+  for (let r = 0; r < ROWS; r++) {
+    grid.push(new Array(COLS).fill(0));
+    revealed.push(new Array(COLS).fill(false));
+    flagged.push(new Array(COLS).fill(false));
+  }
+  // place mines
+  let placed = 0;
+  while (placed < MINES) {
+    const r = Math.floor(Math.random()*ROWS), c = Math.floor(Math.random()*COLS);
+    if (grid[r][c] !== -1) { grid[r][c] = -1; placed++; }
+  }
+  // count adjacents
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (grid[r][c] === -1) continue;
+    let n = 0;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const nr = r+dr, nc = c+dc;
+      if (nr>=0 && nr<ROWS && nc>=0 && nc<COLS && grid[nr][nc] === -1) n++;
+    }
+    grid[r][c] = n;
+  }
+  let gameOver = false, won = false, flagsLeft = MINES;
+
+  const body = document.createElement('div');
+  body.style.padding = '8px';
+  body.style.background = '#c0c0c0';
+  body.innerHTML = `
+    <div style="background:#000;color:#f00;font-family:monospace;font-weight:bold;display:flex;justify-content:space-between;padding:4px 10px;margin-bottom:6px;border:2px inset #c0c0c0;font-size:14px;">
+      <span>💣 <span id="msFlags">${flagsLeft}</span></span>
+      <button id="msReset" style="background:#c0c0c0;border:2px outset #fff;cursor:pointer;font-size:14px;width:30px;height:24px;">🙂</button>
+      <span>⏱ <span id="msTime">0</span></span>
+    </div>
+    <div id="msGrid" style="display:grid;grid-template-columns:repeat(${COLS},24px);gap:1px;background:#808080;padding:2px;border:2px inset #c0c0c0;"></div>
+    <div style="font-size:10px;color:#444;margin-top:6px;text-align:center;font-family:monospace;">Clic = révéler · Clic droit = drapeau</div>
+  `;
+  let seconds = 0;
+  const timeInt = setInterval(() => {
+    if (!gameOver) { seconds++; body.querySelector('#msTime').textContent = seconds; }
+  }, 1000);
+
+  const win = makeWindow({ id: 'minesweeper', title: '💣 Démineur', body, width: 280, height: 340,
+    onClose: () => clearInterval(timeInt) });
+
+  body.querySelector('#msReset').onclick = () => { win.querySelector('[data-action="close"]').click(); openMinesweeper(); };
+
+  const gridEl = body.querySelector('#msGrid');
+  const cells = [];
+  for (let r = 0; r < ROWS; r++) {
+    cells.push([]);
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.style.cssText = 'width:24px;height:24px;background:#c0c0c0;border:2px outset #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:bold;font-size:13px;user-select:none;';
+      cell.oncontextmenu = (e) => {
+        e.preventDefault();
+        if (gameOver || revealed[r][c]) return;
+        flagged[r][c] = !flagged[r][c];
+        cell.textContent = flagged[r][c] ? '🚩' : '';
+        flagsLeft += flagged[r][c] ? -1 : 1;
+        body.querySelector('#msFlags').textContent = flagsLeft;
+      };
+      cell.onclick = () => {
+        if (gameOver || revealed[r][c] || flagged[r][c]) return;
+        reveal(r, c);
+        checkWin();
+      };
+      gridEl.appendChild(cell);
+      cells[r].push(cell);
+    }
+  }
+  function reveal(r, c) {
+    if (r<0||r>=ROWS||c<0||c>=COLS||revealed[r][c]||flagged[r][c]) return;
+    revealed[r][c] = true;
+    const cell = cells[r][c];
+    cell.style.border = '1px solid #888';
+    cell.style.background = '#bbb';
+    if (grid[r][c] === -1) {
+      cell.textContent = '💣';
+      cell.style.background = '#f44';
+      gameOver = true;
+      body.querySelector('#msReset').textContent = '😵';
+      // reveal all mines
+      for (let rr = 0; rr < ROWS; rr++) for (let cc = 0; cc < COLS; cc++) {
+        if (grid[rr][cc] === -1 && !revealed[rr][cc]) {
+          cells[rr][cc].textContent = '💣';
+          cells[rr][cc].style.border = '1px solid #888';
+        }
+      }
+    } else if (grid[r][c] > 0) {
+      const colors = ['', '#0000ff', '#008000', '#ff0000', '#000080', '#800000', '#008080', '#000000', '#808080'];
+      cell.style.color = colors[grid[r][c]];
+      cell.textContent = grid[r][c];
+    } else {
+      // auto-reveal neighbors
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (dr || dc) reveal(r+dr, c+dc);
+      }
+    }
+  }
+  function checkWin() {
+    let unrevealed = 0;
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      if (!revealed[r][c] && grid[r][c] !== -1) unrevealed++;
+    }
+    if (unrevealed === 0) {
+      won = true; gameOver = true;
+      body.querySelector('#msReset').textContent = '😎';
+    }
+  }
+}
+
+/* ===========================================================
+   APP: PONG
+   =========================================================== */
+function openPong() {
+  const body = document.createElement('div');
+  body.style.padding = '0';
+  body.innerHTML = `
+    <div style="background:#000080;color:#fff;padding:4px 10px;font-family:monospace;display:flex;justify-content:space-between;font-size:13px;">
+      <span>Toi: <span id="pgL">0</span></span>
+      <span style="font-size:10px;color:#aef;">↑ ↓ ou souris · Premier à 5</span>
+      <span>CPU: <span id="pgR">0</span></span>
+    </div>
+    <div style="background:#000;display:flex;align-items:center;justify-content:center;padding:8px;">
+      <canvas id="pgCanvas" width="400" height="280" style="background:#000;border:1px solid #444;cursor:none;"></canvas>
+    </div>
+    <div id="pgMsg" style="text-align:center;font-family:monospace;font-size:11px;padding:4px;background:#c0c0c0;min-height:16px;">Bouge ta souris dans le canvas pour jouer</div>
+  `;
+  const win = makeWindow({ id: 'pong', title: '🏓 Pong', body, width: 420, height: 360,
+    onClose: () => { if (window._pongStop) window._pongStop(); }
+  });
+  setTimeout(() => initPong(body, win), 50);
+}
+function initPong(body, win) {
+  const c = body.querySelector('#pgCanvas');
+  const ctx = c.getContext('2d');
+  const W = 400, H = 280;
+  let py = H/2 - 30, ay = H/2 - 30;
+  const PH = 60, PW = 8;
+  let bx = W/2, by = H/2, bvx = 3.5 * (Math.random() < 0.5 ? 1 : -1), bvy = 2.5 * (Math.random() < 0.5 ? 1 : -1);
+  let pl = 0, ar = 0, paused = false;
+  const keys = {};
+  const onKey = (e) => {
+    if (e.key === 'ArrowUp') keys.up = (e.type === 'keydown');
+    if (e.key === 'ArrowDown') keys.down = (e.type === 'keydown');
+  };
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('keyup', onKey);
+  c.onmousemove = (e) => {
+    const r = c.getBoundingClientRect();
+    py = e.clientY - r.top - PH/2;
+    py = Math.max(0, Math.min(H - PH, py));
+  };
+  const loop = setInterval(() => {
+    if (paused) return;
+    if (keys.up) py = Math.max(0, py - 4);
+    if (keys.down) py = Math.min(H - PH, py + 4);
+    // AI
+    const targetY = by - PH/2;
+    if (ay + 3 < targetY) ay += 3;
+    else if (ay - 3 > targetY) ay -= 3;
+    ay = Math.max(0, Math.min(H - PH, ay));
+    // ball
+    bx += bvx; by += bvy;
+    if (by < 4 || by > H-4) bvy *= -1;
+    // collide left paddle
+    if (bx < PW + 6 && by > py && by < py + PH) { bvx = Math.abs(bvx) * 1.05; bvy += (by - (py+PH/2)) * 0.05; }
+    // collide right
+    if (bx > W - PW - 6 && by > ay && by < ay + PH) { bvx = -Math.abs(bvx) * 1.05; bvy += (by - (ay+PH/2)) * 0.05; }
+    // out
+    if (bx < 0) { ar++; reset(1); }
+    else if (bx > W) { pl++; reset(-1); }
+    // draw
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = '#444'; ctx.setLineDash([6,6]); ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(4, py, PW, PH);
+    ctx.fillRect(W-PW-4, ay, PW, PH);
+    ctx.beginPath(); ctx.arc(bx, by, 5, 0, Math.PI*2); ctx.fill();
+    body.querySelector('#pgL').textContent = pl;
+    body.querySelector('#pgR').textContent = ar;
+    if (pl >= 5 || ar >= 5) {
+      paused = true;
+      body.querySelector('#pgMsg').textContent = pl >= 5 ? '★ Tu gagnes !' : 'CPU gagne...';
+    }
+  }, 16);
+  function reset(dir) {
+    bx = W/2; by = H/2;
+    bvx = 3.5 * dir;
+    bvy = 2.5 * (Math.random() < 0.5 ? 1 : -1);
+  }
+  window._pongStop = () => {
+    clearInterval(loop);
+    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('keyup', onKey);
+  };
+}
+
+/* ===========================================================
+   APP: MORPION (Tic-tac-toe) avec IA
+   =========================================================== */
+function openMorpion() {
+  let board = ['','','','','','','','',''];
+  let gameOver = false, scoreP = 0, scoreAI = 0, draws = 0;
+
+  const body = document.createElement('div');
+  body.style.padding = '10px';
+  body.style.background = '#c0c0c0';
+  body.innerHTML = `
+    <div style="text-align:center;font-family:monospace;font-size:12px;margin-bottom:8px;">
+      Toi (X): <b id="mpP">0</b> · CPU (O): <b id="mpA">0</b> · Nuls: <b id="mpD">0</b>
+    </div>
+    <div id="mpGrid" style="display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,80px);gap:4px;justify-content:center;background:#000080;padding:4px;width:fit-content;margin:0 auto;"></div>
+    <div id="mpMsg" style="text-align:center;font-family:monospace;font-size:12px;margin-top:8px;min-height:16px;font-weight:bold;">À toi de jouer</div>
+    <div style="text-align:center;margin-top:6px;"><button id="mpReset" style="padding:4px 12px;font-family:monospace;cursor:pointer;border:2px outset #fff;background:#c0c0c0;">Nouvelle partie</button></div>
+  `;
+  const grid = body.querySelector('#mpGrid');
+  const cells = [];
+  for (let i = 0; i < 9; i++) {
+    const c = document.createElement('div');
+    c.style.cssText = 'background:#c0c0c0;border:2px outset #fff;display:flex;align-items:center;justify-content:center;font-size:42px;font-family:Courier New,monospace;font-weight:bold;cursor:pointer;user-select:none;';
+    c.onclick = () => play(i);
+    grid.appendChild(c);
+    cells.push(c);
+  }
+  body.querySelector('#mpReset').onclick = newGame;
+
+  function newGame() {
+    board = ['','','','','','','','',''];
+    cells.forEach(c => { c.textContent = ''; c.style.color = ''; c.style.background = '#c0c0c0'; });
+    gameOver = false;
+    body.querySelector('#mpMsg').textContent = 'À toi de jouer';
+  }
+  function play(i) {
+    if (gameOver || board[i]) return;
+    board[i] = 'X';
+    cells[i].textContent = 'X';
+    cells[i].style.color = '#0066cc';
+    if (check('X')) { end('Tu gagnes ! ★'); scoreP++; return; }
+    if (full()) { end('Égalité.'); draws++; return; }
+    // AI play
+    setTimeout(() => {
+      const move = bestMove();
+      board[move] = 'O';
+      cells[move].textContent = 'O';
+      cells[move].style.color = '#cc0000';
+      if (check('O')) { end('CPU gagne.'); scoreAI++; return; }
+      if (full()) { end('Égalité.'); draws++; return; }
+    }, 250);
+  }
+  function check(p) {
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for (const w of wins) if (board[w[0]]===p && board[w[1]]===p && board[w[2]]===p) {
+      w.forEach(idx => cells[idx].style.background = '#aaffaa');
+      return true;
+    }
+    return false;
+  }
+  function full() { return board.every(x => x); }
+  function end(msg) {
+    gameOver = true;
+    body.querySelector('#mpMsg').textContent = msg;
+    body.querySelector('#mpP').textContent = scoreP;
+    body.querySelector('#mpA').textContent = scoreAI;
+    body.querySelector('#mpD').textContent = draws;
+  }
+  // Minimax simple
+  function bestMove() {
+    let bestScore = -Infinity, move = 0;
+    for (let i = 0; i < 9; i++) {
+      if (!board[i]) {
+        board[i] = 'O';
+        const s = minimax(board, 0, false);
+        board[i] = '';
+        if (s > bestScore) { bestScore = s; move = i; }
+      }
+    }
+    return move;
+  }
+  function minimax(b, depth, isMax) {
+    if (winsFor(b, 'O')) return 10 - depth;
+    if (winsFor(b, 'X')) return depth - 10;
+    if (b.every(x => x)) return 0;
+    if (isMax) {
+      let best = -Infinity;
+      for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = 'O'; best = Math.max(best, minimax(b, depth+1, false)); b[i] = ''; }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = 'X'; best = Math.min(best, minimax(b, depth+1, true)); b[i] = ''; }
+      return best;
+    }
+  }
+  function winsFor(b, p) {
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    return wins.some(w => b[w[0]]===p && b[w[1]]===p && b[w[2]]===p);
+  }
+
+  makeWindow({ id: 'morpion', title: '⭕ Morpion', body, width: 320, height: 400 });
+}
+
+/* ===========================================================
+   APP: TAUPES (Whack-a-mole)
+   =========================================================== */
+function openTaupes() {
+  const body = document.createElement('div');
+  body.style.padding = '10px';
+  body.style.background = '#5a3a1a';
+  body.innerHTML = `
+    <div style="font-family:monospace;font-size:13px;color:#fff;display:flex;justify-content:space-between;background:#3a2010;padding:6px 12px;border:2px inset #5a3a1a;margin-bottom:8px;">
+      <span>Score: <b id="twScore">0</b></span>
+      <span>Temps: <b id="twTime">30</b>s</span>
+    </div>
+    <div id="twGrid" style="display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,80px);gap:8px;justify-content:center;"></div>
+    <div id="twMsg" style="text-align:center;color:#fff;font-family:monospace;font-size:12px;margin-top:10px;min-height:16px;"></div>
+    <div style="text-align:center;margin-top:6px;"><button id="twStart" style="padding:4px 14px;font-family:monospace;cursor:pointer;border:2px outset #fff;background:#c0c0c0;">Démarrer</button></div>
+  `;
+  const grid = body.querySelector('#twGrid');
+  const holes = [];
+  for (let i = 0; i < 9; i++) {
+    const h = document.createElement('div');
+    h.style.cssText = 'background:radial-gradient(circle at 50% 30%, #2a1505 30%, #150a02 70%);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:42px;cursor:pointer;user-select:none;position:relative;overflow:hidden;box-shadow:inset 0 4px 8px rgba(0,0,0,0.6);';
+    h.dataset.i = i;
+    grid.appendChild(h);
+    holes.push(h);
+  }
+  let score = 0, time = 30, running = false, popTimer = null, tickTimer = null, currentMole = -1;
+
+  function start() {
+    score = 0; time = 30; running = true; currentMole = -1;
+    body.querySelector('#twScore').textContent = '0';
+    body.querySelector('#twTime').textContent = '30';
+    body.querySelector('#twMsg').textContent = '';
+    body.querySelector('#twStart').disabled = true;
+    holes.forEach(h => h.innerHTML = '');
+    schedule();
+    tickTimer = setInterval(() => {
+      time--;
+      body.querySelector('#twTime').textContent = time;
+      if (time <= 0) end();
+    }, 1000);
+  }
+  function schedule() {
+    if (!running) return;
+    if (currentMole !== -1) { holes[currentMole].innerHTML = ''; currentMole = -1; }
+    currentMole = Math.floor(Math.random()*9);
+    holes[currentMole].innerHTML = '<span style="font-size:42px;animation:pop 0.15s ease-out;">🦫</span>';
+    const lifetime = 500 + Math.random()*900;
+    popTimer = setTimeout(() => {
+      if (currentMole !== -1) holes[currentMole].innerHTML = '';
+      schedule();
+    }, lifetime);
+  }
+  holes.forEach((h, i) => {
+    h.onclick = () => {
+      if (!running || currentMole !== i) return;
+      score++;
+      body.querySelector('#twScore').textContent = score;
+      h.innerHTML = '<span style="font-size:38px;">💥</span>';
+      currentMole = -1;
+      clearTimeout(popTimer);
+      setTimeout(schedule, 200);
+    };
+  });
+  function end() {
+    running = false;
+    clearTimeout(popTimer);
+    clearInterval(tickTimer);
+    holes.forEach(h => h.innerHTML = '');
+    body.querySelector('#twMsg').innerHTML = `★ Fini ! Score : <b>${score}</b>`;
+    body.querySelector('#twStart').disabled = false;
+    body.querySelector('#twStart').textContent = 'Rejouer';
+  }
+  body.querySelector('#twStart').onclick = start;
+
+  makeWindow({ id: 'taupes', title: '🔨 Taupes', body, width: 320, height: 420,
+    onClose: () => { clearTimeout(popTimer); clearInterval(tickTimer); }
+  });
+}
+
+/* ===========================================================
    APP: TERMINAL (CACHÉ - non listé dans le bureau)
    Ouvert via Ctrl+Alt+T
    Accepte la commande secrète qui restaure le DarkNet.
@@ -1651,6 +2351,119 @@ function openDarknetLoading() {
    ↓↓↓ ZONE ÉDITABLE - MODIFIE LES MESSAGES CI-DESSOUS ↓↓↓
    ===========================================================
 */
+/* ===========================================================
+   IMAGE DU TRAJET — SVG inline (modifie ici si besoin)
+   raptorremplacemoi — pour la retrouver facilement
+   =========================================================== */
+const TRAJET_SVG = `<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block;background:#080d1c;">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a3050" stroke-width="0.6"/>
+    </pattern>
+    <pattern id="subgrid" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#152540" stroke-width="0.3"/>
+    </pattern>
+    <radialGradient id="gStart" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#00ff66"/>
+      <stop offset="60%" stop-color="#008833"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="gEnd" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#ff2020"/>
+      <stop offset="60%" stop-color="#882020"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="600" height="400" fill="#080d1c"/>
+  <rect width="600" height="400" fill="url(#subgrid)"/>
+  <rect width="600" height="400" fill="url(#grid)"/>
+
+  <!-- Mer / côte -->
+  <path d="M 0 0 L 0 400 L 160 400 Q 130 350 145 280 Q 110 220 130 160 Q 90 100 120 0 Z" fill="#0a1a35" stroke="#1a4080" stroke-width="1"/>
+  <text x="55" y="200" fill="#1a5080" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="3">MER</text>
+  <path d="M 70 130 Q 80 135 90 130" stroke="#1a4070" fill="none"/>
+  <path d="M 70 240 Q 80 245 90 240" stroke="#1a4070" fill="none"/>
+  <path d="M 70 340 Q 80 345 90 340" stroke="#1a4070" fill="none"/>
+
+  <!-- Bâtiments / pâtés -->
+  <g fill="#152540" stroke="#1a3a5a">
+    <rect x="200" y="80"  width="40" height="40"/>
+    <rect x="260" y="60"  width="50" height="60"/>
+    <rect x="330" y="90"  width="35" height="35"/>
+    <rect x="200" y="160" width="60" height="40"/>
+    <rect x="280" y="170" width="40" height="40"/>
+    <rect x="350" y="160" width="45" height="50"/>
+    <rect x="420" y="150" width="40" height="60"/>
+    <rect x="200" y="240" width="50" height="40"/>
+    <rect x="280" y="240" width="40" height="50"/>
+    <rect x="350" y="250" width="50" height="40"/>
+    <rect x="430" y="240" width="45" height="50"/>
+    <rect x="500" y="160" width="50" height="60"/>
+    <rect x="500" y="250" width="50" height="50"/>
+  </g>
+
+  <!-- Tracé du trajet -->
+  <path d="M 150 290 L 220 290 L 220 220 L 320 220 L 320 140 L 420 140 L 420 220 L 480 220 L 480 320"
+        stroke="#ff2020" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>
+  <path d="M 150 290 L 220 290 L 220 220 L 320 220 L 320 140 L 420 140 L 420 220 L 480 220 L 480 320"
+        stroke="#ff5050" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 6">
+    <animate attributeName="stroke-dashoffset" from="0" to="-32" dur="1.2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Marker DÉPART (Port) -->
+  <circle cx="150" cy="290" r="20" fill="url(#gStart)" opacity="0.5">
+    <animate attributeName="r" values="14;22;14" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="150" cy="290" r="8" fill="#00ff66"/>
+  <circle cx="150" cy="290" r="3" fill="#fff"/>
+  <text x="150" y="325" fill="#00ff66" font-family="monospace" font-size="11" text-anchor="middle" font-weight="bold">PORT</text>
+  <text x="150" y="340" fill="#0a8" font-family="monospace" font-size="9" text-anchor="middle">départ 21h30</text>
+
+  <!-- Checkpoint -->
+  <circle cx="320" cy="140" r="5" fill="#ffaa00"/>
+  <circle cx="320" cy="140" r="10" fill="none" stroke="#ffaa00" opacity="0.6" stroke-width="1">
+    <animate attributeName="r" values="6;14;6" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <text x="320" y="125" fill="#ffaa00" font-family="monospace" font-size="9" text-anchor="middle">CHECKPOINT</text>
+
+  <!-- Marker ARRIVÉE -->
+  <circle cx="480" cy="320" r="20" fill="url(#gEnd)" opacity="0.5">
+    <animate attributeName="r" values="14;22;14" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="480" cy="320" r="8" fill="#ff2020"/>
+  <circle cx="480" cy="320" r="3" fill="#fff"/>
+  <text x="480" y="355" fill="#ff2020" font-family="monospace" font-size="11" text-anchor="middle" font-weight="bold">ARRIVÉE</text>
+  <text x="480" y="368" fill="#a44" font-family="monospace" font-size="9" text-anchor="middle">solde du paiement</text>
+
+  <!-- HUD haut gauche -->
+  <text x="20" y="25" fill="#0ff" font-family="monospace" font-size="12" font-weight="bold" letter-spacing="2">▸ TRAJET CONFIDENTIEL</text>
+  <text x="20" y="40" fill="#066" font-family="monospace" font-size="8" letter-spacing="1">PROTOCOLE SAHP-X // MERCREDI · 21h30</text>
+
+  <!-- Coordonnées (haut droite) -->
+  <text x="580" y="25" fill="#0aa" font-family="monospace" font-size="8" text-anchor="end">LAT 48.84°N</text>
+  <text x="580" y="38" fill="#0aa" font-family="monospace" font-size="8" text-anchor="end">LON 02.39°E</text>
+  <text x="580" y="51" fill="#066" font-family="monospace" font-size="7" text-anchor="end">[ZONE-04-PORT]</text>
+
+  <!-- Compass -->
+  <g transform="translate(555,80)">
+    <circle r="18" fill="#080d1c" stroke="#0aa" stroke-width="0.8"/>
+    <text y="-7" fill="#0ff" font-family="monospace" font-size="9" text-anchor="middle" font-weight="bold">N</text>
+    <polygon points="0,-13 -2.5,-4 0,-6 2.5,-4" fill="#0ff"/>
+    <text y="14" fill="#055" font-family="monospace" font-size="7" text-anchor="middle">S</text>
+  </g>
+
+  <!-- Barre info bas -->
+  <rect x="10" y="376" width="580" height="18" fill="#0a1830" stroke="#0aa" stroke-width="0.5"/>
+  <text x="20" y="389" fill="#0aa" font-family="monospace" font-size="9">⚐ DIST 14.8km · DURÉE 22min · VAN-BLANC-2374 · 1M$ · MOITIÉ/MOITIÉ</text>
+
+  <!-- Scan line -->
+  <line x1="0" y1="0" x2="600" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.25">
+    <animate attributeName="y1" from="0" to="400" dur="3.5s" repeatCount="indefinite"/>
+    <animate attributeName="y2" from="0" to="400" dur="3.5s" repeatCount="indefinite"/>
+  </line>
+</svg>`;
+
 const CHATS = [
   // ── Chats anodins (en haut) ──────────────────────────────
   {
@@ -1690,21 +2503,24 @@ const CHATS = [
     id: 'ari',
     name: 'Ari',
     important: true,
-    preview: 'mercredi 21h confirmé',
+    preview: 'mercredi 21h30',
     messages: [
-      { who: 'them', name: 'Ari',    text: 'salut. tout est prêt ?' },
-      { who: 'me',   name: 'Lazaro', text: 'ouais. on tient toujours sur mercredi 21h ?' },
-      { who: 'them', name: 'Ari',    text: 'oui. transport armes confirmé.' },
-      { who: 'them', name: 'Ari',    text: 'changement de lieu : parking sud niveau -2.' },
-      { who: 'me',   name: 'Lazaro', text: 'combien de caisses ?' },
-      { who: 'them', name: 'Ari',    text: '4 caisses. 2 longues, 2 courtes. munitions séparées.' },
-      { who: 'them', name: 'Ari',    text: 'tu prends le van blanc, plaques refaites.' },
-      { who: 'me',   name: 'Lazaro', text: 'qui est sur place ?' },
-      { who: 'them', name: 'Ari',    text: 'moi, Dimi, et le contact. pas plus.' },
-      { who: 'them', name: 'Ari',    text: 'voilà la photo du point de chute. mémorise et oublie.' },
-      // IMAGE - le src est remplacé par 'raptorremplacemoi' pour que tu le retrouves
-      { who: 'them', name: 'Ari',    text: '', image: 'raptorremplacemoi' },
-      { who: 'me',   name: 'Lazaro', text: 'reçu. à mercredi.' },
+      { who: 'me',   name: 'Lazaro', text: 'alors' },
+      { who: 'them', name: 'Ari',    text: 'mercredi' },
+      { who: 'them', name: 'Ari',    text: '21h30 il part' },
+      { who: 'me',   name: 'Lazaro', text: 'ok ya quoi dedans' },
+      { who: 'them', name: 'Ari',    text: '1 million de dollar mais non tracables' },
+      { who: 'them', name: 'Ari',    text: 'le camion est voler avec des plaques refaites' },
+      { who: 'me',   name: 'Lazaro', text: 'et le paiement' },
+      { who: 'them', name: 'Ari',    text: 'moitie de l\'argent au port et l\'autre a l\'arriver' },
+      { who: 'me',   name: 'Lazaro', text: 'envoie le trajet' },
+      { who: 'them', name: 'Ari',    text: 'tiens' },
+      // IMAGE - SVG inline (carte du trajet). Pour remplacer par une vraie image,
+      // mets image: 'https://ton-url.png' à la place de TRAJET_SVG ci-dessous.
+      // raptorremplacemoi - balise pour retrouver facilement
+      { who: 'them', name: 'Ari',    text: '', image: TRAJET_SVG },
+      { who: 'me',   name: 'Lazaro', text: 'recu' },
+      { who: 'me',   name: 'Lazaro', text: 'a mercredi' },
     ],
   },
 
@@ -1792,17 +2608,20 @@ function openMessenger() {
       b.className = 'msg-bubble ' + m.who;
       let html = `<div class="author">${m.name}</div>`;
       if (m.text) html += escapeHtml(m.text);
-      if (m.image) {
-        html += `<div><span class="msg-img-attached" data-img="${m.image}">📎 [pièce-jointe : image.jpg]</span></div>`;
-      }
       b.innerHTML = html;
+      if (m.image) {
+        const span = document.createElement('span');
+        span.className = 'msg-img-attached';
+        span.textContent = '📎 [pièce-jointe : image.jpg]';
+        const imgData = m.image; // capture in closure
+        span.onclick = () => startPatternMinigame(body, () => openImage(imgData));
+        const wrap = document.createElement('div');
+        wrap.appendChild(span);
+        b.appendChild(wrap);
+      }
       cm.appendChild(b);
     });
     cm.scrollTop = cm.scrollHeight;
-    // bind image clicks
-    cm.querySelectorAll('.msg-img-attached').forEach(el => {
-      el.onclick = () => startPatternMinigame(body, () => openImage(el.dataset.img));
-    });
   }
 }
 
@@ -2026,15 +2845,17 @@ function startPatternMinigame(parentBody, onSuccess) {
 function openImage(src) {
   const body = document.createElement('div');
   body.style.height = '100%';
-  body.innerHTML = `
-    <div class="img-viewer">
-      ${src === 'raptorremplacemoi'
-        ? '<div class="img-placeholder">[ raptorremplacemoi ]<br><br>Remplace ce lien<br>dans le fichier HTML<br>par l\'URL de ton image.</div>'
-        : `<img src="${src}" alt="image" onerror="this.outerHTML='<div class=\\'img-placeholder\\'>Erreur de chargement<br>['+this.src+']</div>'">`
-      }
-    </div>
-  `;
-  makeWindow({ id: 'imgview_' + Date.now(), title: '☠ image.jpg', body, width: 480, height: 400, darknet: true });
+  const trimmed = (src || '').trim();
+  let inner;
+  if (trimmed.startsWith('<svg')) {
+    inner = src;
+  } else if (src === 'raptorremplacemoi') {
+    inner = '<div class="img-placeholder">[ raptorremplacemoi ]<br><br>Remplace ce lien<br>dans le fichier HTML<br>par l\'URL de ton image.</div>';
+  } else {
+    inner = `<img src="${src}" alt="image" onerror="this.outerHTML='<div class=\\'img-placeholder\\'>Erreur de chargement<br>['+this.src+']</div>'">`;
+  }
+  body.innerHTML = `<div class="img-viewer">${inner}</div>`;
+  makeWindow({ id: 'imgview_' + Date.now(), title: '☠ image.jpg', body, width: 560, height: 440, darknet: true });
 
   // start 60s wipe timer (only first time)
   if (!state.imageViewed) {
