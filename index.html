@@ -2499,9 +2499,9 @@ const CHATS = [
       { who: 'them', name: 'Ari',    text: 'moitie de l\'argent au port et l\'autre a l\'arriver' },
       { who: 'me',   name: 'Lazaro', text: 'envoie le trajet' },
       { who: 'them', name: 'Ari',    text: 'tiens' },
-      // IMAGE - URL fournie par toi. Si elle ne charge pas, remplace par un autre hébergeur (imgbb.com, imgur.com...).
+      // MESSAGE FINAL - infos pour récupérer le trajet (modifie phone/code ici si besoin)
       // raptorremplacemoi - balise pour retrouver facilement
-      { who: 'them', name: 'Ari',    text: '', image: 'c:\Users\Raptor\Documents\GitHub\minigame\satellite_terminal.png' },
+      { who: 'them', name: 'Ari',    text: '', secret: { phone: '555886737', code: '245FD145JCDS54' } },
       { who: 'me',   name: 'Lazaro', text: 'recu' },
       { who: 'me',   name: 'Lazaro', text: 'a mercredi' },
     ],
@@ -2598,6 +2598,16 @@ function openMessenger() {
         span.textContent = '📎 [pièce-jointe : image.jpg]';
         const imgData = m.image; // capture in closure
         span.onclick = () => startPatternMinigame(body, () => openImage(imgData));
+        const wrap = document.createElement('div');
+        wrap.appendChild(span);
+        b.appendChild(wrap);
+      }
+      if (m.secret) {
+        const span = document.createElement('span');
+        span.className = 'msg-img-attached';
+        span.textContent = '🔒 [message chiffré]';
+        const secretData = m.secret; // capture in closure
+        span.onclick = () => startPatternMinigame(body, () => openSecret(secretData));
         const wrap = document.createElement('div');
         wrap.appendChild(span);
         b.appendChild(wrap);
@@ -2840,7 +2850,48 @@ function openImage(src) {
   body.innerHTML = `<div class="img-viewer">${inner}</div>`;
   makeWindow({ id: 'imgview_' + Date.now(), title: '☠ image.jpg', body, width: 560, height: 440, darknet: true });
 
-  // start 60s wipe timer (only first time)
+  if (!state.imageViewed) {
+    state.imageViewed = true;
+    startWipeTimer();
+  }
+}
+
+/* ===========================================================
+   OUVRIR UN MESSAGE CHIFFRÉ (numéro + code)
+   Déclenche aussi le timer 60s comme l'image.
+   =========================================================== */
+function openSecret(data) {
+  const body = document.createElement('div');
+  body.style.cssText = 'height:100%;background:#000;color:#0f0;font-family:Courier New,monospace;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;';
+  body.innerHTML = `
+    <div style="border:1px solid #0f0;padding:18px 22px;background:rgba(0,30,0,0.4);box-shadow:0 0 20px rgba(0,255,0,0.25);max-width:90%;">
+      <div style="color:#0ff;letter-spacing:4px;font-size:13px;font-weight:bold;margin-bottom:4px;text-shadow:0 0 6px #0ff;">▸ MESSAGE DÉCHIFFRÉ ◂</div>
+      <div style="color:#066;font-size:9px;letter-spacing:2px;margin-bottom:18px;">PROTOCOLE SAHP-X // CONFIDENTIEL</div>
+
+      <div style="text-align:left;font-size:13px;line-height:1.6;color:#0f0;">
+        Pour recevoir le trajet, envoie un<br>
+        message au numéro suivant&nbsp;:
+      </div>
+
+      <div style="margin:14px 0;padding:10px;border:1px dashed #0f0;background:rgba(0,40,0,0.3);">
+        <div style="color:#088;font-size:9px;letter-spacing:3px;margin-bottom:4px;">📞 NUMÉRO</div>
+        <div style="color:#fff;font-size:22px;font-weight:bold;letter-spacing:3px;text-shadow:0 0 8px #0f0;">${data.phone}</div>
+      </div>
+
+      <div style="text-align:left;font-size:13px;line-height:1.6;color:#0f0;margin-top:10px;">
+        Inclus le code suivant&nbsp;:
+      </div>
+
+      <div style="margin-top:10px;padding:10px;border:1px dashed #0ff;background:rgba(0,40,40,0.3);">
+        <div style="color:#088;font-size:9px;letter-spacing:3px;margin-bottom:4px;">🔑 CODE</div>
+        <div style="color:#0ff;font-size:18px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 8px #0ff;font-family:Courier New,monospace;">${data.code}</div>
+      </div>
+
+      <div style="margin-top:18px;color:#a44;font-size:9px;letter-spacing:2px;">⚠ MESSAGE AUTO-DESTRUCTIBLE ⚠</div>
+    </div>
+  `;
+  makeWindow({ id: 'secret_' + Date.now(), title: '☠ message déchiffré', body, width: 480, height: 480, darknet: true });
+
   if (!state.imageViewed) {
     state.imageViewed = true;
     startWipeTimer();
@@ -2953,7 +3004,7 @@ function fullReset(reason) {
 
   // close all darknet & image windows
   Object.entries({...state.windows}).forEach(([id, w]) => {
-    if (w.classList.contains('darknet-window') || id.startsWith('imgview_')) {
+    if (w.classList.contains('darknet-window') || id.startsWith('imgview_') || id.startsWith('secret_')) {
       w.remove();
       delete state.windows[id];
     }
