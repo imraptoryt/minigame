@@ -295,81 +295,129 @@ body::after {
 /* ══════════════════════════════════════
    MINIGAME — RECONNEXION CÂBLES
 ══════════════════════════════════════ */
-.overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.95);
-  backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.96);
+  backdrop-filter:blur(10px);align-items:center;justify-content:center;}
 .overlay.show{display:flex;}
-
 .mgbox{background:linear-gradient(180deg,#141008,#0a0804);border:1px solid var(--border2);border-radius:7px;
-  padding:28px 32px;width:500px;text-align:center;
-  box-shadow:0 0 80px rgba(0,0,0,.9),0 0 40px rgba(255,120,0,.03);position:relative;overflow:hidden;}
+  padding:22px 28px 24px;width:600px;text-align:center;
+  box-shadow:0 0 80px rgba(0,0,0,.9);position:relative;overflow:hidden;}
 .mgbox::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
   background:linear-gradient(90deg,transparent,var(--amber),var(--burn),transparent);opacity:.4;}
-
 .mgtitle{font-family:'Black Ops One',cursive;font-size:13px;letter-spacing:5px;color:var(--amber2);margin-bottom:3px;}
-.mgsub{font-size:8px;color:var(--dim);letter-spacing:2px;margin-bottom:20px;}
-
-/* Wire reconnection game */
-.wire-arena{
-  display:flex;justify-content:space-between;align-items:stretch;
-  background:var(--inset);border:1px solid var(--border2);border-radius:4px;
-  padding:16px 0;position:relative;margin-bottom:14px;user-select:none;
-}
-.wire-col{display:flex;flex-direction:column;gap:12px;padding:0 14px;}
-.wire-col.left{align-items:flex-start;}
-.wire-col.right{align-items:flex-end;}
-
-/* connector terminal */
-.term{
-  width:34px;height:26px;border-radius:3px;border:1px solid var(--border2);
-  background:var(--plate2);display:flex;align-items:center;justify-content:center;
-  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;cursor:pointer;
-  transition:all .2s;position:relative;
-}
-.term.left-t .plug{right:-10px;}
-.term.right-t .plug{left:-10px;}
-.plug{position:absolute;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--border2);
-  background:var(--plate);top:50%;transform:translateY(-50%);transition:all .2s;}
-.term.selected .plug{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px var(--amber);}
-.term.connected .plug{background:var(--green);border-color:var(--green);box-shadow:0 0 8px var(--green);}
-.term.connected{border-color:rgba(51,170,68,.3);}
-
-/* color swatches */
-.c0 .plug,.c0.selected .plug{background:#e03030;border-color:#e03030;box-shadow:0 0 8px #e03030;}
-.c1 .plug,.c1.selected .plug{background:#30a0e0;border-color:#30a0e0;box-shadow:0 0 8px #30a0e0;}
-.c2 .plug,.c2.selected .plug{background:#e0b000;border-color:#e0b000;box-shadow:0 0 8px #e0b000;}
-.c3 .plug,.c3.selected .plug{background:#30cc60;border-color:#30cc60;box-shadow:0 0 8px #30cc60;}
-.c4 .plug,.c4.selected .plug{background:#c060e0;border-color:#c060e0;box-shadow:0 0 8px #c060e0;}
-.c0.connected{border-color:rgba(224,48,48,.3);}
-.c1.connected{border-color:rgba(48,160,224,.3);}
-.c2.connected{border-color:rgba(224,176,0,.3);}
-.c3.connected{border-color:rgba(48,204,96,.3);}
-.c4.connected{border-color:rgba(192,96,224,.3);}
-
-/* SVG wire canvas */
-.wire-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
-.wire-label{font-size:8px;color:var(--dim);letter-spacing:.5px;margin-top:2px;text-align:center;}
-
-.mg-status{font-size:10px;color:var(--dim);letter-spacing:1.5px;margin-bottom:10px;min-height:16px;}
+.mgsub{font-size:8px;color:var(--dim);letter-spacing:2px;margin-bottom:14px;}
+.mg-topbar{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.mgtimer{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--amber);
+  text-shadow:0 0 18px rgba(255,170,0,.4);transition:all .3s;min-width:42px;text-align:center;flex-shrink:0;}
+.mgtimer.warn{color:var(--burn2);}
+.mgtimer.danger{color:var(--red2);text-shadow:0 0 18px rgba(221,34,51,.6);}
+.mgbarwrap{flex:1;height:3px;background:var(--inset);border-radius:2px;overflow:hidden;}
+.mgbar{height:100%;background:var(--amber);border-radius:2px;transition:width 1s linear,background .3s;}
+.mg-progress{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.mgdot{width:9px;height:9px;border-radius:50%;background:var(--inset);border:1px solid var(--border2);transition:all .3s;}
+.mgdot.ok {background:var(--green);border-color:var(--green);box-shadow:0 0 6px var(--green);}
+.mgdot.bad{background:var(--red2);border-color:var(--red);box-shadow:0 0 6px var(--red2);}
+.mg-status{font-size:9px;color:var(--dim);letter-spacing:1.5px;margin-bottom:8px;min-height:14px;}
 .mg-status.ok{color:var(--green);}
 .mg-status.err{color:var(--red2);}
-
-.mg-progress{display:flex;gap:6px;justify-content:center;margin-bottom:10px;}
-.mgdot{width:10px;height:10px;border-radius:50%;background:var(--inset);border:1px solid var(--border2);transition:all .3s;}
-.mgdot.ok{background:var(--green);border-color:var(--green);box-shadow:0 0 7px var(--green);}
-.mgdot.bad{background:var(--red2);border-color:var(--red);box-shadow:0 0 7px var(--red2);}
-
-.mg-timer-row{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px;}
-.mgtimer{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--amber);
-  text-shadow:0 0 20px rgba(255,170,0,.4);transition:all .3s;min-width:48px;text-align:center;}
-.mgtimer.warn{color:var(--burn2);text-shadow:0 0 20px rgba(204,85,0,.5);}
-.mgtimer.danger{color:var(--red2);text-shadow:0 0 20px rgba(221,34,51,.6);}
-.mgbarwrap{flex:1;height:4px;background:var(--inset);border-radius:2px;overflow:hidden;}
-.mgbar{height:100%;background:var(--amber);border-radius:2px;transition:width 1s linear,background .3s;box-shadow:0 0 6px var(--amber);}
-
-.mgbtn{margin-top:6px;padding:9px 28px;font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:3px;
+.wire-arena{position:relative;display:flex;justify-content:space-between;align-items:center;
+  background:var(--inset);border:1px solid var(--border2);border-radius:5px;
+  padding:14px 8px;margin-bottom:12px;user-select:none;min-height:60px;}
+#wireSvg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
+.wcol{display:flex;flex-direction:column;gap:8px;width:185px;}
+.wcol.left{align-items:flex-start;}
+.wcol.right{align-items:flex-end;}
+.wrow{display:flex;align-items:center;}
+.wcol.left  .wrow{flex-direction:row;}
+.wcol.right .wrow{flex-direction:row-reverse;}
+.wlabel{padding:5px 10px;border-radius:3px;border:1.5px solid;background:var(--plate2);
+  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;
+  white-space:nowrap;pointer-events:none;transition:box-shadow .15s,filter .15s;line-height:1;}
+.wrow.drag-src .wlabel{filter:brightness(1.5);box-shadow:0 0 14px var(--rc,#fff);}
+.wrow.drop-hi  .wlabel{filter:brightness(1.35);box-shadow:0 0 16px var(--rc,#fff);background:var(--plate3);}
+.wrow.done     .wlabel{opacity:.55;}
+.wplug{width:22px;height:22px;border-radius:50%;border:2.5px solid;
+  background:#0c0907;display:flex;align-items:center;justify-content:center;
+  cursor:crosshair;flex-shrink:0;transition:transform .12s,box-shadow .12s;position:relative;z-index:5;}
+.wcol.left  .wplug{margin-left:6px;}
+.wcol.right .wplug{margin-right:6px;}
+.wplug-dot{width:9px;height:9px;border-radius:50%;pointer-events:none;}
+.wplug:hover,.wplug.active{transform:scale(1.35);}
+.wplug.active{box-shadow:0 0 0 3px rgba(255,255,255,.15),0 0 18px var(--rc,#fff);}
+.mgbtn{margin-top:4px;padding:8px 28px;font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:3px;
   border-radius:3px;cursor:pointer;border:1px solid var(--amber-d);background:rgba(100,60,0,.12);
   color:var(--amber);transition:all .2s;}
-.mgbtn:hover{background:rgba(100,60,0,.25);box-shadow:0 0 16px rgba(255,170,0,.1);}
+.mgbtn:hover{background:rgba(100,60,0,.25);}
+
+/* ══════════════════════════════════════
+   BOOT — CODE D'ACCÈS
+══════════════════════════════════════ */
+.boot{position:fixed;inset:0;z-index:1000;background:#050402;display:flex;align-items:center;justify-content:center;}
+.boot.hidden{display:none;}
+.bootbox{background:linear-gradient(180deg,#141008,#0a0804);border:1px solid var(--border2);border-radius:8px;
+  padding:36px 44px;text-align:center;box-shadow:0 0 100px rgba(0,0,0,.95),0 0 50px rgba(255,140,0,.04);
+  position:relative;overflow:hidden;}
+.bootbox::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--amber),var(--burn),transparent);opacity:.45;}
+.boot-logo{font-size:34px;margin-bottom:8px;}
+.boot-title{font-family:'Black Ops One',cursive;font-size:16px;letter-spacing:6px;color:var(--amber2);margin-bottom:3px;}
+.boot-sub{font-size:8px;color:var(--dim);letter-spacing:3px;margin-bottom:24px;}
+.boot-code{font-family:'Orbitron',monospace;font-size:34px;font-weight:900;letter-spacing:14px;
+  color:var(--amber);text-shadow:0 0 24px rgba(255,170,0,.5);background:#020100;
+  border:1px solid #100a00;border-radius:4px;padding:10px 6px 10px 20px;margin-bottom:18px;min-width:220px;
+  box-shadow:inset 0 2px 10px rgba(0,0,0,.7);transition:color .3s,text-shadow .3s;}
+.boot-code.err{color:var(--red2);text-shadow:0 0 24px rgba(221,34,51,.6);animation:shakeB .35s;}
+@keyframes shakeB{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.boot-pad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;margin-bottom:14px;}
+.bkey{height:50px;border-radius:5px;border:1px solid var(--border2);background:var(--plate2);
+  font-family:'Orbitron',monospace;font-size:17px;font-weight:700;color:var(--text2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;user-select:none;}
+.bkey:hover{border-color:var(--amber-d);color:var(--amber);background:var(--plate3);}
+.bkey:active{transform:scale(.94);}
+.bkey.fn{font-size:12px;color:var(--dim);}
+.bkey.ok{color:var(--green);border-color:var(--green-d);}
+.bkey.ok:hover{background:var(--green-d);}
+.boot-hint{font-size:8px;color:var(--dim);letter-spacing:1.5px;}
+.boot-region{font-family:'Black Ops One',cursive;font-size:11px;letter-spacing:3px;margin-top:10px;min-height:16px;}
+.boot-region.ls{color:#ffaa00;text-shadow:0 0 12px rgba(255,170,0,.5);}
+.boot-region.bc{color:#40b0ff;text-shadow:0 0 12px rgba(64,176,255,.5);}
+
+/* region chips header */
+.rchip{background:var(--plate);border:1px solid var(--border);border-radius:2px;padding:3px 9px;text-align:center;}
+.rchip .rv{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;display:block;letter-spacing:1px;transition:color .4s;}
+.rchip .rl{font-size:7px;color:var(--dim);letter-spacing:1px;}
+.rchip .rv.on {color:var(--green);text-shadow:0 0 8px rgba(51,170,68,.5);}
+.rchip .rv.off{color:var(--red2);text-shadow:0 0 8px rgba(221,34,51,.5);}
+
+/* ══════════════════════════════════════
+   CONSOLE CTRL+R
+══════════════════════════════════════ */
+.console{position:fixed;left:0;right:0;bottom:-300px;height:280px;z-index:900;
+  background:rgba(6,4,2,.97);border-top:2px solid var(--amber-d);
+  transition:bottom .25s ease;display:flex;flex-direction:column;
+  box-shadow:0 -8px 40px rgba(0,0,0,.8);backdrop-filter:blur(6px);}
+.console.open{bottom:0;}
+.con-head{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);}
+.con-title{font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:3px;color:var(--amber);}
+.con-close{margin-left:auto;cursor:pointer;color:var(--dim);font-size:14px;padding:2px 8px;}
+.con-close:hover{color:var(--red2);}
+.con-out{flex:1;overflow-y:auto;padding:10px 16px;font-size:11px;line-height:1.7;text-align:left;}
+.con-out::-webkit-scrollbar{width:4px;}
+.con-out::-webkit-scrollbar-thumb{background:var(--border2);}
+.con-line{color:var(--text);}
+.con-line.cmd{color:var(--amber);}
+.con-line.err{color:var(--red2);}
+.con-line.ok{color:var(--green);}
+.con-line.info{color:var(--dim);}
+.con-inrow{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--border);}
+.con-prompt{color:var(--amber);font-family:'Orbitron',monospace;font-size:11px;}
+.con-input{flex:1;background:transparent;border:none;outline:none;color:var(--text2);
+  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.5px;}
+
+/* sync badge */
+.sync-badge{position:fixed;top:60px;right:12px;z-index:800;font-size:8px;letter-spacing:1px;
+  padding:3px 10px;border-radius:2px;border:1px solid;opacity:.85;}
+.sync-badge.local {border-color:var(--burn);color:var(--burn2);background:rgba(120,50,0,.1);}
+.sync-badge.online{border-color:var(--green-d);color:var(--green);background:rgba(14,46,20,.2);}
 
 /* FLASH & TOAST */
 .flash{display:none;position:fixed;inset:0;border:4px solid var(--red);z-index:9998;pointer-events:none;animation:fla .4s ease forwards;}
@@ -384,32 +432,73 @@ body::after {
 <body>
 <div class="flash" id="flash"></div>
 <div class="toast" id="toast"></div>
+<!-- ════════════ BOOT — CODE D'ACCÈS ════════════ -->
+<div class="boot" id="bootScreen">
+  <div class="bootbox">
+    <div class="boot-logo">⚡</div>
+    <div class="boot-title">CENTRALE S7</div>
+    <div class="boot-sub">SAISIR LE CODE D'ACCÈS RÉGIONAL</div>
+    <div class="boot-code" id="bootCode">····</div>
+    <div class="boot-pad">
+      <div class="bkey" onclick="bootKey('1')">1</div>
+      <div class="bkey" onclick="bootKey('2')">2</div>
+      <div class="bkey" onclick="bootKey('3')">3</div>
+      <div class="bkey" onclick="bootKey('4')">4</div>
+      <div class="bkey" onclick="bootKey('5')">5</div>
+      <div class="bkey" onclick="bootKey('6')">6</div>
+      <div class="bkey" onclick="bootKey('7')">7</div>
+      <div class="bkey" onclick="bootKey('8')">8</div>
+      <div class="bkey" onclick="bootKey('9')">9</div>
+      <div class="bkey fn" onclick="bootClear()">EFF</div>
+      <div class="bkey" onclick="bootKey('0')">0</div>
+      <div class="bkey ok" onclick="bootSubmit()">✓</div>
+    </div>
+    <div class="boot-hint">ACCÈS RESTREINT — OPÉRATEURS AUTORISÉS UNIQUEMENT</div>
+    <div class="boot-region" id="bootRegion"></div>
+  </div>
+</div>
+
+<!-- ════════════ CONSOLE CTRL+R ════════════ -->
+<div class="console" id="console">
+  <div class="con-head">
+    <div class="con-title">⌨ CONSOLE SYSTÈME — S7</div>
+    <div class="con-close" onclick="toggleConsole()">✕</div>
+  </div>
+  <div class="con-out" id="conOut">
+    <div class="con-line info">Console S7 — tapez 'help' pour la liste des commandes</div>
+  </div>
+  <div class="con-inrow">
+    <span class="con-prompt">S7></span>
+    <input class="con-input" id="conInput" autocomplete="off" spellcheck="false">
+  </div>
+</div>
+
+<div class="sync-badge local" id="syncBadge">⬤ BDD LOCALE</div>
+
 
 <!-- ════════════ MINIGAME OVERLAY ════════════ -->
 <div class="overlay" id="mgOverlay">
   <div class="mgbox">
     <div class="mgtitle">RECONNEXION DES CÂBLES</div>
-    <div class="mgsub">PROTOCOLE DE SÉCURITÉ — CONNECTER LES FILS DANS L'ORDRE</div>
-
-    <div class="mg-timer-row">
+    <div class="mgsub">GLISSEZ CHAQUE FIL DE GAUCHE VERS SON CONNECTEUR À DROITE</div>
+    <div class="mg-topbar">
       <div class="mgtimer" id="mgTimer">30</div>
       <div class="mgbarwrap"><div class="mgbar" id="mgBar" style="width:100%"></div></div>
+      <div class="mg-progress" id="mgProgress"></div>
     </div>
-
-    <div class="mg-progress" id="mgProgress"></div>
-    <div class="mg-status" id="mgStatus">Connectez chaque fil gauche à son homologue droit</div>
-
+    <div class="mg-status" id="mgStatus">Glissez un fil depuis la gauche vers la bonne fiche à droite</div>
     <div class="wire-arena" id="wireArena">
-      <svg class="wire-canvas" id="wireSvg"></svg>
-      <div class="wire-col left" id="wireLeft"></div>
-      <div class="wire-col right" id="wireRight"></div>
+      <svg id="wireSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="wcol left"  id="wireLeft"></div>
+      <div class="wcol right" id="wireRight"></div>
     </div>
-
     <div id="mgNextBtn" style="display:none">
       <div class="mgbtn" onclick="mgNextRound()">SUIVANT →</div>
     </div>
   </div>
 </div>
+
+div>
 
 <!-- ════════════ HEADER ════════════ -->
 <div class="hdr">
@@ -424,6 +513,8 @@ body::after {
     <div class="hchip"><span class="v" id="dA">48A</span><span class="l">INTENSITÉ</span></div>
     <div class="hchip"><span class="v" id="dHz">50.0Hz</span><span class="l">FRÉQUENCE</span></div>
     <div class="hchip"><span class="v" id="dLoad">82%</span><span class="l">CHARGE</span></div>
+    <div class="rchip"><span class="rv on" id="rLS">ON</span><span class="rl">LOS SANTOS</span></div>
+    <div class="rchip"><span class="rv on" id="rBC">ON</span><span class="rl">BLAINE CTY</span></div>
     <div class="hclock" id="clock">--:--:--</div>
   </div>
 </div>
@@ -703,6 +794,235 @@ body::after {
 //  CONFIG
 // ═══════════════════════════════════════
 const WEBHOOK='https://discord.com/api/webhooks/1506338037741912064/yjKZmzE9COckt53C1QGb00aEa5Z63gjdr4zKYtypszoFGPSKxa7Ge5oJaJfZSXBROIw6';
+
+// ═══════════════════════════════════════
+//  RÉGIONS & CODES D'ACCÈS
+// ═══════════════════════════════════════
+const CODES = { '0604':{key:'ls',name:'LOS SANTOS'}, '2002':{key:'bc',name:'BLAINE COUNTY'} };
+let REGION = null; // {key,name} défini au boot
+
+// ═══════════════════════════════════════
+//  BDD PARTAGÉE (kvdb.io) + fallback localStorage
+//  → Ctrl+R puis 'createdb' pour générer une BDD partagée
+//  → 'setdb <id>' sur chaque poste pour s'y connecter
+// ═══════════════════════════════════════
+const SYNC_BUCKET_HARDCODE = ''; // ← coller l'ID kvdb ici pour le distribuer dans le fichier
+function getBucket(){ return localStorage.getItem('s7_bucket') || SYNC_BUCKET_HARDCODE || ''; }
+
+let SHARED = { ls:true, bc:true, seq:0 };
+
+function saveLocalShared(){ try{ localStorage.setItem('s7_state', JSON.stringify(SHARED)); }catch(e){} }
+function loadLocalShared(){
+  try{
+    const j = JSON.parse(localStorage.getItem('s7_state'));
+    if(j && typeof j.ls==='boolean' && j.seq > SHARED.seq){ SHARED=j; onSharedUpdate(false); }
+  }catch(e){}
+}
+
+async function pullShared(){
+  const b=getBucket();
+  if(!b){ loadLocalShared(); return; }
+  try{
+    const r = await fetch('https://kvdb.io/'+b+'/power_state', {cache:'no-store'});
+    if(r.ok){
+      const j = await r.json();
+      if(j && typeof j.ls==='boolean' && j.seq > SHARED.seq){ SHARED=j; saveLocalShared(); onSharedUpdate(true); }
+    }
+  }catch(e){}
+}
+async function pushShared(){
+  SHARED.seq = Date.now();
+  saveLocalShared();
+  const b=getBucket();
+  if(!b) return;
+  try{
+    await fetch('https://kvdb.io/'+b+'/power_state', {method:'PUT', body:JSON.stringify(SHARED)});
+  }catch(e){ addLog('warn','BDD : push échoué'); }
+}
+setInterval(pullShared, 4000);
+
+function updateSyncBadge(){
+  const el=document.getElementById('syncBadge');
+  if(getBucket()){ el.className='sync-badge online'; el.textContent='⬤ BDD PARTAGÉE'; }
+  else{ el.className='sync-badge local'; el.textContent='⬤ BDD LOCALE'; }
+}
+
+function onSharedUpdate(remote){
+  // Mettre à jour les chips header
+  setRegionChip('rLS', SHARED.ls);
+  setRegionChip('rBC', SHARED.bc);
+  // Si l'état de MA région a changé à distance, appliquer
+  if(REGION && S.powerOn !== SHARED[REGION.key]){
+    S.powerOn = SHARED[REGION.key];
+    applyPower(true); // true = silencieux (pas de webhook)
+    if(remote) addLog('warn','État '+REGION.name+' synchronisé depuis la BDD');
+  }
+}
+function setRegionChip(id,on){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent = on?'ON':'OFF';
+  el.className = 'rv '+(on?'on':'off');
+}
+
+// ═══════════════════════════════════════
+//  BOOT — SAISIE CODE
+// ═══════════════════════════════════════
+let bootBuf='';
+function bootKey(d){
+  if(bootBuf.length>=4)return;
+  bootBuf+=d;
+  renderBootCode();
+}
+function bootClear(){ bootBuf=''; renderBootCode(); }
+function renderBootCode(){
+  const el=document.getElementById('bootCode');
+  el.className='boot-code';
+  el.textContent = (bootBuf + '····').slice(0,4).split('').map((ch,i)=> i<bootBuf.length ? '●' : '·').join('');
+}
+function bootSubmit(){
+  const r = CODES[bootBuf];
+  const codeEl=document.getElementById('bootCode');
+  const regEl=document.getElementById('bootRegion');
+  if(r){
+    REGION = r;
+    regEl.textContent = '→ '+r.name;
+    regEl.className = 'boot-region '+r.key;
+    setTimeout(()=>{
+      document.getElementById('bootScreen').classList.add('hidden');
+      initAfterBoot();
+    }, 700);
+  } else {
+    codeEl.classList.add('err');
+    regEl.textContent='CODE INVALIDE';
+    regEl.className='boot-region';
+    regEl.style.color='var(--red2)';
+    setTimeout(()=>{ bootBuf=''; renderBootCode(); regEl.textContent=''; }, 900);
+  }
+}
+// clavier physique sur le boot
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('bootScreen').classList.contains('hidden')) return;
+  if(/^[0-9]$/.test(e.key)) bootKey(e.key);
+  else if(e.key==='Backspace') bootClear();
+  else if(e.key==='Enter') bootSubmit();
+});
+
+function initAfterBoot(){
+  // restaurer état partagé
+  loadLocalShared();
+  pullShared();
+  updateSyncBadge();
+  // restaurer wireDone persisté
+  if(localStorage.getItem('s7_wiredone_'+REGION.key)==='1') S.wireDone=true;
+  // appliquer l'état de MA région
+  S.powerOn = SHARED[REGION.key];
+  applyPower(true);
+  setRegionChip('rLS', SHARED.ls);
+  setRegionChip('rBC', SHARED.bc);
+  // titre header
+  document.querySelector('.hdr-sub').textContent = REGION.name+' ENERGY CORP · STATION DE CONTRÔLE · OPÉRATEUR '+REGION.name;
+  addLog('ok','Session ouverte — secteur '+REGION.name);
+  refreshChk();
+}
+
+// ═══════════════════════════════════════
+//  CONSOLE CTRL+R
+// ═══════════════════════════════════════
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey && e.key.toLowerCase()==='r' && !e.shiftKey){
+    e.preventDefault();
+    toggleConsole();
+  }
+});
+function toggleConsole(){
+  const con=document.getElementById('console');
+  con.classList.toggle('open');
+  if(con.classList.contains('open')) setTimeout(()=>document.getElementById('conInput').focus(),250);
+}
+function conPrint(msg, cls='') {
+  const out=document.getElementById('conOut');
+  const d=document.createElement('div');
+  d.className='con-line '+cls;
+  d.textContent=msg;
+  out.appendChild(d);
+  out.scrollTop=out.scrollHeight;
+}
+document.getElementById('conInput').addEventListener('keydown', async e=>{
+  if(e.key!=='Enter')return;
+  const raw=e.target.value.trim();
+  e.target.value='';
+  if(!raw)return;
+  conPrint('S7> '+raw,'cmd');
+  const [cmd,...args]=raw.toLowerCase().split(/\s+/);
+
+  if(cmd==='help'){
+    conPrint('reset            — réinitialise TOUT (état réseau, minijeu, prérequis)','info');
+    conPrint('status           — affiche l\'état des deux régions','info');
+    conPrint('createdb         — crée une BDD partagée kvdb.io et affiche son ID','info');
+    conPrint('setdb <id>       — connecte ce poste à une BDD partagée','info');
+    conPrint('cleardb          — repasse en BDD locale','info');
+    conPrint('clear            — efface la console','info');
+  }
+  else if(cmd==='reset'){
+    SHARED={ls:true,bc:true,seq:Date.now()};
+    await pushShared();
+    S.wireDone=false;
+    localStorage.removeItem('s7_wiredone_ls');
+    localStorage.removeItem('s7_wiredone_bc');
+    S.radioFreq=107.8; S.accessLvl=3; S.leverLocked=true;
+    ZONES.forEach(z=>S.sw[z]=true);
+    document.querySelectorAll('.sw').forEach(el=>el.classList.remove('off','sat'));
+    document.getElementById('radScr').textContent='107.8 MHz';
+    document.getElementById('radScr').className='radscr wrong';
+    document.getElementById('keyDisp').textContent='LVL 3';
+    document.getElementById('keyDisp').className='keydisp mid';
+    document.getElementById('keySub').textContent='TECHNICIEN — INSUFFISANT';
+    S.powerOn=true;
+    applyPower(true);
+    setRegionChip('rLS',true); setRegionChip('rBC',true);
+    refreshChk();
+    addLog('warn','⟲ RESET COMPLET effectué via console');
+    conPrint('✓ Reset complet — réseau rétabli, prérequis et minijeu réinitialisés','ok');
+  }
+  else if(cmd==='status'){
+    conPrint('LOS SANTOS    : '+(SHARED.ls?'ON ⚡':'OFF ✖'),SHARED.ls?'ok':'err');
+    conPrint('BLAINE COUNTY : '+(SHARED.bc?'ON ⚡':'OFF ✖'),SHARED.bc?'ok':'err');
+    conPrint('BDD : '+(getBucket()?('partagée ['+getBucket()+']'):'locale (navigateur uniquement)'),'info');
+    conPrint('Région session : '+(REGION?REGION.name:'non connecté'),'info');
+  }
+  else if(cmd==='createdb'){
+    conPrint('Création de la BDD partagée…','info');
+    try{
+      const r=await fetch('https://kvdb.io',{method:'POST',body:new URLSearchParams({email:'s7@centrale.local'})});
+      if(r.ok){
+        const id=(await r.text()).trim();
+        localStorage.setItem('s7_bucket',id);
+        await pushShared();
+        updateSyncBadge();
+        conPrint('✓ BDD créée : '+id,'ok');
+        conPrint('→ Sur chaque autre poste : Ctrl+R puis  setdb '+id,'info');
+        conPrint('→ (ou coller l\'ID dans SYNC_BUCKET_HARDCODE dans le fichier)','info');
+      } else conPrint('✗ Échec création ('+r.status+')','err');
+    }catch(e){ conPrint('✗ Connexion kvdb.io impossible','err'); }
+  }
+  else if(cmd==='setdb'){
+    if(!args[0]){ conPrint('Usage : setdb <id>','err'); return; }
+    localStorage.setItem('s7_bucket',args[0]);
+    updateSyncBadge();
+    conPrint('✓ Connecté à la BDD '+args[0],'ok');
+    pullShared();
+  }
+  else if(cmd==='cleardb'){
+    localStorage.removeItem('s7_bucket');
+    updateSyncBadge();
+    conPrint('✓ Repassé en BDD locale','ok');
+  }
+  else if(cmd==='clear'){
+    document.getElementById('conOut').innerHTML='';
+  }
+  else conPrint('Commande inconnue : '+cmd+' — tapez help','err');
+});
 const ZONES=['A','B','C','D','E'];
 const REQ_FREQ=88.5, REQ_LVL=5;
 
@@ -856,10 +1176,11 @@ function qa(t){
 }
 
 // ─── POWER STATE ───
-function applyPower(){
+function applyPower(silent){
   const on=S.powerOn;
   document.getElementById('hdrBadge').className='hdr-badge '+(on?'on':'off');
-  document.getElementById('hdrBadge').textContent=on?'⚡ ALIMENTATION NOMINALE':'✖ ALIMENTATION COUPÉE';
+  document.getElementById('hdrBadge').textContent=on?('⚡ '+(REGION?REGION.name:'')+' : NOMINAL'):('✖ '+(REGION?REGION.name:'')+' : COUPÉ');
+  if(REGION) setRegionChip(REGION.key==='ls'?'rLS':'rBC', on);
   document.getElementById('mainPip').className='pip '+(on?'r':'r');
   document.getElementById('lNom').className='lb '+(on?'amber':'');
   document.getElementById('lFault').className='lb '+(on?'':'red');
@@ -925,10 +1246,10 @@ function applyPower(){
     if(!dragging)return;dragging=false;wrap.style.cursor='grab';
     const fr=(S.leverAngle-ON)/(OFF-ON);
     if(S.powerOn){
-      if(fr>=0.78){snapTo(OFF,()=>{S.leverLocked=true;S.powerOn=false;applyPower();sendWebhook();});}
+      if(fr>=0.78){snapTo(OFF,()=>{S.leverLocked=true;S.powerOn=false;SHARED[REGION.key]=false;pushShared();applyPower();sendWebhook(false);});}
       else snapTo(ON);
     } else {
-      if(fr<=0.22){snapTo(ON,()=>{S.leverLocked=true;S.powerOn=true;applyPower();sendWebhook();});}
+      if(fr<=0.22){snapTo(ON,()=>{S.leverLocked=true;S.powerOn=true;SHARED[REGION.key]=true;pushShared();applyPower();sendWebhook(true);});}
       else snapTo(OFF);
     }
     e.preventDefault();
@@ -940,72 +1261,228 @@ function applyPower(){
 })();
 
 // ═══════════════════════════════════════
-//  MINIGAME — WIRE RECONNECTION
+//  MINIGAME — WIRE RECONNECTION (DOM drag)
 // ═══════════════════════════════════════
-const WIRE_COLORS=['#e03030','#30a0e0','#e0b000','#30cc60','#c060e0'];
-const COLOR_NAMES=['ROUGE','BLEU','JAUNE','VERT','VIOLET'];
-const ROUNDS=3; // 3 rounds to win
-let mgRound=0,mgDots=[],mgTimer,mgInterval;
-let leftSelected=null;
-let connections={}; // leftIdx -> rightIdx
-let solution={};    // leftIdx -> rightIdx (shuffled)
-let rightMapping=[];// rightMapping[rightIdx] = leftIdx (answer)
+const WIRE_DEFS=[
+  {id:'R1',label:'ROUGE-1',col:'#e83030'},
+  {id:'R2',label:'ROUGE-2',col:'#ff7050'},
+  {id:'B1',label:'BLEU-1', col:'#3090e8'},
+  {id:'B2',label:'BLEU-2', col:'#70c0ff'},
+  {id:'J1',label:'JAUNE-1',col:'#e8b800'},
+  {id:'J2',label:'JAUNE-2',col:'#ffd840'},
+  {id:'V1',label:'VERT-1', col:'#30bb50'},
+  {id:'G1',label:'GRIS-1', col:'#9898b0'},
+];
+const ROUND_COUNTS=[4,6,8];
+const ROUNDS=3;
+let mgRound=0,mgDots=[],mgInterval;
+let mgLeft=[],mgRight=[],mgConn={};
+let mgDrag=null;
 
 function launchWires(){
   if(S.wireDone)return;
-  mgRound=0;connections={};
-  // build progress dots
+  mgRound=0;mgConn={};
   const dp=document.getElementById('mgProgress');dp.innerHTML='';mgDots=[];
   for(let i=0;i<ROUNDS;i++){const d=document.createElement('div');d.className='mgdot';dp.appendChild(d);mgDots.push(d);}
   document.getElementById('mgOverlay').classList.add('show');
   document.getElementById('mgNextBtn').style.display='none';
-  buildWireRound();
+  buildRound();
 }
 
-function buildWireRound(){
-  leftSelected=null;connections={};
-  document.getElementById('mgStatus').textContent='Connectez chaque fil gauche à son homologue droit';
+function buildRound(){
+  mgConn={};
+  document.getElementById('mgStatus').textContent='Glissez un fil depuis la gauche vers la bonne fiche à droite';
   document.getElementById('mgStatus').className='mg-status';
   document.getElementById('mgNextBtn').style.display='none';
+  const count=ROUND_COUNTS[Math.min(mgRound,ROUND_COUNTS.length-1)];
+  mgLeft=WIRE_DEFS.slice(0,count).map(w=>w.id);
+  mgRight=[...mgLeft].sort(()=>Math.random()-.5);
+  while(mgRight.every((id,i)=>id===mgLeft[i]))mgRight.sort(()=>Math.random()-.5);
+  buildDOM();
+  startTimer(count);
+}
 
-  // Shuffle right side mapping
-  const count=3+Math.min(mgRound,2); // 3 wires r1, 4 r2, 5 r3
-  const indices=[...Array(count).keys()];
-  rightMapping=[...indices].sort(()=>Math.random()-.5);
-  // solution: left i -> right rightMapping.indexOf(i)
-  solution={};
-  for(let i=0;i<count;i++) solution[i]=rightMapping.indexOf(i);
+function buildDOM(){
+  const lc=document.getElementById('wireLeft');
+  const rc=document.getElementById('wireRight');
+  lc.innerHTML='';rc.innerHTML='';
+  mgLeft.forEach(id=>lc.appendChild(makeRow(WIRE_DEFS.find(x=>x.id===id),'left')));
+  mgRight.forEach(id=>rc.appendChild(makeRow(WIRE_DEFS.find(x=>x.id===id),'right')));
+  redrawWires();
+}
 
-  // Build left col
-  const lc=document.getElementById('wireLeft');lc.innerHTML='';
-  for(let i=0;i<count;i++){
-    const t=document.createElement('div');
-    t.className=`term left-t c${i}`;t.dataset.idx=i;
-    t.innerHTML=`<div class="plug"></div><span style="color:${WIRE_COLORS[i]};font-size:9px;font-weight:700">${COLOR_NAMES[i]}</span>`;
-    t.onclick=()=>selectLeft(i);
-    lc.appendChild(t);
+function makeRow(w,side){
+  const row=document.createElement('div');
+  row.className='wrow';
+  row.dataset.id=w.id;
+  row.dataset.side=side;
+  row.style.setProperty('--rc',w.col);
+  const label=document.createElement('div');
+  label.className='wlabel';
+  label.style.color=w.col;
+  label.style.borderColor=w.col+'66';
+  label.textContent=w.label;
+  const plug=document.createElement('div');
+  plug.className='wplug';
+  plug.style.borderColor=w.col;
+  plug.style.setProperty('--rc',w.col);
+  const dot=document.createElement('div');
+  dot.className='wplug-dot';
+  dot.style.background=w.col;
+  dot.style.boxShadow='0 0 6px '+w.col;
+  plug.appendChild(dot);
+  row.appendChild(label);
+  row.appendChild(plug);
+  if(side==='left'){
+    plug.addEventListener('mousedown',e=>onPlugDown(e,w,plug,row));
+    plug.addEventListener('touchstart',e=>onPlugDown(e,w,plug,row),{passive:false});
+  } else {
+    row.addEventListener('mouseenter',()=>{if(mgDrag)row.classList.add('drop-hi');});
+    row.addEventListener('mouseleave',()=>row.classList.remove('drop-hi'));
   }
+  return row;
+}
 
-  // Build right col (shuffled)
-  const rc=document.getElementById('wireRight');rc.innerHTML='';
-  for(let j=0;j<count;j++){
-    const origIdx=rightMapping[j];
-    const t=document.createElement('div');
-    t.className=`term right-t c${origIdx}`;t.dataset.ridx=j;
-    t.innerHTML=`<span style="color:${WIRE_COLORS[origIdx]};font-size:9px;font-weight:700">${COLOR_NAMES[origIdx]}</span><div class="plug"></div>`;
-    t.onclick=()=>selectRight(j,origIdx);
-    rc.appendChild(t);
+function onPlugDown(e,w,plug,row){
+  e.preventDefault();e.stopPropagation();
+  if(mgConn[w.id]!==undefined){delete mgConn[w.id];redrawWires();}
+  mgDrag={id:w.id,col:w.col,plug,row};
+  row.classList.add('drag-src');
+  plug.classList.add('active');
+  document.body.style.cursor='crosshair';
+}
+
+function getXY(e){
+  const t=e.changedTouches?e.changedTouches[0]:e.touches?e.touches[0]:e;
+  return{x:t.clientX,y:t.clientY};
+}
+
+document.addEventListener('mousemove',e=>{if(mgDrag)updatePreview(getXY(e));});
+document.addEventListener('touchmove',e=>{if(mgDrag)updatePreview(getXY(e));},{passive:true});
+
+document.addEventListener('mouseup',e=>{if(mgDrag)doDropAt(getXY(e));});
+document.addEventListener('touchend',e=>{if(mgDrag)doDropAt(getXY(e));});
+
+function updatePreview(pt){
+  const arena=document.getElementById('wireArena');if(!arena)return;
+  const ar=arena.getBoundingClientRect();
+  const src=getPlugCenter('left',mgDrag.id);if(!src)return;
+  const svg=document.getElementById('wireSvg');
+  let prev=svg.getElementById?svg.getElementById('wirePreview'):null;
+  if(!prev){prev=document.getElementById('wirePreview');}
+  if(!prev){
+    prev=document.createElementNS('http://www.w3.org/2000/svg','path');
+    prev.setAttribute('id','wirePreview');
+    prev.setAttribute('fill','none');
+    prev.setAttribute('stroke-width','3');
+    prev.setAttribute('stroke-linecap','round');
+    prev.setAttribute('stroke-dasharray','7 4');
+    svg.appendChild(prev);
   }
+  const tx=pt.x-ar.left,ty=pt.y-ar.top;
+  const mx=(src.x+tx)/2,sag=Math.abs(ty-src.y)*0.2+12;
+  prev.setAttribute('d','M'+src.x+','+src.y+' C'+mx+','+(src.y+sag)+' '+mx+','+(ty+sag)+' '+tx+','+ty);
+  prev.setAttribute('stroke',mgDrag.col);
+  prev.setAttribute('opacity','0.75');
+}
 
-  drawWires();
+function doDropAt(pt){
+  const drag=mgDrag;mgDrag=null;
+  drag.row.classList.remove('drag-src');
+  drag.plug.classList.remove('active');
+  document.body.style.cursor='';
+  // clear preview
+  const prev=document.getElementById('wirePreview');
+  if(prev){prev.setAttribute('d','');prev.setAttribute('opacity','0');}
+  // clear all drop-hi
+  document.querySelectorAll('.drop-hi').forEach(r=>r.classList.remove('drop-hi'));
+  // find right row under pointer
+  const hit=findRightRow(pt.x,pt.y);
+  if(hit){
+    const tid=hit.dataset.id;
+    for(const k in mgConn){if(mgConn[k]===tid){delete mgConn[k];break;}}
+    mgConn[drag.id]=tid;
+    redrawWires();
+    checkDone();
+  }
+}
 
-  // Timer
-  let secs=25+mgRound*5;
+function findRightRow(cx,cy){
+  const rows=document.querySelectorAll('#wireRight .wrow');
+  for(const r of rows){
+    const b=r.getBoundingClientRect();
+    if(cx>=b.left-20&&cx<=b.right+20&&cy>=b.top-14&&cy<=b.bottom+14)return r;
+  }
+  return null;
+}
+
+function getPlugCenter(side,id){
+  const sel='#wire'+(side==='left'?'Left':'Right')+' .wrow[data-id="'+id+'"] .wplug';
+  const el=document.querySelector(sel);if(!el)return null;
+  const r=el.getBoundingClientRect();
+  const ar=document.getElementById('wireArena').getBoundingClientRect();
+  return{x:r.left+r.width/2-ar.left,y:r.top+r.height/2-ar.top};
+}
+
+function redrawWires(){
+  const svg=document.getElementById('wireSvg');if(!svg)return;
+  svg.querySelectorAll('.cwire').forEach(e=>e.remove());
+  document.querySelectorAll('.wrow').forEach(r=>r.classList.remove('done'));
+  for(const lid in mgConn){
+    const rid=mgConn[lid];
+    const src=getPlugCenter('left',lid);
+    const dst=getPlugCenter('right',rid);
+    if(!src||!dst)continue;
+    const correct=(lid===rid);
+    const w=WIRE_DEFS.find(x=>x.id===lid);
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const mx=(src.x+dst.x)/2,sag=Math.abs(dst.y-src.y)*0.15+10;
+    p.setAttribute('d','M'+src.x+','+src.y+' C'+mx+','+(src.y+sag)+' '+mx+','+(dst.y+sag)+' '+dst.x+','+dst.y);
+    p.setAttribute('stroke',w.col);
+    p.setAttribute('stroke-width',correct?'3':'2.5');
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke-linecap','round');
+    p.setAttribute('opacity',correct?'1':'0.4');
+    if(!correct)p.setAttribute('stroke-dasharray','5 4');
+    p.setAttribute('class','cwire');
+    const prev=document.getElementById('wirePreview');
+    svg.insertBefore(p,prev||null);
+    if(correct){
+      const lr=document.querySelector('#wireLeft .wrow[data-id="'+lid+'"]');
+      const rr=document.querySelector('#wireRight .wrow[data-id="'+rid+'"]');
+      if(lr)lr.classList.add('done');
+      if(rr)rr.classList.add('done');
+    }
+  }
+}
+
+function checkDone(){
+  if(Object.keys(mgConn).length<mgLeft.length)return;
+  clearInterval(mgInterval);
+  const allOk=mgLeft.every(id=>mgConn[id]===id);
+  if(allOk){
+    document.getElementById('mgStatus').textContent='✓ CÂBLES CORRECTEMENT CONNECTÉS';
+    document.getElementById('mgStatus').className='mg-status ok';
+    mgDots[mgRound].className='mgdot ok';
+    addLog('ok','Câbles round '+(mgRound+1)+' : OK');
+    mgRound++;
+    if(mgRound>=ROUNDS)setTimeout(mgWin,700);
+    else document.getElementById('mgNextBtn').style.display='block';
+  }else{
+    document.getElementById('mgStatus').textContent='✗ MAUVAISES CONNEXIONS — recommencez';
+    document.getElementById('mgStatus').className='mg-status err';
+    mgDots[mgRound].className='mgdot bad';
+    doFlash();addLog('err','Câbles round '+(mgRound+1)+' : ÉCHEC');
+    setTimeout(()=>{mgDots[mgRound].className='mgdot';buildRound();},1400);
+  }
+}
+
+function startTimer(count){
+  const total=30+count*3;let secs=total;
   document.getElementById('mgTimer').textContent=secs;
   document.getElementById('mgTimer').className='mgtimer';
-  document.getElementById('mgBar').style.cssText=`width:100%;background:var(--amber)`;
+  document.getElementById('mgBar').style.cssText='width:100%;background:var(--amber)';
   clearInterval(mgInterval);
-  const total=secs;
   mgInterval=setInterval(()=>{
     secs--;
     const pct=(secs/total)*100;
@@ -1013,153 +1490,102 @@ function buildWireRound(){
     te.textContent=secs;bar.style.width=pct+'%';
     if(secs<=8){te.className='mgtimer danger';bar.style.background='var(--red2)';}
     else if(secs<=15){te.className='mgtimer warn';bar.style.background='var(--burn2)';}
-    if(secs<=0){clearInterval(mgInterval);mgFail();}
+    if(secs<=0){clearInterval(mgInterval);timerFail();}
   },1000);
 }
 
-function selectLeft(idx){
-  // Clear any previous selection
-  document.querySelectorAll('.term.left-t').forEach(t=>t.classList.remove('selected'));
-  // If already connected, disconnect
-  if(connections[idx]!==undefined){
-    delete connections[idx];drawWires();
-  }
-  leftSelected=idx;
-  document.querySelector(`.term.left-t[data-idx="${idx}"]`).classList.add('selected');
-}
-
-function selectRight(ridx,origIdx){
-  if(leftSelected===null)return;
-  // Remove any existing connection to this right terminal
-  for(const k in connections){if(connections[k]===ridx){delete connections[k];break;}}
-  // Connect
-  connections[leftSelected]=ridx;
-  // Clear selection
-  document.querySelectorAll('.term.left-t').forEach(t=>t.classList.remove('selected'));
-  leftSelected=null;
-  drawWires();
-  checkAllConnected();
-}
-
-function drawWires(){
-  const svg=document.getElementById('wireSvg');
-  const arena=document.getElementById('wireArena');
-  svg.innerHTML='';
-  const aRect=arena.getBoundingClientRect();
-
-  for(const leftIdx in connections){
-    const ridx=connections[leftIdx];
-    const origIdx=rightMapping[ridx];
-    const lEl=document.querySelector(`.term.left-t[data-idx="${leftIdx}"]`);
-    const rEl=document.querySelector(`.term.right-t[data-ridx="${ridx}"]`);
-    if(!lEl||!rEl)continue;
-    const lR=lEl.getBoundingClientRect(),rR=rEl.getBoundingClientRect();
-    const x1=lR.right-aRect.left, y1=lR.top+lR.height/2-aRect.top;
-    const x2=rR.left-aRect.left,  y2=rR.top+rR.height/2-aRect.top;
-    const correct=parseInt(leftIdx)===origIdx;
-    const col=correct?WIRE_COLORS[origIdx]:WIRE_COLORS[parseInt(leftIdx)];
-    const cx1=x1+(x2-x1)*0.4, cy1=y1, cx2=x1+(x2-x1)*0.6, cy2=y2;
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',`M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`);
-    path.setAttribute('stroke',col);path.setAttribute('stroke-width','2.5');
-    path.setAttribute('fill','none');path.setAttribute('stroke-linecap','round');
-    path.setAttribute('opacity',correct?'1':'.5');
-    if(!correct)path.setAttribute('stroke-dasharray','5 4');
-    svg.appendChild(path);
-  }
-
-  // Update connected classes
-  document.querySelectorAll('.term').forEach(t=>{
-    t.classList.remove('connected');
-    const idx=parseInt(t.dataset.idx);
-    const ridx=parseInt(t.dataset.ridx);
-    if(!isNaN(idx)&&connections[idx]!==undefined){t.classList.add('connected');}
-    if(!isNaN(ridx)){
-      for(const k in connections){if(connections[k]===ridx){t.classList.add('connected');break;}}
-    }
-  });
-}
-
-function checkAllConnected(){
-  const count=document.querySelectorAll('.term.left-t').length;
-  if(Object.keys(connections).length<count)return;
-  // Check all correct
-  let allOk=true;
-  for(let i=0;i<count;i++){
-    if(connections[i]!==solution[i]){allOk=false;break;}
-  }
-  clearInterval(mgInterval);
-  if(allOk){
-    document.getElementById('mgStatus').textContent='✓ CONNEXIONS CORRECTES';
-    document.getElementById('mgStatus').className='mg-status ok';
-    mgDots[mgRound].className='mgdot ok';
-    addLog('ok',`Reconnexion câbles round ${mgRound+1} : OK`);
-    mgRound++;
-    if(mgRound>=ROUNDS){
-      setTimeout(mgWin,600);
-    } else {
-      document.getElementById('mgNextBtn').style.display='block';
-    }
-  } else {
-    document.getElementById('mgStatus').textContent='✗ CONNEXIONS INCORRECTES — recommencez';
-    document.getElementById('mgStatus').className='mg-status err';
-    mgDots[mgRound].className='mgdot bad';
-    doFlash();
-    addLog('err',`Reconnexion câbles round ${mgRound+1} : ÉCHEC`);
-    // reset current round's dot and try again after delay
-    setTimeout(()=>{
-      mgDots[mgRound].className='mgdot';
-      buildWireRound();
-    },1200);
-  }
-}
-
-function mgFail(){
+function timerFail(){
   document.getElementById('mgStatus').textContent='⏱ TEMPS ÉCOULÉ — recommencez';
   document.getElementById('mgStatus').className='mg-status err';
-  doFlash();addLog('err',`Reconnexion : temps écoulé round ${mgRound+1}`);
+  doFlash();addLog('err','Temps écoulé round '+(mgRound+1));
   mgDots[mgRound].className='mgdot bad';
-  setTimeout(()=>{mgDots[mgRound].className='mgdot';buildWireRound();},1000);
+  setTimeout(()=>{mgDots[mgRound].className='mgdot';buildRound();},1000);
 }
 
 function mgNextRound(){
   document.getElementById('mgNextBtn').style.display='none';
-  buildWireRound();
+  buildRound();
 }
 
 function mgWin(){
   clearInterval(mgInterval);
   document.getElementById('mgOverlay').classList.remove('show');
   S.wireDone=true;
-  addLog('ok','Reconnexion câbles : VALIDÉE — autorisation accordée');
+  try{localStorage.setItem('s7_wiredone_'+(REGION?REGION.key:'x'),'1');}catch(e){}
+  addLog('ok','Reconnexion câbles : VALIDÉE');
   toast('✔ Câbles validés — autorisation accordée');
   refreshChk();
 }
 
 // ─── DISCORD ───
-async function sendWebhook(){
-  const on=S.powerOn;
+async function sendWebhook(restored){
   const now=new Date(),ts=now.toISOString();
   const p=v=>String(v).padStart(2,'0');
   const hr=`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
-  const payload={embeds:[{
-    title:on?'⚡  ÉLECTRICITÉ RÉTABLIE':'🔴  COUPURE ÉLECTRIQUE',
-    description:on?'✅ **L\'alimentation électrique a été rétablie.**\nTous les secteurs de Los Santos sont de nouveau en ligne.':'❌ **L\'alimentation électrique vient d\'être coupée.**\nTous les secteurs de Los Santos sont hors tension.',
-    color:on?0xffaa00:0xbb1120,
-    fields:[
-      {name:'📍 Secteur',value:'Centrale S7 — Los Santos',inline:true},
-      {name:'🕐 Heure',value:hr,inline:true},
-      {name:'👤 Opérateur',value:`LVL ${S.accessLvl} — Station C7`,inline:true},
-      {name:'📊 État',value:on?'`NOMINAL`':'`HORS TENSION`',inline:false},
-    ],
-    footer:{text:'LSEC Control Panel — Los Santos Energy Corporation'},
-    timestamp:ts,
-  }]};
+  const offCount=(!SHARED.ls?1:0)+(!SHARED.bc?1:0);
+  const onCount=2-offCount;
+  const embeds=[];
+
+  if(!restored){
+    // COUPURE de MA région
+    embeds.push({
+      title:`🔴  COUPURE — ${REGION.name}  (${offCount}/2)`,
+      description:`❌ **Le secteur ${REGION.name} vient d'être coupé.**\n`+
+        (offCount===2?'⚠️ Les DEUX secteurs sont maintenant hors tension.':'L\'autre secteur est toujours alimenté.'),
+      color:0xbb1120,
+      fields:[
+        {name:'📍 Secteur coupé',value:REGION.name,inline:true},
+        {name:'🕐 Heure',value:hr,inline:true},
+        {name:'👤 Opérateur',value:`LVL ${S.accessLvl}`,inline:true},
+        {name:'🗺 Los Santos',value:SHARED.ls?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
+        {name:'🏜 Blaine County',value:SHARED.bc?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
+      ],
+      footer:{text:'LSEC Control Panel — Centrale S7'},
+      timestamp:ts,
+    });
+    if(offCount===2){
+      embeds.push({
+        title:'⚫  RÉSEAU TOTAL DÉSACTIVÉ  (2/2)',
+        description:'🌑 **TOUT LE RÉSEAU EST HORS TENSION.**\nLos Santos **ET** Blaine County sont coupés.\nLe black-out total est effectif.',
+        color:0x111111,
+        footer:{text:'LSEC Control Panel — Centrale S7'},
+        timestamp:ts,
+      });
+    }
+  } else {
+    // RÉTABLISSEMENT de MA région
+    embeds.push({
+      title:`🟢  RÉTABLI — ${REGION.name}  (${onCount}/2)`,
+      description:`✅ **Le secteur ${REGION.name} a été rétabli.**\n`+
+        (onCount===2?'⚡ Les DEUX secteurs sont de nouveau alimentés.':'L\'autre secteur est toujours coupé.'),
+      color:0x33aa44,
+      fields:[
+        {name:'📍 Secteur rétabli',value:REGION.name,inline:true},
+        {name:'🕐 Heure',value:hr,inline:true},
+        {name:'👤 Opérateur',value:`LVL ${S.accessLvl}`,inline:true},
+        {name:'🗺 Los Santos',value:SHARED.ls?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
+        {name:'🏜 Blaine County',value:SHARED.bc?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
+      ],
+      footer:{text:'LSEC Control Panel — Centrale S7'},
+      timestamp:ts,
+    });
+    if(onCount===2){
+      embeds.push({
+        title:'⚡  RÉSEAU COMPLET RÉTABLI  (2/2)',
+        description:'🌇 **TOUT LE RÉSEAU EST DE NOUVEAU EN LIGNE.**\nLos Santos et Blaine County sont alimentés.\nFin du black-out.',
+        color:0xffaa00,
+        footer:{text:'LSEC Control Panel — Centrale S7'},
+        timestamp:ts,
+      });
+    }
+  }
+
   try{
-    const r=await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({embeds})});
     addLog(r.ok?'ok':'warn',r.ok?'📡 Discord notifié':'📡 Webhook : erreur');
   }catch(e){addLog('warn','📡 Webhook : connexion échouée');}
 }
+
 
 refreshChk();
 </script>
