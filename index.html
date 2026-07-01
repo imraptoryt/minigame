@@ -2,1592 +2,443 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LSEC — CENTRALE S7</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BLACK VULTURES MC — Bon de commande</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
-
-:root {
-  --bg:      #080603;
-  --plate:   #0f0d08;
-  --plate2:  #141108;
-  --plate3:  #1a160e;
-  --rust:    #2a1e10;
-  --border:  #281e10;
-  --border2: #382a18;
-  --amber:   #ffaa00;
-  --amber2:  #ffc840;
-  --amber-d: #6a4000;
-  --burn:    #cc5500;
-  --burn2:   #ff6600;
-  --red:     #bb1120;
-  --red2:    #dd2233;
-  --red-d:   #3a0008;
-  --green:   #33aa44;
-  --green-d: #0e2e14;
-  --text:    #c0a878;
-  --text2:   #ddc898;
-  --dim:     #5a4020;
-  --inset:   #060402;
+:root{
+  --bg:#0a0807; --panel:#15110d; --panel2:#1c1711; --line:#352b20; --line2:#46382a;
+  --orange:#ff6a00; --amber:#ffae3a; --ember:#ff7a1a; --blood:#9b2218;
+  --bone:#f1e8d8; --txt:#ece2d2; --muted:#94836c;
+  --glow:0 0 22px rgba(255,106,0,.5);
+  --term:#37f06a;
 }
-
-*{margin:0;padding:0;box-sizing:border-box;}
-
-body {
-  background:var(--bg);
-  font-family:'Share Tech Mono',monospace;
-  color:var(--text);
-  min-height:100vh;
-  overflow-x:hidden;
-  background-image: radial-gradient(ellipse 70% 30% at 50% 0%, rgba(255,150,0,.04) 0%, transparent 60%);
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif; font-size:16px;
+  background:#050403;
+  color:var(--txt); min-height:100vh; -webkit-font-smoothing:antialiased;
 }
-body::after {
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-  background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);
+.device{
+  position:relative; width:100vw; height:100vh; overflow:hidden; background:var(--bg);
+  background-image:radial-gradient(1200px 800px at 50% -12%, #1d1409 0%, transparent 58%);
 }
+.grain{position:absolute;inset:0;z-index:56;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vignette{position:absolute;inset:0;z-index:55;pointer-events:none;background:radial-gradient(120% 120% at 50% 35%, transparent 55%, rgba(0,0,0,.5) 100%)}
 
-/* ── HEADER ── */
-.hdr {
-  height:52px;background:linear-gradient(180deg,#131008,#0a0806);
-  border-bottom:1px solid var(--border2);
-  display:flex;align-items:center;padding:0 18px;gap:14px;
-  box-shadow:0 3px 24px rgba(0,0,0,.7);position:relative;
-}
-.hdr::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--amber) 30%,var(--burn) 70%,transparent);opacity:.3;}
-.hdr-logo{width:34px;height:34px;background:var(--plate2);border:1px solid var(--amber-d);border-radius:3px;
-  display:flex;align-items:center;justify-content:center;font-size:18px;
-  box-shadow:0 0 14px rgba(255,170,0,.1);}
-.hdr-name{font-family:'Black Ops One',cursive;font-size:16px;letter-spacing:4px;color:var(--amber2);
-  text-shadow:0 0 20px rgba(255,170,0,.35);}
-.hdr-sub{font-size:8px;color:var(--dim);letter-spacing:2.5px;margin-top:1px;}
-.hdr-badge{
-  margin-left:auto;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
-  letter-spacing:3px;padding:5px 16px;border-radius:2px;border:1px solid;transition:all .5s;
-}
-.hdr-badge.on {color:var(--amber2);border-color:var(--amber-d);background:rgba(255,170,0,.06);text-shadow:0 0 12px rgba(255,200,64,.5);}
-.hdr-badge.off{color:var(--red2);  border-color:var(--red-d);  background:rgba(187,17,32,.06);  text-shadow:0 0 12px rgba(221,34,51,.5);animation:flickr .55s 1;}
-@keyframes flickr{0%{opacity:1}15%{opacity:.04}35%{opacity:.85}55%{opacity:.08}75%{opacity:.9}100%{opacity:1}}
-.hdr-right{display:flex;gap:5px;align-items:center;}
-.hchip{background:var(--plate);border:1px solid var(--border);border-radius:2px;padding:3px 10px;text-align:center;}
-.hchip .v{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--amber);display:block;text-shadow:0 0 7px rgba(255,170,0,.4);}
-.hchip .l{font-size:7px;color:var(--dim);letter-spacing:1.5px;}
-.hclock{background:var(--inset);border:1px solid var(--border2);border-radius:2px;padding:3px 12px;
-  font-family:'Orbitron',monospace;font-size:17px;font-weight:700;color:var(--amber);letter-spacing:3px;
-  text-shadow:0 0 14px rgba(255,170,0,.5);display:flex;align-items:center;}
+/* ===== BOOT : console de hack ===== */
+#boot{position:absolute;inset:0;z-index:30;background:#020402;overflow:hidden;transition:opacity .55s ease}
+#boot::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px);
+  animation:crt 7s linear infinite;mix-blend-mode:multiply}
+@keyframes crt{from{background-position:0 0}to{background-position:0 120px}}
+.console{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:16px 20px 64px;overflow:hidden;font-family:'JetBrains Mono',ui-monospace,monospace}
+.console .ln{font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:var(--term);
+  text-shadow:0 0 6px rgba(55,240,106,.3);opacity:.92}
+.console .ln.dim{color:#1f8a45;opacity:.7}
+.console .ln.ok{color:#caffb0}
+.console .ln.warn{color:#ff7a1a;text-shadow:0 0 8px rgba(255,122,26,.5)}
+.console .ln.hi{color:#fff;background:rgba(255,106,0,.12);text-shadow:0 0 8px rgba(255,106,0,.6)}
+.console .cursor{display:inline-block;width:8px;height:14px;background:var(--term);box-shadow:0 0 8px var(--term);
+  vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
 
-/* ── LAYOUT ── */
-.layout{display:grid;grid-template-columns:230px 1fr;gap:10px;padding:10px;max-width:1100px;margin:0 auto;}
+.hud{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:14px;
+  padding:13px 20px;background:linear-gradient(0deg,#020402 30%,transparent);
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--term)}
+.hud .tag{color:var(--orange);font-weight:700;letter-spacing:1px;text-shadow:var(--glow)}
+.hud .bar{flex:1;height:6px;border:1px solid #134d27;border-radius:3px;background:#031007;overflow:hidden}
+.hud .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0a8a3a,var(--term));box-shadow:0 0 10px var(--term)}
+.hud .cnt{color:#9be8b4} .hud .pct{color:#fff;font-weight:700;min-width:38px;text-align:right}
 
-/* ── PLATE ── */
-.plate{background:var(--plate);border:1px solid var(--border);border-radius:5px;padding:12px;position:relative;
-  box-shadow:0 2px 20px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.015);}
-.plate::before,.plate::after{content:'';position:absolute;width:7px;height:7px;border-radius:50%;
-  background:radial-gradient(circle,#221a0e 40%,#120e06);border:1px solid var(--border2);box-shadow:inset 0 1px 0 rgba(0,0,0,.5);}
-.plate::before{top:6px;left:6px;} .plate::after{top:6px;right:6px;}
+.granted{position:absolute;inset:0;z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:radial-gradient(600px 400px at 50% 50%, rgba(0,40,10,.6), #010301 70%)}
+.granted.show{display:flex;animation:flick .12s steps(2) 6}
+@keyframes flick{50%{opacity:.6}}
+.granted .g1{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:34px;letter-spacing:6px;color:var(--term);
+  text-shadow:2px 0 #ff006a, -2px 0 #00e5ff, 0 0 26px rgba(55,240,106,.6)}
+.granted .g2{font-family:'Inter';font-weight:900;font-size:18px;letter-spacing:8px;color:var(--orange);text-shadow:var(--glow)}
 
-.ptitle{font-family:'Black Ops One',cursive;font-size:9px;letter-spacing:2.5px;color:var(--dim);
-  margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:6px;}
-.pip{width:4px;height:4px;border-radius:50%;background:var(--amber);box-shadow:0 0 5px var(--amber);flex-shrink:0;}
-.pip.r{background:var(--red2);box-shadow:0 0 5px var(--red2);}
-.pip.b{background:var(--burn2);box-shadow:0 0 5px var(--burn2);}
-.pip.g{background:var(--green);box-shadow:0 0 5px var(--green);}
-.ptline{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);}
+/* ===== APP (agrandi, police basique) ===== */
+#app{position:absolute;inset:0;z-index:10;display:none;flex-direction:column;
+  background:linear-gradient(0deg, rgba(255,106,0,.025), transparent 42%), var(--bg)}
+#app.show{display:flex;animation:fadein .55s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
 
-/* ── LEFT COL ── */
-.lcol{display:flex;flex-direction:column;gap:10px;}
+.app-head{display:flex;align-items:center;gap:16px;padding:22px 26px 18px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(255,106,0,.05), transparent)}
+.patch{position:relative;width:62px;height:62px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:#0c0a07;border:2px solid var(--orange);box-shadow:0 0 18px rgba(255,106,0,.35), inset 0 0 12px rgba(0,0,0,.6)}
+.patch::after{content:"";position:absolute;inset:3px;border:1px dashed rgba(255,174,58,.4);border-radius:11px}
+.patch img{width:46px;height:46px;object-fit:contain}
+.patch .fb{display:none}.patch.nologo img{display:none}.patch.nologo .fb{display:block}
+.app-head .club-sm{font-family:'Inter';font-weight:900;font-size:28px;line-height:1;letter-spacing:1.5px;color:var(--bone);text-transform:uppercase}
+.app-head .club-sm b{color:var(--orange)}
+.app-head .sub{font-family:'Inter';font-weight:600;font-size:12px;letter-spacing:4px;color:var(--amber);margin-top:5px;text-transform:uppercase}
+.app-head .badge{margin-left:auto;font-family:'Inter';font-weight:600;font-size:12px;letter-spacing:.5px;
+  color:var(--amber);border:1px solid var(--line2);border-radius:6px;padding:7px 13px;background:#0d0a07}
+.app-head .badge .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber);margin-right:6px;vertical-align:middle}
 
-/* FLIP SWITCHES */
-.swlist{display:flex;flex-direction:column;gap:6px;}
-.sw{display:flex;align-items:center;gap:8px;background:var(--plate2);border:1px solid var(--border);
-  border-radius:3px;padding:7px 10px;cursor:pointer;user-select:none;transition:border-color .2s;}
-.sw:hover{border-color:var(--border2);}
-.sw.req{border-color:rgba(187,17,32,.3);}
-.sw.req.sat{border-color:rgba(51,170,68,.25);}
+.body{flex:1;min-height:0;display:grid;grid-template-columns:1.5fr 1fr;gap:20px;padding:22px;overflow:hidden}
+.body>div{min-height:0;overflow:auto}
+.body>div::-webkit-scrollbar{width:8px}.body>div::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 
-.fsw{width:18px;height:38px;background:var(--rust);border:1px solid var(--border2);border-radius:2px;
-  position:relative;flex-shrink:0;box-shadow:inset 0 2px 4px rgba(0,0,0,.5);}
-.fsw::before{content:'';position:absolute;left:50%;top:2px;bottom:2px;width:3px;transform:translateX(-50%);
-  background:var(--inset);border-radius:1px;}
-.fknob{position:absolute;left:2px;width:14px;height:16px;
-  background:linear-gradient(180deg,#3e2e1a,#241a0e);border:1px solid var(--border2);border-radius:1px;
-  transition:top .22s cubic-bezier(.34,1.56,.64,1);top:2px;
-  box-shadow:0 2px 5px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.07);}
-.fknob::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:1.5px;
-  background:var(--dim);transform:translate(-50%,-50%);border-radius:1px;}
-.sw.off .fknob{top:20px;}
+.card{position:relative;background:linear-gradient(180deg,var(--panel),#0f0c08);border:1px solid var(--line);border-radius:12px;padding:20px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.015), 0 6px 18px rgba(0,0,0,.4)}
+.card::before{content:"";position:absolute;top:0;left:16px;right:16px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,106,0,.5),transparent)}
+.card h2{font-family:'Inter';font-weight:800;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bone);
+  margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.card h2::before{content:"";width:8px;height:8px;background:var(--orange);box-shadow:var(--glow);transform:rotate(45deg)}
 
-.sw-info{flex:1;}
-.sw-name{font-size:10px;color:var(--text2);}
-.sw-zone{font-size:8px;color:var(--dim);letter-spacing:.8px;}
-.sw-warn{font-size:7px;color:var(--red2);display:none;margin-top:1px;}
-.sw.req .sw-warn{display:block;}
-.sw.req.sat .sw-warn{display:none;}
+.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--panel2);
+  border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin-bottom:11px;transition:border-color .2s,box-shadow .2s}
+.item.active{border-color:var(--orange);box-shadow:inset 0 0 22px rgba(255,106,0,.08)}
+.item .nm{font-family:'Inter';font-weight:700;font-size:19px;letter-spacing:.3px;color:var(--bone)}
+.item .nm .code{font-family:'JetBrains Mono',monospace;font-size:11px;color:#6f5c46;letter-spacing:0;font-weight:400}
+.item .meta{font-family:'Inter';font-weight:500;font-size:13px;color:var(--muted);margin-top:4px}
+.item .meta b{color:var(--amber);font-weight:700}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:38px;height:38px;border-radius:9px;border:1px solid var(--line2);background:linear-gradient(180deg,#1a140d,#0d0a06);
+  color:var(--orange);font-size:22px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s}
+.qty button:hover{border-color:var(--orange);box-shadow:0 0 10px rgba(255,106,0,.3)}
+.qty button:active{transform:scale(.9)}
+.qty input{width:62px;height:38px;text-align:center;background:#0a0705;border:1px solid var(--line);border-radius:9px;color:var(--bone);
+  font-family:'Inter';font-weight:700;font-size:18px}
+.qty input:focus{outline:none;border-color:var(--orange)}
 
-.sind{width:8px;height:8px;border-radius:50%;border:1px solid var(--dim);background:var(--red);
-  box-shadow:0 0 6px var(--red);transition:all .3s;flex-shrink:0;}
-.sw.off .sind{background:var(--rust);box-shadow:none;border-color:var(--border);}
-.sw.sat .sind{background:var(--green);box-shadow:0 0 6px var(--green);border-color:var(--green);}
+.field{margin-bottom:15px}
+.field label{display:block;font-family:'Inter';font-weight:600;font-size:12px;color:var(--amber);letter-spacing:1.5px;margin-bottom:7px;text-transform:uppercase}
+.field label .req{color:var(--blood)}
+.field input,.field textarea{width:100%;background:#0a0705;border:1px solid var(--line);border-radius:9px;padding:13px 15px;color:var(--txt);font-family:'Inter';font-size:15px;transition:.15s}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 0 12px rgba(255,106,0,.2)}
+.field textarea{resize:none;min-height:70px}
 
-/* GAUGES — analog needles */
-.gaugerow{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.gw{display:flex;flex-direction:column;align-items:center;gap:3px;}
-.gface{width:76px;height:46px;background:var(--inset);border:1px solid var(--border2);border-radius:38px 38px 0 0;
-  position:relative;overflow:hidden;}
-.gface::before{content:'';position:absolute;inset:0;
-  background:conic-gradient(from 225deg at 50% 100%,var(--red-d) 0 28deg,var(--amber-d) 28deg 115deg,var(--green-d) 115deg 150deg,transparent 150deg);}
-.gneedle{position:absolute;bottom:0;left:50%;width:1.5px;height:38px;
-  background:linear-gradient(0deg,transparent,var(--amber) 45%,var(--amber2));
-  transform-origin:bottom center;transform:translateX(-50%) rotate(-68deg);transition:transform 1.3s ease;
-  border-radius:1px;box-shadow:0 0 5px rgba(255,170,0,.5);}
-.gneedle::after{content:'';position:absolute;bottom:-2px;left:50%;width:6px;height:6px;border-radius:50%;
-  background:var(--amber);transform:translateX(-50%);box-shadow:0 0 6px var(--amber);}
-.gval{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--amber);}
-.glbl{font-size:7px;color:var(--dim);letter-spacing:.8px;}
+.readout{position:sticky;top:0}
+.line{display:flex;justify-content:space-between;align-items:baseline;font-family:'Inter';font-weight:500;font-size:15px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.line span:first-child{color:var(--muted)} .line b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+.line.acc b{color:var(--amber)}
+.tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:16px;border-top:2px solid var(--orange)}
+.tot span{font-family:'Inter';font-weight:700;font-size:13px;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase}
+.tot b{font-family:'Inter';font-weight:900;font-size:34px;color:var(--orange);text-shadow:var(--glow);font-variant-numeric:tabular-nums}
+.wline{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;font-family:'Inter';font-weight:500;font-size:14px}
+.wline span{color:var(--muted);letter-spacing:.5px;text-transform:uppercase} .wline b{color:var(--amber);font-weight:700}
 
-/* QA */
-.qarow{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.qab{padding:6px 4px;border-radius:2px;border:1px solid;cursor:pointer;font-family:'Share Tech Mono',monospace;
-  font-size:8px;letter-spacing:.8px;text-align:center;text-transform:uppercase;transition:all .15s;user-select:none;}
-.qab.a{background:rgba(0,60,110,.07);border-color:#0a2e48;color:#4080aa;}
-.qab.a:hover{background:rgba(0,60,110,.16);}
-.qab.y{background:rgba(120,80,0,.07);border-color:#3a2600;color:var(--amber);}
-.qab.y:hover{background:rgba(120,80,0,.16);}
-.qab.o{background:rgba(110,40,0,.08);border-color:#3a1800;color:var(--burn2);}
-.qab.o:hover{background:rgba(110,40,0,.18);}
-.qab.r{background:rgba(90,5,10,.08);border-color:#2e0008;color:var(--red2);}
-.qab.r:hover{background:rgba(90,5,10,.18);}
+.send{width:100%;margin-top:18px;padding:17px;border:none;border-radius:10px;cursor:pointer;font-family:'Inter';font-weight:800;
+  letter-spacing:2px;font-size:16px;color:#150900;background:linear-gradient(180deg,var(--amber),var(--orange));
+  box-shadow:0 0 26px rgba(255,106,0,.4), inset 0 1px 0 rgba(255,255,255,.3);transition:.18s;text-transform:uppercase}
+.send:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.send:active{transform:translateY(0) scale(.99)}
+.send:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.4);box-shadow:none}
+.note-mini{font-family:'Inter';font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
 
-/* LOG */
-.loglist{display:flex;flex-direction:column;gap:3px;max-height:110px;overflow-y:auto;}
-.loglist::-webkit-scrollbar{width:2px;}
-.loglist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:1px;}
-.loge{display:flex;gap:7px;padding:3px 7px;background:var(--plate2);border-radius:2px;border-left:2px solid var(--dim);font-size:8px;animation:logIn .2s ease;}
-@keyframes logIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
-.loge.ok{border-left-color:var(--green);}
-.loge.warn{border-left-color:var(--burn2);}
-.loge.err{border-left-color:var(--red2);}
-.logt{color:var(--dim);flex-shrink:0;font-family:'Orbitron',monospace;font-size:7px;padding-top:1px;}
-.logm{color:var(--text);}
+#ov{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:rgba(6,4,3,.95);backdrop-filter:blur(4px)}
+#ov.show{display:flex;animation:fadein .3s}
+#ov .icon{font-size:58px}
+#ov h3{font-family:'Inter';font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}
+#ov p{font-family:'Inter';font-size:14px;color:var(--muted);max-width:430px;line-height:1.6}
+#ov.ok h3{color:var(--amber);text-shadow:0 0 18px rgba(255,174,58,.5)}
+#ov.err h3{color:var(--blood);text-shadow:0 0 18px rgba(155,34,24,.6)}
+#ov button{margin-top:6px;padding:13px 26px;border:1px solid var(--orange);background:transparent;color:var(--orange);border-radius:9px;
+  font-family:'Inter';font-weight:700;letter-spacing:2px;font-size:13px;cursor:pointer;transition:.15s;text-transform:uppercase}
+#ov button:hover{background:var(--orange);color:#150900}
 
-/* ── RIGHT COL ── */
-.rcol{display:flex;flex-direction:column;gap:10px;}
-
-/* TOP ROW: checklist + mini map side by side */
-.top-row{display:grid;grid-template-columns:1fr 140px;gap:10px;}
-
-/* CHECKLIST */
-.cklist{display:flex;flex-direction:column;gap:5px;}
-.ck{display:flex;align-items:center;gap:8px;background:var(--plate2);border:1px solid var(--border);
-  border-radius:3px;padding:7px 10px;transition:all .3s;font-size:9px;cursor:default;}
-.ck.clickable{cursor:pointer;}
-.ck.clickable:hover{border-color:var(--border2);}
-.ck.done{border-color:rgba(51,170,68,.2);background:rgba(14,32,18,.3);}
-.ckbox{width:15px;height:15px;border-radius:2px;border:1.5px solid var(--dim);
-  display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;
-  flex-shrink:0;transition:all .3s;background:var(--inset);}
-.ck.done .ckbox{border-color:var(--green);background:var(--green-d);color:var(--green);box-shadow:0 0 6px rgba(51,170,68,.25);}
-.cktxt{flex:1;color:var(--dim);transition:color .3s;line-height:1.4;}
-.ck.done .cktxt{color:var(--text2);}
-.cktag{font-size:7px;padding:2px 7px;border-radius:1px;letter-spacing:1px;border:1px solid var(--border);
-  background:var(--inset);color:var(--dim);font-family:'Orbitron',monospace;transition:all .3s;white-space:nowrap;}
-.ck.done .cktag{border-color:var(--green);background:var(--green-d);color:var(--green);}
-
-/* MINI MAP */
-.minimap-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:4px;}
-.mc{aspect-ratio:1;background:var(--plate2);border:1px solid var(--border);border-radius:2px;
-  display:flex;align-items:center;justify-content:center;font-size:6px;color:var(--dim);
-  cursor:pointer;transition:all .2s;user-select:none;}
-.mc.live{border-color:rgba(255,170,0,.18);color:rgba(255,170,0,.45);}
-.mc.live::before{content:'';position:absolute;inset:0;border-radius:2px;
-  background:radial-gradient(circle,rgba(255,170,0,.06) 0%,transparent 70%);animation:mcp 3s infinite;}
-@keyframes mcp{0%,100%{opacity:.5}50%{opacity:1}}
-.mc{position:relative;overflow:hidden;}
-.mc.dead{border-color:rgba(187,17,32,.18);color:rgba(187,17,32,.3);background:rgba(12,2,3,.6);}
-.mc.hub{border-color:rgba(204,85,0,.35)!important;background:rgba(24,10,2,.5);color:var(--burn2);font-size:7px;cursor:default;}
-
-/* MIDDLE ROW: radio + key side by side */
-.mid-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-
-/* RADIO */
-.radscr{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;letter-spacing:2px;
-  text-align:center;padding:6px;background:#020100;border:1px solid #080500;border-radius:2px;
-  text-shadow:0 0 16px rgba(255,170,0,.7);margin-bottom:6px;
-  box-shadow:inset 0 2px 8px rgba(0,0,0,.6);transition:color .3s,text-shadow .3s;}
-.radscr.on{color:var(--amber);}
-.radscr.ok{color:var(--green);text-shadow:0 0 16px rgba(51,170,68,.7);}
-.radscr.wrong{color:var(--red2);text-shadow:0 0 16px rgba(221,34,51,.7);}
-.radtarget{font-size:8px;color:var(--dim);text-align:center;letter-spacing:.8px;margin-bottom:6px;}
-.radtarget span{color:var(--burn2);}
-.radbrow{display:flex;gap:4px;}
-.rb{flex:1;padding:5px 3px;font-family:'Share Tech Mono',monospace;font-size:9px;border-radius:2px;
-  cursor:pointer;text-align:center;background:var(--plate2);border:1px solid var(--border2);
-  color:var(--dim);transition:all .15s;user-select:none;}
-.rb:hover{border-color:var(--amber-d);color:var(--amber);}
-.rb.tx{color:var(--green);border-color:var(--green-d);}
-.rb.tx:hover{background:var(--green-d);}
-
-/* KEY */
-.keydisp{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;text-align:center;
-  margin-bottom:4px;transition:all .3s;}
-.keydisp.low{color:var(--red2);text-shadow:0 0 12px rgba(187,17,32,.5);}
-.keydisp.mid{color:var(--burn2);text-shadow:0 0 12px rgba(204,85,0,.5);}
-.keydisp.hi{color:var(--green);text-shadow:0 0 12px rgba(51,170,68,.5);}
-.keysub{font-size:8px;color:var(--dim);text-align:center;letter-spacing:1px;margin-bottom:4px;}
-.keytgt{font-size:7px;color:var(--dim);text-align:center;letter-spacing:.8px;margin-bottom:6px;}
-.keytgt span{color:var(--burn2);}
-.keybrow{display:flex;gap:5px;}
-.kb{flex:1;padding:6px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1.5px;border-radius:2px;
-  cursor:pointer;text-align:center;background:var(--plate2);border:1px solid var(--border2);color:var(--dim);transition:all .15s;user-select:none;}
-.kb:hover{border-color:var(--amber-d);color:var(--amber);}
-.kb.up{color:var(--green);border-color:var(--green-d);}
-.kb.up:hover{background:var(--green-d);}
-
-/* POWER STATION */
-.pstation{background:linear-gradient(180deg,#111008,#090704);border:1px solid var(--border2);border-radius:6px;
-  padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:14px;
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.01),0 4px 30px rgba(0,0,0,.55);position:relative;}
-.pstation::before{content:'';position:absolute;inset:0;border-radius:6px;pointer-events:none;
-  background:radial-gradient(ellipse 70% 50% at 50% 100%,rgba(255,150,0,.03) 0%,transparent 60%);}
-
-/* LAMPS */
-.lamps{display:flex;gap:16px;align-items:center;}
-.lbu{display:flex;flex-direction:column;align-items:center;gap:3px;}
-.lb{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--dim);background:var(--plate2);transition:all .3s;}
-.lb.amber{background:var(--amber);border-color:var(--amber2);box-shadow:0 0 10px var(--amber),0 0 20px rgba(255,170,0,.25);}
-.lb.red{background:var(--red2);border-color:var(--red);box-shadow:0 0 10px var(--red2),0 0 20px rgba(187,17,32,.3);animation:lbb .8s infinite;}
-.lb.green{background:var(--green);border-color:var(--green);box-shadow:0 0 10px var(--green);}
-@keyframes lbb{0%,100%{opacity:1}50%{opacity:.1}}
-.lbll{font-size:7px;color:var(--dim);letter-spacing:.8px;}
-
-/* ── LEVER ── */
-.lever-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
-.lever-labels{display:flex;justify-content:space-between;width:200px;}
-.llon{font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:2px;color:var(--green);text-shadow:0 0 8px var(--green);}
-.lloff{font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:2px;color:var(--red2);text-shadow:0 0 8px var(--red2);}
-.lever-svg-wrap{cursor:grab;user-select:none;touch-action:none;}
-.lever-svg-wrap:active{cursor:grabbing;}
-.lbanner{font-size:8px;color:var(--red2);letter-spacing:1.5px;display:none;animation:blk 1.2s infinite;text-align:center;}
-@keyframes blk{0%,100%{opacity:1}50%{opacity:.1}}
-.lcta{padding:9px 24px;font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:3px;
-  border-radius:3px;cursor:pointer;transition:all .2s;border:1px solid;text-transform:uppercase;overflow:hidden;position:relative;}
-.lcta::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%);}
-.lcta.locked{background:rgba(22,16,8,.4);border-color:var(--border2);color:var(--dim);cursor:not-allowed;}
-.lcta.cut{background:rgba(100,8,14,.1);border-color:var(--red);color:var(--red2);box-shadow:0 0 16px rgba(187,17,32,.07);}
-.lcta.cut:hover{background:rgba(100,8,14,.22);box-shadow:0 0 24px rgba(187,17,32,.18);}
-.lcta.restore{background:rgba(16,64,22,.1);border-color:var(--green);color:var(--green);box-shadow:0 0 16px rgba(51,170,68,.07);}
-.lcta.restore:hover{background:rgba(16,64,22,.22);}
-
-/* MANUAL paper strip at bottom of right */
-.manual{background:linear-gradient(170deg,#131008,#0e0c06);border:1px solid var(--border2);border-radius:3px;padding:10px 12px;position:relative;}
-.manual::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:repeating-linear-gradient(90deg,var(--amber-d) 0,var(--amber-d) 6px,transparent 6px,transparent 12px);opacity:.4;}
-.mansec{margin-bottom:7px;}
-.mannum{font-family:'Black Ops One',cursive;font-size:8px;letter-spacing:2px;color:var(--burn2);margin-bottom:4px;}
-.mansteps{list-style:none;display:flex;flex-direction:column;gap:2px;}
-.mansteps li{font-size:9px;color:var(--dim);padding:3px 7px 3px 20px;background:var(--plate);
-  border-radius:2px;border-left:2px solid var(--border2);position:relative;line-height:1.45;}
-.mansteps li::before{content:attr(data-n);position:absolute;left:6px;font-size:8px;color:var(--dim);font-family:'Orbitron',monospace;}
-.mansteps li strong{color:var(--amber);}
-.mandiv{height:1px;background:var(--border);margin:6px 0;}
-
-/* ══════════════════════════════════════
-   MINIGAME — RECONNEXION CÂBLES
-══════════════════════════════════════ */
-.overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.96);
-  backdrop-filter:blur(10px);align-items:center;justify-content:center;}
-.overlay.show{display:flex;}
-.mgbox{background:linear-gradient(180deg,#141008,#0a0804);border:1px solid var(--border2);border-radius:7px;
-  padding:22px 28px 24px;width:600px;text-align:center;
-  box-shadow:0 0 80px rgba(0,0,0,.9);position:relative;overflow:hidden;}
-.mgbox::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--amber),var(--burn),transparent);opacity:.4;}
-.mgtitle{font-family:'Black Ops One',cursive;font-size:13px;letter-spacing:5px;color:var(--amber2);margin-bottom:3px;}
-.mgsub{font-size:8px;color:var(--dim);letter-spacing:2px;margin-bottom:14px;}
-.mg-topbar{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
-.mgtimer{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--amber);
-  text-shadow:0 0 18px rgba(255,170,0,.4);transition:all .3s;min-width:42px;text-align:center;flex-shrink:0;}
-.mgtimer.warn{color:var(--burn2);}
-.mgtimer.danger{color:var(--red2);text-shadow:0 0 18px rgba(221,34,51,.6);}
-.mgbarwrap{flex:1;height:3px;background:var(--inset);border-radius:2px;overflow:hidden;}
-.mgbar{height:100%;background:var(--amber);border-radius:2px;transition:width 1s linear,background .3s;}
-.mg-progress{display:flex;gap:6px;align-items:center;flex-shrink:0;}
-.mgdot{width:9px;height:9px;border-radius:50%;background:var(--inset);border:1px solid var(--border2);transition:all .3s;}
-.mgdot.ok {background:var(--green);border-color:var(--green);box-shadow:0 0 6px var(--green);}
-.mgdot.bad{background:var(--red2);border-color:var(--red);box-shadow:0 0 6px var(--red2);}
-.mg-status{font-size:9px;color:var(--dim);letter-spacing:1.5px;margin-bottom:8px;min-height:14px;}
-.mg-status.ok{color:var(--green);}
-.mg-status.err{color:var(--red2);}
-.wire-arena{position:relative;display:flex;justify-content:space-between;align-items:center;
-  background:var(--inset);border:1px solid var(--border2);border-radius:5px;
-  padding:14px 8px;margin-bottom:12px;user-select:none;min-height:60px;}
-#wireSvg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
-.wcol{display:flex;flex-direction:column;gap:8px;width:185px;}
-.wcol.left{align-items:flex-start;}
-.wcol.right{align-items:flex-end;}
-.wrow{display:flex;align-items:center;}
-.wcol.left  .wrow{flex-direction:row;}
-.wcol.right .wrow{flex-direction:row-reverse;}
-.wlabel{padding:5px 10px;border-radius:3px;border:1.5px solid;background:var(--plate2);
-  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;
-  white-space:nowrap;pointer-events:none;transition:box-shadow .15s,filter .15s;line-height:1;}
-.wrow.drag-src .wlabel{filter:brightness(1.5);box-shadow:0 0 14px var(--rc,#fff);}
-.wrow.drop-hi  .wlabel{filter:brightness(1.35);box-shadow:0 0 16px var(--rc,#fff);background:var(--plate3);}
-.wrow.done     .wlabel{opacity:.55;}
-.wplug{width:22px;height:22px;border-radius:50%;border:2.5px solid;
-  background:#0c0907;display:flex;align-items:center;justify-content:center;
-  cursor:crosshair;flex-shrink:0;transition:transform .12s,box-shadow .12s;position:relative;z-index:5;}
-.wcol.left  .wplug{margin-left:6px;}
-.wcol.right .wplug{margin-right:6px;}
-.wplug-dot{width:9px;height:9px;border-radius:50%;pointer-events:none;}
-.wplug:hover,.wplug.active{transform:scale(1.35);}
-.wplug.active{box-shadow:0 0 0 3px rgba(255,255,255,.15),0 0 18px var(--rc,#fff);}
-.mgbtn{margin-top:4px;padding:8px 28px;font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:3px;
-  border-radius:3px;cursor:pointer;border:1px solid var(--amber-d);background:rgba(100,60,0,.12);
-  color:var(--amber);transition:all .2s;}
-.mgbtn:hover{background:rgba(100,60,0,.25);}
-
-/* ══════════════════════════════════════
-   BOOT — CODE D'ACCÈS
-══════════════════════════════════════ */
-.boot{position:fixed;inset:0;z-index:1000;background:#050402;display:flex;align-items:center;justify-content:center;}
-.boot.hidden{display:none;}
-.bootbox{background:linear-gradient(180deg,#141008,#0a0804);border:1px solid var(--border2);border-radius:8px;
-  padding:36px 44px;text-align:center;box-shadow:0 0 100px rgba(0,0,0,.95),0 0 50px rgba(255,140,0,.04);
-  position:relative;overflow:hidden;}
-.bootbox::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--amber),var(--burn),transparent);opacity:.45;}
-.boot-logo{font-size:34px;margin-bottom:8px;}
-.boot-title{font-family:'Black Ops One',cursive;font-size:16px;letter-spacing:6px;color:var(--amber2);margin-bottom:3px;}
-.boot-sub{font-size:8px;color:var(--dim);letter-spacing:3px;margin-bottom:24px;}
-.boot-code{font-family:'Orbitron',monospace;font-size:34px;font-weight:900;letter-spacing:14px;
-  color:var(--amber);text-shadow:0 0 24px rgba(255,170,0,.5);background:#020100;
-  border:1px solid #100a00;border-radius:4px;padding:10px 6px 10px 20px;margin-bottom:18px;min-width:220px;
-  box-shadow:inset 0 2px 10px rgba(0,0,0,.7);transition:color .3s,text-shadow .3s;}
-.boot-code.err{color:var(--red2);text-shadow:0 0 24px rgba(221,34,51,.6);animation:shakeB .35s;}
-@keyframes shakeB{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.boot-pad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;margin-bottom:14px;}
-.bkey{height:50px;border-radius:5px;border:1px solid var(--border2);background:var(--plate2);
-  font-family:'Orbitron',monospace;font-size:17px;font-weight:700;color:var(--text2);
-  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;user-select:none;}
-.bkey:hover{border-color:var(--amber-d);color:var(--amber);background:var(--plate3);}
-.bkey:active{transform:scale(.94);}
-.bkey.fn{font-size:12px;color:var(--dim);}
-.bkey.ok{color:var(--green);border-color:var(--green-d);}
-.bkey.ok:hover{background:var(--green-d);}
-.boot-hint{font-size:8px;color:var(--dim);letter-spacing:1.5px;}
-.boot-region{font-family:'Black Ops One',cursive;font-size:11px;letter-spacing:3px;margin-top:10px;min-height:16px;}
-.boot-region.ls{color:#ffaa00;text-shadow:0 0 12px rgba(255,170,0,.5);}
-.boot-region.bc{color:#40b0ff;text-shadow:0 0 12px rgba(64,176,255,.5);}
-
-/* region chips header */
-.rchip{background:var(--plate);border:1px solid var(--border);border-radius:2px;padding:3px 9px;text-align:center;}
-.rchip .rv{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;display:block;letter-spacing:1px;transition:color .4s;}
-.rchip .rl{font-size:7px;color:var(--dim);letter-spacing:1px;}
-.rchip .rv.on {color:var(--green);text-shadow:0 0 8px rgba(51,170,68,.5);}
-.rchip .rv.off{color:var(--red2);text-shadow:0 0 8px rgba(221,34,51,.5);}
-
-/* ══════════════════════════════════════
-   CONSOLE CTRL+R
-══════════════════════════════════════ */
-.console{position:fixed;left:0;right:0;bottom:-300px;height:280px;z-index:900;
-  background:rgba(6,4,2,.97);border-top:2px solid var(--amber-d);
-  transition:bottom .25s ease;display:flex;flex-direction:column;
-  box-shadow:0 -8px 40px rgba(0,0,0,.8);backdrop-filter:blur(6px);}
-.console.open{bottom:0;}
-.con-head{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);}
-.con-title{font-family:'Black Ops One',cursive;font-size:10px;letter-spacing:3px;color:var(--amber);}
-.con-close{margin-left:auto;cursor:pointer;color:var(--dim);font-size:14px;padding:2px 8px;}
-.con-close:hover{color:var(--red2);}
-.con-out{flex:1;overflow-y:auto;padding:10px 16px;font-size:11px;line-height:1.7;text-align:left;}
-.con-out::-webkit-scrollbar{width:4px;}
-.con-out::-webkit-scrollbar-thumb{background:var(--border2);}
-.con-line{color:var(--text);}
-.con-line.cmd{color:var(--amber);}
-.con-line.err{color:var(--red2);}
-.con-line.ok{color:var(--green);}
-.con-line.info{color:var(--dim);}
-.con-inrow{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--border);}
-.con-prompt{color:var(--amber);font-family:'Orbitron',monospace;font-size:11px;}
-.con-input{flex:1;background:transparent;border:none;outline:none;color:var(--text2);
-  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.5px;}
-
-/* sync badge */
-.sync-badge{position:fixed;top:60px;right:12px;z-index:800;font-size:8px;letter-spacing:1px;
-  padding:3px 10px;border-radius:2px;border:1px solid;opacity:.85;}
-.sync-badge.local {border-color:var(--burn);color:var(--burn2);background:rgba(120,50,0,.1);}
-.sync-badge.online{border-color:var(--green-d);color:var(--green);background:rgba(14,46,20,.2);}
-
-/* FLASH & TOAST */
-.flash{display:none;position:fixed;inset:0;border:4px solid var(--red);z-index:9998;pointer-events:none;animation:fla .4s ease forwards;}
-@keyframes fla{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
-.toast{position:fixed;bottom:16px;right:16px;background:var(--plate2);border:1px solid;border-radius:3px;
-  padding:9px 16px;font-size:10px;z-index:600;display:none;max-width:280px;
-  letter-spacing:.5px;box-shadow:0 4px 24px rgba(0,0,0,.7);}
-.toast.ok{border-color:var(--amber-d);color:var(--amber2);}
-.toast.err{border-color:var(--red-d);color:var(--red2);}
+@media (max-width:760px){.body{grid-template-columns:1fr;overflow:auto}.app-head .club-sm{font-size:22px}}
 </style>
 </head>
 <body>
-<div class="flash" id="flash"></div>
-<div class="toast" id="toast"></div>
-<!-- ════════════ BOOT — CODE D'ACCÈS ════════════ -->
-<div class="boot" id="bootScreen">
-  <div class="bootbox">
-    <div class="boot-logo">⚡</div>
-    <div class="boot-title">CENTRALE S7</div>
-    <div class="boot-sub">SAISIR LE CODE D'ACCÈS RÉGIONAL</div>
-    <div class="boot-code" id="bootCode">····</div>
-    <div class="boot-pad">
-      <div class="bkey" onclick="bootKey('1')">1</div>
-      <div class="bkey" onclick="bootKey('2')">2</div>
-      <div class="bkey" onclick="bootKey('3')">3</div>
-      <div class="bkey" onclick="bootKey('4')">4</div>
-      <div class="bkey" onclick="bootKey('5')">5</div>
-      <div class="bkey" onclick="bootKey('6')">6</div>
-      <div class="bkey" onclick="bootKey('7')">7</div>
-      <div class="bkey" onclick="bootKey('8')">8</div>
-      <div class="bkey" onclick="bootKey('9')">9</div>
-      <div class="bkey fn" onclick="bootClear()">EFF</div>
-      <div class="bkey" onclick="bootKey('0')">0</div>
-      <div class="bkey ok" onclick="bootSubmit()">✓</div>
+<div class="device">
+  <div class="vignette"></div>
+  <div class="grain"></div>
+
+  <!-- ======= BOOT : console hack ======= -->
+  <div id="boot">
+    <div class="console" id="console"></div>
+    <div class="granted" id="granted">
+      <div class="g1">ACCESS GRANTED</div>
+      <div class="g2">BLACK VULTURES MC</div>
     </div>
-    <div class="boot-hint">ACCÈS RESTREINT — OPÉRATEURS AUTORISÉS UNIQUEMENT</div>
-    <div class="boot-region" id="bootRegion"></div>
-  </div>
-</div>
-
-<!-- ════════════ CONSOLE CTRL+R ════════════ -->
-<div class="console" id="console">
-  <div class="con-head">
-    <div class="con-title">⌨ CONSOLE SYSTÈME — S7</div>
-    <div class="con-close" onclick="toggleConsole()">✕</div>
-  </div>
-  <div class="con-out" id="conOut">
-    <div class="con-line info">Console S7 — tapez 'help' pour la liste des commandes</div>
-  </div>
-  <div class="con-inrow">
-    <span class="con-prompt">S7></span>
-    <input class="con-input" id="conInput" autocomplete="off" spellcheck="false">
-  </div>
-</div>
-
-<div class="sync-badge local" id="syncBadge">⬤ BDD LOCALE</div>
-
-
-<!-- ════════════ MINIGAME OVERLAY ════════════ -->
-<div class="overlay" id="mgOverlay">
-  <div class="mgbox">
-    <div class="mgtitle">RECONNEXION DES CÂBLES</div>
-    <div class="mgsub">GLISSEZ CHAQUE FIL DE GAUCHE VERS SON CONNECTEUR À DROITE</div>
-    <div class="mg-topbar">
-      <div class="mgtimer" id="mgTimer">30</div>
-      <div class="mgbarwrap"><div class="mgbar" id="mgBar" style="width:100%"></div></div>
-      <div class="mg-progress" id="mgProgress"></div>
-    </div>
-    <div class="mg-status" id="mgStatus">Glissez un fil depuis la gauche vers la bonne fiche à droite</div>
-    <div class="wire-arena" id="wireArena">
-      <svg id="wireSvg" xmlns="http://www.w3.org/2000/svg"></svg>
-      <div class="wcol left"  id="wireLeft"></div>
-      <div class="wcol right" id="wireRight"></div>
-    </div>
-    <div id="mgNextBtn" style="display:none">
-      <div class="mgbtn" onclick="mgNextRound()">SUIVANT →</div>
+    <div class="hud">
+      <span class="tag">BLACK_VULTURES//INTRUSION</span>
+      <div class="bar"><i id="barfill"></i></div>
+      <span class="cnt" id="cnt">0000 lignes</span>
+      <span class="pct" id="pct">0%</span>
     </div>
   </div>
-</div>
 
-div>
+  <!-- ======= APP ======= -->
+  <div id="app">
+    <div class="app-head">
+      <div class="patch" id="patch">
+        <img src="https://imgg.fr/r/bDf0pGQR.png" alt="logo">
+        <svg class="fb" width="46" height="46" viewBox="0 0 200 200"><g fill="none" stroke="#ff6a00" stroke-width="6" stroke-linejoin="round"><path d="M100 70 C60 40 24 52 18 70 C40 66 56 74 70 90 C50 96 40 110 42 128 C58 112 78 110 96 120 L100 150 L104 120 C122 110 142 112 158 128 C160 110 150 96 130 90 C144 74 160 66 182 70 C176 52 140 40 100 70 Z"/></g></svg>
+      </div>
+      <div>
+        <div class="club-sm">BLACK <b>VULTURES</b></div>
+        <div class="sub">MC · Bon de commande</div>
+      </div>
+      <div class="badge"><span class="dot"></span>Clubhouse en ligne</div>
+    </div>
 
-<!-- ════════════ HEADER ════════════ -->
-<div class="hdr">
-  <div class="hdr-logo">⚡</div>
-  <div>
-    <div class="hdr-name">CENTRALE S7</div>
-    <div class="hdr-sub">LOS SANTOS ENERGY CORP · STATION DE CONTRÔLE</div>
-  </div>
-  <div class="hdr-badge on" id="hdrBadge">⚡ ALIMENTATION NOMINALE</div>
-  <div class="hdr-right">
-    <div class="hchip"><span class="v" id="dV">230V</span><span class="l">TENSION</span></div>
-    <div class="hchip"><span class="v" id="dA">48A</span><span class="l">INTENSITÉ</span></div>
-    <div class="hchip"><span class="v" id="dHz">50.0Hz</span><span class="l">FRÉQUENCE</span></div>
-    <div class="hchip"><span class="v" id="dLoad">82%</span><span class="l">CHARGE</span></div>
-    <div class="rchip"><span class="rv on" id="rLS">ON</span><span class="rl">LOS SANTOS</span></div>
-    <div class="rchip"><span class="rv on" id="rBC">ON</span><span class="rl">BLAINE CTY</span></div>
-    <div class="hclock" id="clock">--:--:--</div>
-  </div>
-</div>
-
-<!-- ════════════ LAYOUT ════════════ -->
-<div class="layout">
-
-  <!-- ─── LEFT ─── -->
-  <div class="lcol">
-
-    <div class="plate">
-      <div class="ptitle"><div class="pip r"></div>DISJONCTEURS SECTORIELS<div class="ptline"></div></div>
-      <div class="swlist" id="swList">
-        <div class="sw req" data-zone="A" onclick="toggleSw(this)">
-          <div class="fsw"><div class="fknob"></div></div>
-          <div class="sw-info"><div class="sw-name">Zone A — Résidentiel</div><div class="sw-zone">BLOC NORD · LS</div><div class="sw-warn">⚠ DÉSACTIVER</div></div>
-          <div class="sind"></div>
+    <div class="body">
+      <div>
+        <div class="card">
+          <h2>Matériel disponible</h2>
+          <div id="items"></div>
         </div>
-        <div class="sw req" data-zone="B" onclick="toggleSw(this)">
-          <div class="fsw"><div class="fknob"></div></div>
-          <div class="sw-info"><div class="sw-name">Zone B — Commercial</div><div class="sw-zone">DOWNTOWN · LS</div><div class="sw-warn">⚠ DÉSACTIVER</div></div>
-          <div class="sind"></div>
+        <div class="card" style="margin-top:18px">
+          <h2>Informations client</h2>
+          <div class="field"><label>Nom de groupe <span class="req">*</span></label>
+            <input id="f_groupe" type="text" placeholder="Ex: Los Diablos" maxlength="60"></div>
+          <div class="field"><label>Numéro de téléphone <span class="req">*</span></label>
+            <input id="f_tel" type="text" placeholder="Ex: 555-0123" maxlength="30"></div>
+          <div class="field"><label>Date &amp; heure de livraison souhaitée <span class="req">*</span></label>
+            <input id="f_livr" type="text" placeholder="Ex: Vendredi 21h — Pier 400"></div>
+          <div class="field"><label>Note (autre)</label>
+            <textarea id="f_note" placeholder="Précisions, lieu de remise, demande spéciale…" maxlength="400"></textarea></div>
         </div>
-        <div class="sw req" data-zone="C" onclick="toggleSw(this)">
-          <div class="fsw"><div class="fknob"></div></div>
-          <div class="sw-info"><div class="sw-name">Zone C — Industriel</div><div class="sw-zone">PORT SOUTH · LS</div><div class="sw-warn">⚠ DÉSACTIVER</div></div>
-          <div class="sind"></div>
-        </div>
-        <div class="sw req" data-zone="D" onclick="toggleSw(this)">
-          <div class="fsw"><div class="fknob"></div></div>
-          <div class="sw-info"><div class="sw-name">Zone D — Urgences</div><div class="sw-zone">PILLBOX HILL · LS</div><div class="sw-warn">⚠ DÉSACTIVER</div></div>
-          <div class="sind"></div>
-        </div>
-        <div class="sw req" data-zone="E" onclick="toggleSw(this)">
-          <div class="fsw"><div class="fknob"></div></div>
-          <div class="sw-info"><div class="sw-name">Zone E — Infrastructure</div><div class="sw-zone">EAST LS · UTILITIES</div><div class="sw-warn">⚠ DÉSACTIVER</div></div>
-          <div class="sind"></div>
+      </div>
+      <div>
+        <div class="card readout">
+          <h2>Récapitulatif</h2>
+          <div id="recap"></div>
+          <div class="tot"><span>Total à payer</span><b id="total">0$</b></div>
+          <div class="wline"><span>Poids des composants</span><b id="poids">0.0 kg</b></div>
+          <button class="send" id="send" disabled>Envoyer la commande</button>
+          <div class="note-mini" id="hint">Renseigne au moins 1 article + groupe + téléphone + livraison.</div>
         </div>
       </div>
     </div>
-
-    <div class="plate">
-      <div class="ptitle"><div class="pip"></div>MÉTRIQUES RÉSEAU<div class="ptline"></div></div>
-      <div class="gaugerow">
-        <div class="gw"><div class="gface"><div class="gneedle" id="gn0"></div></div><div class="gval" id="gv0">82%</div><div class="glbl">CHARGE</div></div>
-        <div class="gw"><div class="gface"><div class="gneedle" id="gn1"></div></div><div class="gval" id="gv1">61°C</div><div class="glbl">TEMP</div></div>
-        <div class="gw"><div class="gface"><div class="gneedle" id="gn2"></div></div><div class="gval" id="gv2">94%</div><div class="glbl">STABILITÉ</div></div>
-        <div class="gw"><div class="gface"><div class="gneedle" id="gn3"></div></div><div class="gval" id="gv3">78%</div><div class="glbl">SÉCURITÉ</div></div>
-      </div>
-    </div>
-
-    <div class="plate">
-      <div class="ptitle"><div class="pip b"></div>COMMANDES<div class="ptline"></div></div>
-      <div class="qarow">
-        <div class="qab a" onclick="qa('diag')">🔍 DIAGNOSTIC</div>
-        <div class="qab y" onclick="qa('backup')">⚙ GEN. SEC.</div>
-        <div class="qab o" onclick="qa('alarm')">🚨 ALARME</div>
-        <div class="qab r" onclick="qa('purge')">☠ PURGE</div>
-        <div class="qab a" onclick="qa('reset')">↩ RESET</div>
-        <div class="qab y" onclick="qa('export')">📋 LOG</div>
-      </div>
-    </div>
-
-    <div class="plate">
-      <div class="ptitle"><div class="pip"></div>JOURNAL SYSTÈME<div class="ptline"></div></div>
-      <div class="loglist" id="logList"></div>
-    </div>
-
   </div>
 
-  <!-- ─── RIGHT ─── -->
-  <div class="rcol">
-
-    <!-- top row: checklist + mini map -->
-    <div class="top-row">
-      <div class="plate" style="padding:12px">
-        <div class="ptitle"><div class="pip b"></div>PROTOCOLE P-7 — PRÉREQUIS<div class="ptline"></div></div>
-        <div class="cklist">
-          <div class="ck" id="ck-sw">
-            <div class="ckbox">✓</div>
-            <div class="cktxt">Disjoncteurs A→E désactivés</div>
-            <div class="cktag" id="ck-sw-tag">0/5</div>
-          </div>
-          <div class="ck" id="ck-radio">
-            <div class="ckbox">✓</div>
-            <div class="cktxt">Radio urgence <strong style="color:var(--burn2)">88.5 MHz</strong></div>
-            <div class="cktag" id="ck-radio-tag">107.8</div>
-          </div>
-          <div class="ck" id="ck-key">
-            <div class="ckbox">✓</div>
-            <div class="cktxt">Accès opérateur <strong style="color:var(--burn2)">LVL 5</strong></div>
-            <div class="cktag" id="ck-key-tag">LVL 3</div>
-          </div>
-          <div class="ck clickable" id="ck-wire" onclick="launchWires()">
-            <div class="ckbox">✓</div>
-            <div class="cktxt">Reconnexion câbles validée <span style="font-size:8px;color:var(--dim)">(cliquer)</span></div>
-            <div class="cktag" id="ck-wire-tag">EN ATTENTE</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- mini map -->
-      <div class="plate" style="padding:10px">
-        <div class="ptitle" style="font-size:8px"><div class="pip"></div>RÉSEAU LS<div class="ptline"></div></div>
-        <div class="minimap-grid" id="mapGrid"></div>
-        <div style="font-size:7px;color:var(--dim);text-align:center;margin-top:4px;letter-spacing:.8px">SECTEUR 7</div>
-      </div>
-    </div>
-
-    <!-- mid row: radio + key -->
-    <div class="mid-row">
-      <div class="plate">
-        <div class="ptitle"><div class="pip"></div>RADIO LIAISON<div class="ptline"></div></div>
-        <div class="radscr wrong" id="radScr">107.8 MHz</div>
-        <div class="radtarget">CANAL URGENCE : <span>88.5 MHz</span></div>
-        <div class="radbrow">
-          <div class="rb" onclick="radAdj(-1)">◄</div>
-          <div class="rb" onclick="radAdj(-0.1)">◂</div>
-          <div class="rb tx" onclick="radTx()">📡 TX</div>
-          <div class="rb" onclick="radAdj(0.1)">▸</div>
-          <div class="rb" onclick="radAdj(1)">►</div>
-        </div>
-      </div>
-      <div class="plate">
-        <div class="ptitle"><div class="pip b"></div>ACCRÉDITATION<div class="ptline"></div></div>
-        <div class="keydisp mid" id="keyDisp">LVL 3</div>
-        <div class="keysub" id="keySub">TECHNICIEN — INSUFFISANT</div>
-        <div class="keytgt">REQUIS : <span>LVL 5</span></div>
-        <div class="keybrow">
-          <div class="kb" onclick="keyAdj(-1)">▼</div>
-          <div class="kb up" onclick="keyAdj(1)">▲ ÉLEVER</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- POWER STATION -->
-    <div class="pstation">
-      <div class="ptitle" style="width:100%;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:0">
-        <div class="pip r" id="mainPip"></div>ALIMENTATION PRINCIPALE<div class="ptline"></div>
-      </div>
-
-      <div class="lamps">
-        <div class="lbu"><div class="lb amber" id="lNom"></div><div class="lbll">NOMINAL</div></div>
-        <div class="lbu"><div class="lb" id="lFault"></div><div class="lbll">DÉFAUT</div></div>
-        <div class="lbu"><div class="lb" id="lAlarm"></div><div class="lbll">ALARME</div></div>
-        <div class="lbu"><div class="lb" id="lSec"></div><div class="lbll">SECOURS</div></div>
-      </div>
-
-      <!-- BIG LEVER SVG -->
-      <div class="lever-wrap">
-        <div class="lever-labels">
-          <span class="llon">⚡ ON</span>
-          <span class="lloff">✖ OFF</span>
-        </div>
-        <div class="lever-svg-wrap" id="leverWrap">
-<svg id="leverSvg" width="200" height="160" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
-<defs>
-  <linearGradient id="LbP" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#191208"/>
-    <stop offset="100%" stop-color="#0c0906"/>
-  </linearGradient>
-  <linearGradient id="LsG" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#161008"/>
-    <stop offset="30%" stop-color="#342818"/>
-    <stop offset="50%" stop-color="#423218"/>
-    <stop offset="70%" stop-color="#342818"/>
-    <stop offset="100%" stop-color="#161008"/>
-  </linearGradient>
-  <linearGradient id="LhG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#423218"/>
-    <stop offset="40%" stop-color="#2e2010"/>
-    <stop offset="100%" stop-color="#181208"/>
-  </linearGradient>
-  <radialGradient id="LpG" cx="38%" cy="35%" r="60%">
-    <stop offset="0%" stop-color="#4a3820"/>
-    <stop offset="100%" stop-color="#0e0a06"/>
-  </radialGradient>
-  <radialGradient id="LgA" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="rgba(255,170,0,.3)"/>
-    <stop offset="100%" stop-color="rgba(255,170,0,0)"/>
-  </radialGradient>
-  <radialGradient id="LgR" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="rgba(187,17,32,.3)"/>
-    <stop offset="100%" stop-color="rgba(187,17,32,0)"/>
-  </radialGradient>
-  <filter id="Lds"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="rgba(0,0,0,.8)"/></filter>
-  <filter id="Lgf"><feGaussianBlur stdDeviation="7"/></filter>
-</defs>
-<!-- Base plate -->
-<rect x="16" y="108" width="168" height="44" rx="5" fill="url(#LbP)" stroke="#221a0c" stroke-width="1.5"/>
-<rect x="26" y="116" width="64" height="28" rx="3" fill="#060402" stroke="#181008" stroke-width="1"/>
-<rect x="110" y="116" width="64" height="28" rx="3" fill="#060402" stroke="#181008" stroke-width="1"/>
-<text x="58" y="133" text-anchor="middle" font-family="'Black Ops One',cursive" font-size="9" fill="rgba(51,170,68,.5)" letter-spacing="2">ON</text>
-<text x="142" y="133" text-anchor="middle" font-family="'Black Ops One',cursive" font-size="9" fill="rgba(187,17,32,.5)" letter-spacing="2">OFF</text>
-<circle cx="22" cy="116" r="3.5" fill="#100c06" stroke="#1e1609" stroke-width="1"/>
-<line x1="20.5" y1="114.5" x2="23.5" y2="117.5" stroke="#060402" stroke-width=".7"/>
-<line x1="23.5" y1="114.5" x2="20.5" y2="117.5" stroke="#060402" stroke-width=".7"/>
-<circle cx="178" cy="116" r="3.5" fill="#100c06" stroke="#1e1609" stroke-width="1"/>
-<line x1="176.5" y1="114.5" x2="179.5" y2="117.5" stroke="#060402" stroke-width=".7"/>
-<line x1="179.5" y1="114.5" x2="176.5" y2="117.5" stroke="#060402" stroke-width=".7"/>
-<circle cx="22" cy="148" r="3.5" fill="#100c06" stroke="#1e1609" stroke-width="1"/>
-<circle cx="178" cy="148" r="3.5" fill="#100c06" stroke="#1e1609" stroke-width="1"/>
-<!-- Pivot housing -->
-<circle cx="100" cy="124" r="20" fill="#100c06" stroke="#201608" stroke-width="1.5"/>
-<circle cx="100" cy="124" r="16" fill="url(#LbP)" stroke="#181008" stroke-width="1"/>
-<circle cx="100" cy="124" r="10" fill="url(#LpG)" stroke="#2e2210" stroke-width="1.5"/>
-<circle cx="100" cy="124" r="5.5" fill="#080602" stroke="#161008" stroke-width="1"/>
-<ellipse cx="97" cy="121" rx="3" ry="2.5" fill="rgba(255,255,255,.05)" transform="rotate(-20,97,121)"/>
-<!-- Glow -->
-<ellipse id="LvGlow" cx="46" cy="118" rx="44" ry="24" fill="url(#LgA)" opacity="0" filter="url(#Lgf)"/>
-<!-- Lever arm (rotates around 100,124) -->
-<g id="LvArm" transform="rotate(-52,100,124)">
-  <rect x="98" y="24" width="4" height="100" rx="2" fill="rgba(0,0,0,.4)" transform="translate(1.5,2.5)"/>
-  <rect x="97" y="22" width="6" height="102" rx="3" fill="url(#LsG)" stroke="#120e06" stroke-width=".5"/>
-  <rect x="97.5" y="22" width="2" height="102" rx="1" fill="rgba(255,255,255,.05)"/>
-  <rect x="97" y="46" width="6" height="5" fill="rgba(255,170,0,.12)"/>
-  <rect x="97" y="76" width="6" height="5" fill="rgba(255,170,0,.12)"/>
-  <circle cx="100" cy="60" r="3" fill="#080602" stroke="#1e1608" stroke-width=".7"/>
-  <circle cx="100" cy="90" r="3" fill="#080602" stroke="#1e1608" stroke-width=".7"/>
-  <g filter="url(#Lds)">
-    <ellipse cx="101" cy="24" rx="25" ry="20" fill="url(#LhG)" stroke="#28200e" stroke-width="1.5"/>
-    <ellipse cx="100" cy="22" rx="20" ry="16" fill="url(#LpG)"/>
-    <ellipse cx="100" cy="22" rx="12.5" ry="10" fill="none" stroke="#1c1608" stroke-width="1"/>
-    <ellipse cx="100" cy="21" rx="7" ry="6" fill="#080602" stroke="#141008" stroke-width="1"/>
-    <line x1="76" y1="18" x2="76" y2="30" stroke="#221a0c" stroke-width="1.5"/>
-    <line x1="78" y1="16" x2="78" y2="32" stroke="#1a1408" stroke-width="1"/>
-    <line x1="124" y1="18" x2="124" y2="30" stroke="#221a0c" stroke-width="1.5"/>
-    <line x1="122" y1="16" x2="122" y2="32" stroke="#1a1408" stroke-width="1"/>
-    <ellipse id="LvStripe" cx="100" cy="24" rx="25" ry="20" fill="none" stroke="rgba(255,170,0,.18)" stroke-width="2" stroke-dasharray="6 6"/>
-    <ellipse cx="93" cy="13" rx="6" ry="4.5" fill="rgba(255,255,255,.05)" transform="rotate(-15,93,13)"/>
-    <circle cx="87" cy="34" r="2" fill="#040301" stroke="#101008" stroke-width=".5"/>
-    <circle cx="113" cy="34" r="2" fill="#040301" stroke="#101008" stroke-width=".5"/>
-    <text id="LvIcon" x="100" y="25" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="rgba(255,170,0,.8)" font-family="monospace">⚡</text>
-  </g>
-</g>
-<!-- Pivot cover -->
-<circle cx="100" cy="124" r="8" fill="url(#LpG)" stroke="#2e2210" stroke-width="1"/>
-<ellipse cx="97.5" cy="121.5" rx="2.5" ry="2" fill="rgba(255,255,255,.06)" transform="rotate(-15,97.5,121.5)"/>
-</svg>
-        </div>
-        <div class="lbanner" id="lBanner">⚠ LEVIER VERROUILLÉ</div>
-      </div>
-
-      <button class="lcta locked" id="mainCta" onclick="handleCta()">🔒 PRÉREQUIS INCOMPLETS</button>
-    </div>
-
-    <!-- MANUAL -->
-    <div class="plate">
-      <div class="ptitle"><div class="pip b"></div>MANUEL D'URGENCE P-7<div class="ptline"></div></div>
-      <div class="manual">
-        <div class="mansec">
-          <div class="mannum">PROCÉDURE COUPURE TOTALE</div>
-          <ol class="mansteps">
-            <li data-n="1">Basculer les <strong>disjoncteurs A→E</strong> en position basse</li>
-            <li data-n="2">Régler la radio sur <strong>88.5 MHz</strong> (canal urgence)</li>
-            <li data-n="3">Élever l'accréditation à <strong>LVL 5</strong></li>
-            <li data-n="4">Effectuer la <strong>reconnexion des câbles</strong> de sécurité</li>
-            <li data-n="5">Actionner le <strong>grand levier</strong> vers la droite</li>
-          </ol>
-        </div>
-        <div class="mandiv"></div>
-        <div class="mansec">
-          <div class="mannum">RÉTABLISSEMENT</div>
-          <ol class="mansteps">
-            <li data-n="1">Ramener le levier à gauche (ON)</li>
-            <li data-n="2">Réactiver les disjoncteurs secteur par secteur</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-
+  <!-- ======= OVERLAY ======= -->
+  <div id="ov">
+    <div class="icon" id="ov_icon">🦅</div>
+    <h3 id="ov_title">Commande transmise</h3>
+    <p id="ov_msg"></p>
+    <button id="ov_btn">Nouvelle commande</button>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════
-const WEBHOOK='https://discord.com/api/webhooks/1506338037741912064/yjKZmzE9COckt53C1QGb00aEa5Z63gjdr4zKYtypszoFGPSKxa7Ge5oJaJfZSXBROIw6';
+const WEBHOOK = "https://discord.com/api/webhooks/1516921523477287072/iKCtoNUkPNg2TQwWk4bnNPUynNuCnohusr49CFZ_igCZIRSTyVY7lkzCAhurCBI9cpRz";
+const LOGO    = "https://imgg.fr/r/bDf0pGQR.png";
+const ROLE_ID = "1516921823965479022";
 
-// ═══════════════════════════════════════
-//  RÉGIONS & CODES D'ACCÈS
-// ═══════════════════════════════════════
-const CODES = { '0604':{key:'ls',name:'LOS SANTOS'}, '2002':{key:'bc',name:'BLAINE COUNTY'} };
-let REGION = null; // {key,name} défini au boot
+const ITEMS = [
+  { id:"comp_canon",   nom:"Canon",     prix:850, batch:5, mat:{plastic:1, caoutchouc:1}, craftCost:150, perem:2 },
+  { id:"comp_barrel",  nom:"Tunnel",    prix:850, batch:5, mat:{plastic:1, caoutchouc:1}, craftCost:150, perem:4 },
+  { id:"comp_striker", nom:"Percuteur", prix:700, batch:5, mat:{metal:1,   caoutchouc:1}, craftCost:100, perem:4 },
+];
+const POIDS_MATIERE=0.1, POIDS_COMPOSANT=0.1, CRAFT_MIN=5, TABLES=2, SLOTS_PAR_TABLE=15;
+const SLOTS_TOTAL=TABLES*SLOTS_PAR_TABLE;
+const MAT_LABEL={plastic:"Plastique",metal:"Métal",caoutchouc:"Caoutchouc"};
+const MAT_ICON ={plastic:"🟦",metal:"⬜",caoutchouc:"⚫"};
 
-// ═══════════════════════════════════════
-//  BDD PARTAGÉE (kvdb.io) + fallback localStorage
-//  → Ctrl+R puis 'createdb' pour générer une BDD partagée
-//  → 'setdb <id>' sur chaque poste pour s'y connecter
-// ═══════════════════════════════════════
-const SYNC_BUCKET_HARDCODE = ''; // ← coller l'ID kvdb ici pour le distribuer dans le fichier
-function getBucket(){ return localStorage.getItem('s7_bucket') || SYNC_BUCKET_HARDCODE || ''; }
+/* =================== BOOT : console hack =================== */
+(function(){
+  const consoleEl=document.getElementById('console'), barfill=document.getElementById('barfill'),
+        pct=document.getElementById('pct'), cnt=document.getElementById('cnt');
+  const TARGET=520, CAP=150;
+  let count=0, done=false;
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const hex=n=>{let s="";for(let i=0;i<n;i++)s+="0123456789abcdef"[Math.floor(Math.random()*16)];return s;};
+  const ip=()=>(10+(Math.random()*240|0))+"."+(Math.random()*255|0)+"."+(Math.random()*255|0)+"."+(Math.random()*255|0);
 
-let SHARED = { ls:true, bc:true, seq:0 };
+  const CMDS=["./vulture_breach --target=clubhouse.db","nmap -sS -p- "+ip(),"hydra -l admin -P rock.txt ssh://"+ip(),
+    "sudo inject ./payload.bin --pid 4471","openssl enc -d -aes-256-cbc -in vault.enc","scp loot.tar "+ip()+":/tmp",
+    "tcpdump -i eth0 -w cap.pcap","python3 exploit.py --rce","gdb -p 9182 --batch","strings core.dump | grep -i key"];
+  const ASM=["mov   eax, [ebp-0x"+hex(2)+"]","xor   ecx, ecx","push  0x"+hex(6),"call  0x"+hex(8),
+    "lea   rdi, [rsp+0x"+hex(2)+"]","cmp   eax, 0x"+hex(2),"jne   0x"+hex(6),"add   rsp, 0x"+hex(2),"syscall","ret"];
+  const NET=["[net] SYN -> "+ip()+":443","[net] ACK <- "+ip(),"GET /admin HTTP/1.1  200 OK","handshake TLS1.3 ok",
+    "[dns] resolve clubhouse.lan","[arp] spoof gateway "+ip(),"pkt 0x"+hex(4)+" forwarded","route +"+ip()+"/24"];
+  const STAT=["firewall rule bypassed","auth token forged","privilege escalated -> root","payload delivered",
+    "hash cracked ("+hex(8)+")","tunnel established","keylogger armed","db dump 0x"+hex(4)+" complete"];
+  const VULT=["[BLACK VULTURES] breaching perimeter…","[BLACK VULTURES] no witnesses.","[BLACK VULTURES] we run this city.",
+    "[BLACK VULTURES] decrypting member roster…","[BLACK VULTURES] wiping logs…"];
+  const DIM=["0x"+hex(8)+":  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2)+"  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2),
+    "....","loading module "+hex(4),"chk "+hex(16),"buf@0x"+hex(6)+" -> 0x"+hex(6)];
+  const MILES={5:"[ 05% ] reconnaissance…",25:"[ 25% ] firewall contourné",50:"[ 50% ] accès base de données",
+    75:"[ 75% ] extraction des stocks",95:"[ 95% ] nettoyage des traces"};
 
-function saveLocalShared(){ try{ localStorage.setItem('s7_state', JSON.stringify(SHARED)); }catch(e){} }
-function loadLocalShared(){
-  try{
-    const j = JSON.parse(localStorage.getItem('s7_state'));
-    if(j && typeof j.ls==='boolean' && j.seq > SHARED.seq){ SHARED=j; onSharedUpdate(false); }
-  }catch(e){}
-}
-
-async function pullShared(){
-  const b=getBucket();
-  if(!b){ loadLocalShared(); return; }
-  try{
-    const r = await fetch('https://kvdb.io/'+b+'/power_state', {cache:'no-store'});
-    if(r.ok){
-      const j = await r.json();
-      if(j && typeof j.ls==='boolean' && j.seq > SHARED.seq){ SHARED=j; saveLocalShared(); onSharedUpdate(true); }
+  function makeLine(){
+    const r=Math.random();
+    if(r<0.12) return {t:"root@blackvultures:~# "+pick(CMDS)};
+    if(r<0.30) return {t:"0x"+hex(8)+":  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2)+"  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2),c:"dim"};
+    if(r<0.48) return {t:"  "+pick(ASM),c:"dim"};
+    if(r<0.64) return {t:pick(NET)};
+    if(r<0.80) return {t:"[ "+pick(["OK","**",">>","✓"])+" ] "+pick(STAT),c:"ok"};
+    if(r<0.90) return {t:pick(VULT),c:"warn"};
+    return {t:pick(DIM),c:"dim"};
+  }
+  function add(obj){
+    const d=document.createElement('div'); d.className='ln'+(obj.c?' '+obj.c:''); d.textContent=obj.t;
+    consoleEl.appendChild(d);
+    while(consoleEl.childElementCount>CAP) consoleEl.removeChild(consoleEl.firstChild);
+  }
+  function step(){
+    if(done) return;
+    const burst=2+(Math.random()*2|0);
+    for(let i=0;i<burst;i++){
+      count++;
+      const p=Math.floor(count/TARGET*100);
+      if(MILES[p]){ add({t:MILES[p],c:'hi'}); }
+      else add(makeLine());
     }
-  }catch(e){}
-}
-async function pushShared(){
-  SHARED.seq = Date.now();
-  saveLocalShared();
-  const b=getBucket();
-  if(!b) return;
-  try{
-    await fetch('https://kvdb.io/'+b+'/power_state', {method:'PUT', body:JSON.stringify(SHARED)});
-  }catch(e){ addLog('warn','BDD : push échoué'); }
-}
-setInterval(pullShared, 4000);
-
-function updateSyncBadge(){
-  const el=document.getElementById('syncBadge');
-  if(getBucket()){ el.className='sync-badge online'; el.textContent='⬤ BDD PARTAGÉE'; }
-  else{ el.className='sync-badge local'; el.textContent='⬤ BDD LOCALE'; }
-}
-
-function onSharedUpdate(remote){
-  // Mettre à jour les chips header
-  setRegionChip('rLS', SHARED.ls);
-  setRegionChip('rBC', SHARED.bc);
-  // Si l'état de MA région a changé à distance, appliquer
-  if(REGION && S.powerOn !== SHARED[REGION.key]){
-    S.powerOn = SHARED[REGION.key];
-    applyPower(true); // true = silencieux (pas de webhook)
-    if(remote) addLog('warn','État '+REGION.name+' synchronisé depuis la BDD');
+    const p=Math.min(100,Math.round(count/TARGET*100));
+    barfill.style.width=p+'%'; pct.textContent=p+'%';
+    cnt.textContent=String(count).padStart(4,'0')+" lignes";
+    if(count>=TARGET){ finish(); return; }
+    setTimeout(step, 13);
   }
-}
-function setRegionChip(id,on){
-  const el=document.getElementById(id);
-  if(!el)return;
-  el.textContent = on?'ON':'OFF';
-  el.className = 'rv '+(on?'on':'off');
-}
-
-// ═══════════════════════════════════════
-//  BOOT — SAISIE CODE
-// ═══════════════════════════════════════
-let bootBuf='';
-function bootKey(d){
-  if(bootBuf.length>=4)return;
-  bootBuf+=d;
-  renderBootCode();
-}
-function bootClear(){ bootBuf=''; renderBootCode(); }
-function renderBootCode(){
-  const el=document.getElementById('bootCode');
-  el.className='boot-code';
-  el.textContent = (bootBuf + '····').slice(0,4).split('').map((ch,i)=> i<bootBuf.length ? '●' : '·').join('');
-}
-function bootSubmit(){
-  const r = CODES[bootBuf];
-  const codeEl=document.getElementById('bootCode');
-  const regEl=document.getElementById('bootRegion');
-  if(r){
-    REGION = r;
-    regEl.textContent = '→ '+r.name;
-    regEl.className = 'boot-region '+r.key;
-    setTimeout(()=>{
-      document.getElementById('bootScreen').classList.add('hidden');
-      initAfterBoot();
-    }, 700);
-  } else {
-    codeEl.classList.add('err');
-    regEl.textContent='CODE INVALIDE';
-    regEl.className='boot-region';
-    regEl.style.color='var(--red2)';
-    setTimeout(()=>{ bootBuf=''; renderBootCode(); regEl.textContent=''; }, 900);
+  function finish(){
+    done=true; barfill.style.width='100%'; pct.textContent='100%';
+    add({t:"root@blackvultures:~# access granted_",c:'ok'});
+    setTimeout(function(){
+      document.getElementById('granted').classList.add('show');
+      setTimeout(function(){
+        const boot=document.getElementById('boot'); boot.style.opacity='0';
+        setTimeout(function(){boot.style.display='none';document.getElementById('app').classList.add('show');},560);
+      },1400);
+    },400);
   }
-}
-// clavier physique sur le boot
-document.addEventListener('keydown', e=>{
-  if(document.getElementById('bootScreen').classList.contains('hidden')) return;
-  if(/^[0-9]$/.test(e.key)) bootKey(e.key);
-  else if(e.key==='Backspace') bootClear();
-  else if(e.key==='Enter') bootSubmit();
-});
-
-function initAfterBoot(){
-  // restaurer état partagé
-  loadLocalShared();
-  pullShared();
-  updateSyncBadge();
-  // restaurer wireDone persisté
-  if(localStorage.getItem('s7_wiredone_'+REGION.key)==='1') S.wireDone=true;
-  // appliquer l'état de MA région
-  S.powerOn = SHARED[REGION.key];
-  applyPower(true);
-  setRegionChip('rLS', SHARED.ls);
-  setRegionChip('rBC', SHARED.bc);
-  // titre header
-  document.querySelector('.hdr-sub').textContent = REGION.name+' ENERGY CORP · STATION DE CONTRÔLE · OPÉRATEUR '+REGION.name;
-  addLog('ok','Session ouverte — secteur '+REGION.name);
-  refreshChk();
-}
-
-// ═══════════════════════════════════════
-//  CONSOLE CTRL+R
-// ═══════════════════════════════════════
-document.addEventListener('keydown', e=>{
-  if(e.ctrlKey && e.key.toLowerCase()==='r' && !e.shiftKey){
-    e.preventDefault();
-    toggleConsole();
-  }
-});
-function toggleConsole(){
-  const con=document.getElementById('console');
-  con.classList.toggle('open');
-  if(con.classList.contains('open')) setTimeout(()=>document.getElementById('conInput').focus(),250);
-}
-function conPrint(msg, cls='') {
-  const out=document.getElementById('conOut');
-  const d=document.createElement('div');
-  d.className='con-line '+cls;
-  d.textContent=msg;
-  out.appendChild(d);
-  out.scrollTop=out.scrollHeight;
-}
-document.getElementById('conInput').addEventListener('keydown', async e=>{
-  if(e.key!=='Enter')return;
-  const raw=e.target.value.trim();
-  e.target.value='';
-  if(!raw)return;
-  conPrint('S7> '+raw,'cmd');
-  const [cmd,...args]=raw.toLowerCase().split(/\s+/);
-
-  if(cmd==='help'){
-    conPrint('reset            — réinitialise TOUT (état réseau, minijeu, prérequis)','info');
-    conPrint('status           — affiche l\'état des deux régions','info');
-    conPrint('createdb         — crée une BDD partagée kvdb.io et affiche son ID','info');
-    conPrint('setdb <id>       — connecte ce poste à une BDD partagée','info');
-    conPrint('cleardb          — repasse en BDD locale','info');
-    conPrint('clear            — efface la console','info');
-  }
-  else if(cmd==='reset'){
-    SHARED={ls:true,bc:true,seq:Date.now()};
-    await pushShared();
-    S.wireDone=false;
-    localStorage.removeItem('s7_wiredone_ls');
-    localStorage.removeItem('s7_wiredone_bc');
-    S.radioFreq=107.8; S.accessLvl=3; S.leverLocked=true;
-    ZONES.forEach(z=>S.sw[z]=true);
-    document.querySelectorAll('.sw').forEach(el=>el.classList.remove('off','sat'));
-    document.getElementById('radScr').textContent='107.8 MHz';
-    document.getElementById('radScr').className='radscr wrong';
-    document.getElementById('keyDisp').textContent='LVL 3';
-    document.getElementById('keyDisp').className='keydisp mid';
-    document.getElementById('keySub').textContent='TECHNICIEN — INSUFFISANT';
-    S.powerOn=true;
-    applyPower(true);
-    setRegionChip('rLS',true); setRegionChip('rBC',true);
-    refreshChk();
-    addLog('warn','⟲ RESET COMPLET effectué via console');
-    conPrint('✓ Reset complet — réseau rétabli, prérequis et minijeu réinitialisés','ok');
-  }
-  else if(cmd==='status'){
-    conPrint('LOS SANTOS    : '+(SHARED.ls?'ON ⚡':'OFF ✖'),SHARED.ls?'ok':'err');
-    conPrint('BLAINE COUNTY : '+(SHARED.bc?'ON ⚡':'OFF ✖'),SHARED.bc?'ok':'err');
-    conPrint('BDD : '+(getBucket()?('partagée ['+getBucket()+']'):'locale (navigateur uniquement)'),'info');
-    conPrint('Région session : '+(REGION?REGION.name:'non connecté'),'info');
-  }
-  else if(cmd==='createdb'){
-    conPrint('Création de la BDD partagée…','info');
-    try{
-      const r=await fetch('https://kvdb.io',{method:'POST',body:new URLSearchParams({email:'s7@centrale.local'})});
-      if(r.ok){
-        const id=(await r.text()).trim();
-        localStorage.setItem('s7_bucket',id);
-        await pushShared();
-        updateSyncBadge();
-        conPrint('✓ BDD créée : '+id,'ok');
-        conPrint('→ Sur chaque autre poste : Ctrl+R puis  setdb '+id,'info');
-        conPrint('→ (ou coller l\'ID dans SYNC_BUCKET_HARDCODE dans le fichier)','info');
-      } else conPrint('✗ Échec création ('+r.status+')','err');
-    }catch(e){ conPrint('✗ Connexion kvdb.io impossible','err'); }
-  }
-  else if(cmd==='setdb'){
-    if(!args[0]){ conPrint('Usage : setdb <id>','err'); return; }
-    localStorage.setItem('s7_bucket',args[0]);
-    updateSyncBadge();
-    conPrint('✓ Connecté à la BDD '+args[0],'ok');
-    pullShared();
-  }
-  else if(cmd==='cleardb'){
-    localStorage.removeItem('s7_bucket');
-    updateSyncBadge();
-    conPrint('✓ Repassé en BDD locale','ok');
-  }
-  else if(cmd==='clear'){
-    document.getElementById('conOut').innerHTML='';
-  }
-  else conPrint('Commande inconnue : '+cmd+' — tapez help','err');
-});
-const ZONES=['A','B','C','D','E'];
-const REQ_FREQ=88.5, REQ_LVL=5;
-
-const S={
-  powerOn:true,
-  radioFreq:107.8,
-  accessLvl:3,
-  sw:{A:true,B:true,C:true,D:true,E:true},
-  wireDone:false,
-  leverAngle:-52,
-  leverLocked:true,
-};
-
-// ─── CLOCK ───
-(function tick(){
-  const n=new Date(),p=v=>String(v).padStart(2,'0');
-  document.getElementById('clock').textContent=`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
-  setTimeout(tick,1000);
+  setTimeout(step, 350);
 })();
 
-// ─── GAUGES ───
-const gv=[82,61,94,78];const gsfx=['%','°C','%','%'];
-function updateMetrics(){
-  gv[0]=clamp(gv[0]+(Math.random()-.5)*2.5,5,100);
-  gv[1]=clamp(gv[1]+(Math.random()-.5)*1.8,20,98);
-  gv[2]=clamp(gv[2]+(Math.random()-.5)*1.5,10,100);
-  gv[3]=clamp(gv[3]+(Math.random()-.5)*1.5,10,100);
-  gv.forEach((v,i)=>{
-    const a=-68+(v/100)*136;
-    document.getElementById(`gn${i}`).style.transform=`translateX(-50%) rotate(${a}deg)`;
-    document.getElementById(`gv${i}`).textContent=Math.round(v)+gsfx[i];
-  });
-  document.getElementById('dLoad').textContent=Math.round(gv[0])+'%';
-  document.getElementById('dV').textContent=(230+(Math.random()-.5)*3).toFixed(0)+'V';
-  document.getElementById('dA').textContent=(48+(Math.random()-.5)*4).toFixed(0)+'A';
-  document.getElementById('dHz').textContent=(50+(Math.random()-.5)*.3).toFixed(1)+'Hz';
-}
-setInterval(updateMetrics,2200);updateMetrics();
-function clamp(v,mn,mx){return Math.min(mx,Math.max(mn,v));}
+/* fallback logo header */
+(function(){const p=document.getElementById('patch');const im=p.querySelector('img');im.addEventListener('error',function(){p.classList.add('nologo');});})();
 
-// ─── MINI MAP ───
-['A1','A2','A3','A4','A5','B1','B2','B3','B4','B5','C1','C2','HUB','C4','C5','D1','D2','D3','D4','D5','E1','E2','E3','E4','E5'].forEach(z=>{
-  const c=document.createElement('div');
-  c.className='mc '+(z==='HUB'?'hub':'live');
-  c.textContent=z;
-  if(z!=='HUB')c.onclick=()=>{c.classList.toggle('live');c.classList.toggle('dead');addLog(c.classList.contains('live')?'ok':'warn',`Cellule ${z} ${c.classList.contains('live')?'reconnectée':'déconnectée'}`);};
-  document.getElementById('mapGrid').appendChild(c);
+/* =================== ITEMS UI =================== */
+const itemsEl=document.getElementById('items'); const qty={};
+ITEMS.forEach(function(it){
+  qty[it.id]=0;
+  const row=document.createElement('div'); row.className='item'; row.id='it_'+it.id;
+  row.innerHTML='<div><div class="nm">'+it.nom+' <span class="code">'+it.id+'</span></div>'+
+    '<div class="meta">Prix <b>'+it.prix+'$/u</b> · péremption <b>'+it.perem+'j</b></div></div>'+
+    '<div class="qty"><button data-act="-" data-id="'+it.id+'">−</button>'+
+    '<input type="number" min="0" value="0" data-id="'+it.id+'" inputmode="numeric">'+
+    '<button data-act="+" data-id="'+it.id+'">+</button></div>';
+  itemsEl.appendChild(row);
 });
-function setMapPower(on){document.querySelectorAll('.mc:not(.hub)').forEach(c=>{c.className='mc '+(on?'live':'dead');});}
+itemsEl.addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b)return;
+  const id=b.dataset.id, step=b.dataset.act==='+'?1:-1;
+  qty[id]=Math.max(0,qty[id]+step);
+  document.querySelector('input[data-id="'+id+'"]').value=qty[id]; refresh();
+});
+itemsEl.addEventListener('input',function(e){
+  const inp=e.target.closest('input'); if(!inp)return;
+  let v=parseInt(inp.value,10); if(isNaN(v)||v<0)v=0; qty[inp.dataset.id]=v; refresh();
+});
 
-// ─── LOG ───
-function addLog(t,m){
-  const l=document.getElementById('logList');
-  const n=new Date(),p=v=>String(v).padStart(2,'0');
-  const ts=`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
-  const e=document.createElement('div');e.className=`loge ${t}`;
-  e.innerHTML=`<span class="logt">${ts}</span><span class="logm">${m}</span>`;
-  l.insertBefore(e,l.firstChild);while(l.children.length>22)l.removeChild(l.lastChild);
+/* =================== CALCUL =================== */
+function compute(){
+  let totalMoney=0,totalCrafts=0,totalComps=0,totalCraftCost=0;
+  const mats={plastic:0,metal:0,caoutchouc:0}; const lignes=[];
+  ITEMS.forEach(function(it){
+    const q=qty[it.id]||0;
+    document.getElementById('it_'+it.id).classList.toggle('active',q>0);
+    if(q<=0)return;
+    const crafts=Math.ceil(q/it.batch);          // jobs de craft (5 max) pour le temps
+    for(const k in it.mat) mats[k]+=it.mat[k]*q;  // 1 matière par composant
+    const coutCraft=it.craftCost*q;               // coût par composant (150$/100$)
+    totalCrafts+=crafts; totalComps+=q; totalMoney+=q*it.prix; totalCraftCost+=coutCraft;
+    lignes.push(Object.assign({},it,{q:q,crafts:crafts,sub:q*it.prix,coutCraft:coutCraft}));
+  });
+  const totalMat=mats.plastic+mats.metal+mats.caoutchouc;
+  const fournees=totalCrafts>0?Math.ceil(totalCrafts/SLOTS_TOTAL):0;
+  const craftMin=fournees*CRAFT_MIN;
+  return {totalMoney,totalCrafts,totalComps,totalCraftCost,gain:totalMoney-totalCraftCost,mats,totalMat,fournees,craftMin,lignes,
+          poidsComp:totalComps*POIDS_COMPOSANT,poidsMat:totalMat*POIDS_MATIERE};
 }
-['ok:Connexion établie — Centrale S7','ok:Système nominal — Los Santos Grid','warn:Charge réseau : 82%','ok:Diagnostic : aucune anomalie'].forEach(s=>{const[t,m]=s.split(':');addLog(t,m);});
+function fmtTime(m){if(m<=0)return"0 min";if(m<60)return m+" min";const h=Math.floor(m/60),mm=m%60;return mm?h+'h'+String(mm).padStart(2,'0'):h+'h';}
+function eur(n){return n.toLocaleString('fr-FR')+"$";}
 
-// ─── TOAST ───
-let tTid;
-function toast(msg,type='ok'){
-  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type}`;
-  t.style.display='block';clearTimeout(tTid);tTid=setTimeout(()=>t.style.display='none',3000);
+/* =================== REFRESH (tablette épurée) =================== */
+function refresh(){
+  const c=compute();
+  const recap=document.getElementById('recap');
+  recap.innerHTML=c.lignes.length===0
+    ? '<div class="line"><span>Aucun article</span><b>—</b></div>'
+    : c.lignes.map(function(l){return '<div class="line acc"><span>'+l.nom+' ×'+l.q+' <span style="color:#6f5c46">('+l.prix+'$)</span></span><b>'+eur(l.sub)+'</b></div>';}).join('');
+  document.getElementById('total').textContent=eur(c.totalMoney);
+  document.getElementById('poids').textContent=c.poidsComp.toFixed(1)+" kg";
+  validate(c);
 }
-function doFlash(){const f=document.getElementById('flash');f.style.display='block';setTimeout(()=>f.style.display='none',400);}
-
-// ─── SWITCHES ───
-function toggleSw(el){
-  const z=el.dataset.zone;S.sw[z]=!S.sw[z];
-  el.classList.toggle('off',!S.sw[z]);
-  el.classList.toggle('sat',!S.sw[z]);
-  addLog(S.sw[z]?'ok':'warn',`Disjoncteur Zone ${z} : ${S.sw[z]?'ON':'OFF'}`);
-  refreshChk();
+function validate(c){
+  const g=val('f_groupe'),t=val('f_tel'),l=val('f_livr');
+  const ok=c.totalComps>0&&g&&t&&l;
+  document.getElementById('send').disabled=!ok;
+  const hint=document.getElementById('hint');
+  if(c.totalComps<=0)hint.textContent="Sélectionne au moins 1 article.";
+  else if(!g)hint.textContent="Renseigne le nom de groupe.";
+  else if(!t)hint.textContent="Renseigne le numéro de téléphone.";
+  else if(!l)hint.textContent="Renseigne la date/heure de livraison.";
+  else hint.textContent="Prêt à envoyer ✓";
 }
+function val(id){return document.getElementById(id).value.trim();}
+['f_groupe','f_tel','f_livr','f_note'].forEach(function(id){document.getElementById(id).addEventListener('input',function(){validate(compute());});});
 
-// ─── RADIO ───
-function radAdj(d){
-  S.radioFreq=Math.round((S.radioFreq+d)*10)/10;
-  if(S.radioFreq>108)S.radioFreq=87.5;
-  if(S.radioFreq<87.5)S.radioFreq=108.0;
-  const ok=Math.abs(S.radioFreq-REQ_FREQ)<0.05;
-  const el=document.getElementById('radScr');
-  el.textContent=S.radioFreq.toFixed(1)+' MHz';
-  el.className='radscr '+(ok?'ok':'wrong');
-  addLog('ok',`Radio : ${S.radioFreq.toFixed(1)} MHz`);
-  refreshChk();
-}
-function radTx(){addLog('ok',`📡 TX ${S.radioFreq.toFixed(1)} MHz → dispatch`);toast(`📡 TX ${S.radioFreq.toFixed(1)} MHz`);}
-
-// ─── KEY LEVEL ───
-function keyAdj(d){
-  S.accessLvl=clamp(S.accessLvl+d,1,5);
-  const el=document.getElementById('keyDisp');
-  el.textContent='LVL '+S.accessLvl;
-  el.className='keydisp '+(S.accessLvl>=5?'hi':S.accessLvl>=3?'mid':'low');
-  const labs={1:'REFUSÉ',2:'LIMITÉ',3:'TECHNICIEN',4:'SUPERVISEUR',5:'ADMIN — OK'};
-  document.getElementById('keySub').textContent=labs[S.accessLvl];
-  addLog(S.accessLvl>=REQ_LVL?'ok':'warn',`Accréditation : LVL ${S.accessLvl}`);
-  refreshChk();
-}
-
-// ─── CHECKLIST ───
-function prereqs(){
-  return{
-    sw:ZONES.every(z=>!S.sw[z]),
-    radio:Math.abs(S.radioFreq-REQ_FREQ)<0.05,
-    key:S.accessLvl>=REQ_LVL,
-    wire:S.wireDone,
+/* =================== EMBED =================== */
+function buildPayload(c){
+  const detail=c.lignes.map(function(l){return '**'+l.nom+'** ×'+l.q+' — '+l.prix+'$/u → **'+eur(l.sub)+'** · *péremption '+l.perem+'j*';}).join('\n');
+  const matsTxt=Object.entries(c.mats).filter(function(e){return e[1]>0;}).map(function(e){return MAT_ICON[e[0]]+' '+MAT_LABEL[e[0]]+' : **'+e[1]+'**';}).join('\n')||'—';
+  const fields=[
+    {name:"👥 Groupe",value:val('f_groupe')||'—',inline:true},
+    {name:"📞 Téléphone",value:val('f_tel')||'—',inline:true},
+    {name:"🚚 Livraison souhaitée",value:val('f_livr')||'—',inline:false},
+    {name:"📦 Détail de la commande",value:detail,inline:false},
+    {name:"💰 Total à encaisser",value:'**'+eur(c.totalMoney)+'**',inline:true},
+    {name:"💸 Coût de craft (argent sale)",value:eur(c.totalCraftCost),inline:true},
+    {name:"📈 Gain net",value:'**'+eur(c.gain)+'**',inline:true},
+    {name:"🧱 Composants",value:c.totalComps+' · '+c.poidsComp.toFixed(1)+' kg',inline:true},
+    {name:"🧪 Matières nécessaires",value:matsTxt,inline:false},
+    {name:"⚖️ Total matières",value:c.totalMat+' · '+c.poidsMat.toFixed(1)+' kg',inline:true},
+    {name:"⚙️ Crafts",value:c.totalCrafts+' craft(s) — '+c.fournees+' fournée(s)',inline:true},
+    {name:"⏱️ Temps de craft",value:fmtTime(c.craftMin)+'  _('+SLOTS_TOTAL+' crafts/fournée)_',inline:true}
+  ];
+  const note=val('f_note'); if(note)fields.push({name:"📝 Note (autre)",value:note,inline:false});
+  return {
+    content:'<@&'+ROLE_ID+'> 🦅 Nouvelle commande — Black Vultures MC',
+    username:"Black Vultures MC", avatar_url:LOGO,
+    allowed_mentions:{ parse:[], roles:[ROLE_ID] },
+    embeds:[{
+      title:"🦅 NOUVELLE COMMANDE REÇUE", color:0xff6a00, thumbnail:{url:LOGO},
+      author:{name:"BLACK VULTURES MC", icon_url:LOGO},
+      fields, footer:{text:"Black Vultures MC · Bon de commande",icon_url:LOGO},
+      timestamp:new Date().toISOString()
+    }]
   };
 }
-function refreshChk(){
-  if(!S.powerOn)return;
-  const p=prereqs();
-  const offN=ZONES.filter(z=>!S.sw[z]).length;
-  setChk('ck-sw',p.sw,offN+'/5');
-  setChk('ck-radio',p.radio,S.radioFreq.toFixed(1));
-  setChk('ck-key',p.key,'LVL '+S.accessLvl);
-  setChk('ck-wire',p.wire,p.wire?'VALIDÉ':'EN ATTENTE');
-  const rdy=p.sw&&p.radio&&p.key&&p.wire;
-  const btn=document.getElementById('mainCta');
-  if(rdy){btn.className='lcta cut';btn.textContent='⚡ COUPER L\'ALIMENTATION';}
-  else{btn.className='lcta locked';btn.textContent='🔒 PRÉREQUIS INCOMPLETS';}
-}
-function setChk(id,done,tag){
-  document.getElementById(id).classList.toggle('done',done);
-  document.getElementById(id+'-tag').textContent=tag;
-}
-
-// ─── CTA ───
-function handleCta(){
-  if(S.powerOn){
-    const p=prereqs();
-    if(!(p.sw&&p.radio&&p.key&&p.wire)){doFlash();toast('⚠ Compléter tous les prérequis','err');addLog('err','Accès refusé — prérequis manquants');return;}
-    unlockLever();
-  } else { unlockLever(); }
-}
-function unlockLever(){
-  S.leverLocked=false;
-  document.getElementById('lBanner').style.display='none';
-  toast(S.powerOn?'⚠ Levier déverrouillé — tirez vers la droite':'⚡ Déverrouillé — poussez vers la gauche');
-  addLog('warn','Levier principal déverrouillé');
-}
-
-// ─── QUICK ACTIONS ───
-function qa(t){
-  const m={diag:['ok','🔍 Diagnostic : aucune anomalie'],backup:['warn','⚙ Générateur secours initialisé'],alarm:['err','🚨 ALARME — dispatch notifié'],purge:['warn','☠ Purge système effectuée'],reset:['ok','↩ Erreurs réinitialisées'],export:['ok','📋 Journal exporté']};
-  const[tp,msg]=m[t]||['ok','OK'];addLog(tp,msg);toast(msg);
-}
-
-// ─── POWER STATE ───
-function applyPower(silent){
-  const on=S.powerOn;
-  document.getElementById('hdrBadge').className='hdr-badge '+(on?'on':'off');
-  document.getElementById('hdrBadge').textContent=on?('⚡ '+(REGION?REGION.name:'')+' : NOMINAL'):('✖ '+(REGION?REGION.name:'')+' : COUPÉ');
-  if(REGION) setRegionChip(REGION.key==='ls'?'rLS':'rBC', on);
-  document.getElementById('mainPip').className='pip '+(on?'r':'r');
-  document.getElementById('lNom').className='lb '+(on?'amber':'');
-  document.getElementById('lFault').className='lb '+(on?'':'red');
-  document.getElementById('lAlarm').className='lb '+(on?'':'red');
-  document.getElementById('lSec').className='lb '+(on?'':'green');
-  setMapPower(on);
-  if(!on){
-    ZONES.forEach(z=>{S.sw[z]=false;const el=document.querySelector(`.sw[data-zone="${z}"]`);el.classList.add('off','sat');});
-    addLog('err','⚠ COUPURE GÉNÉRALE — Los Santos hors tension');toast('✖ Alimentation coupée','err');
-    const btn=document.getElementById('mainCta');btn.className='lcta restore';btn.textContent='⚡ RÉTABLIR L\'ALIMENTATION';
-  } else {
-    ZONES.forEach(z=>{S.sw[z]=true;const el=document.querySelector(`.sw[data-zone="${z}"]`);el.classList.remove('off','sat');});
-    addLog('ok','⚡ Alimentation rétablie — Los Santos');toast('⚡ Alimentation rétablie');
-    refreshChk();
-  }
-}
-
-// ═══════════════════════════════════════
-//  LEVER — ROTATION DRAG
-// ═══════════════════════════════════════
-(function initLever(){
-  const wrap=document.getElementById('leverWrap');
-  const arm=document.getElementById('LvArm');
-  const svg=document.getElementById('leverSvg');
-  const ON=-52,OFF=52,PX=100,PY=124;
-  let dragging=false,startDeg=0,startAngle=0;
-
-  function ptrDeg(e){
-    const r=svg.getBoundingClientRect();
-    const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
-    const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
-    const sx=200/r.width,sy=160/r.height;
-    return Math.atan2(cy*sy-PY,cx*sx-PX)*180/Math.PI-90;
-  }
-  function setAngle(a){
-    a=Math.min(OFF,Math.max(ON,a));S.leverAngle=a;
-    arm.setAttribute('transform',`rotate(${a},${PX},${PY})`);
-    const fr=(a-ON)/(OFF-ON);
-    const glow=document.getElementById('LvGlow');
-    if(fr<0.3){glow.setAttribute('fill','url(#LgA)');glow.setAttribute('cx','46');glow.setAttribute('cy','118');glow.setAttribute('opacity',(1-fr)*.65);}
-    else if(fr>0.7){glow.setAttribute('fill','url(#LgR)');glow.setAttribute('cx','154');glow.setAttribute('cy','118');glow.setAttribute('opacity',fr*.65);}
-    else{glow.setAttribute('opacity','0');}
-    const icon=document.getElementById('LvIcon'),stripe=document.getElementById('LvStripe');
-    if(fr>0.5){icon.textContent='✖';icon.setAttribute('fill','rgba(187,17,32,.8)');stripe.setAttribute('stroke','rgba(187,17,32,.25)');}
-    else{icon.textContent='⚡';icon.setAttribute('fill','rgba(255,170,0,.8)');stripe.setAttribute('stroke','rgba(255,170,0,.18)');}
-  }
-  function snapTo(tgt,cb){
-    const s=S.leverAngle,dur=260,t0=performance.now();
-    (function fr(now){const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);setAngle(s+(tgt-s)*e);if(p<1)requestAnimationFrame(fr);else if(cb)cb();})(t0);
-  }
-  function onDown(e){
-    if(S.leverLocked){const b=document.getElementById('lBanner');b.style.display='block';setTimeout(()=>b.style.display='none',2000);return;}
-    dragging=true;startDeg=ptrDeg(e);startAngle=S.leverAngle;wrap.style.cursor='grabbing';e.preventDefault();
-  }
-  function onMove(e){
-    if(!dragging)return;
-    let na=startAngle+(ptrDeg(e)-startDeg);
-    if(S.powerOn)na=Math.min(OFF,Math.max(ON,na));
-    else na=Math.max(ON,Math.min(OFF,na));
-    setAngle(na);e.preventDefault();
-  }
-  function onUp(e){
-    if(!dragging)return;dragging=false;wrap.style.cursor='grab';
-    const fr=(S.leverAngle-ON)/(OFF-ON);
-    if(S.powerOn){
-      if(fr>=0.78){snapTo(OFF,()=>{S.leverLocked=true;S.powerOn=false;SHARED[REGION.key]=false;pushShared();applyPower();sendWebhook(false);});}
-      else snapTo(ON);
-    } else {
-      if(fr<=0.22){snapTo(ON,()=>{S.leverLocked=true;S.powerOn=true;SHARED[REGION.key]=true;pushShared();applyPower();sendWebhook(true);});}
-      else snapTo(OFF);
-    }
-    e.preventDefault();
-  }
-  wrap.addEventListener('mousedown',onDown);wrap.addEventListener('touchstart',onDown,{passive:false});
-  document.addEventListener('mousemove',onMove);document.addEventListener('touchmove',onMove,{passive:false});
-  document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp);
-  setAngle(ON);
-})();
-
-// ═══════════════════════════════════════
-//  MINIGAME — WIRE RECONNECTION (DOM drag)
-// ═══════════════════════════════════════
-const WIRE_DEFS=[
-  {id:'R1',label:'ROUGE-1',col:'#e83030'},
-  {id:'R2',label:'ROUGE-2',col:'#ff7050'},
-  {id:'B1',label:'BLEU-1', col:'#3090e8'},
-  {id:'B2',label:'BLEU-2', col:'#70c0ff'},
-  {id:'J1',label:'JAUNE-1',col:'#e8b800'},
-  {id:'J2',label:'JAUNE-2',col:'#ffd840'},
-  {id:'V1',label:'VERT-1', col:'#30bb50'},
-  {id:'G1',label:'GRIS-1', col:'#9898b0'},
-];
-const ROUND_COUNTS=[4,6,8];
-const ROUNDS=3;
-let mgRound=0,mgDots=[],mgInterval;
-let mgLeft=[],mgRight=[],mgConn={};
-let mgDrag=null;
-
-function launchWires(){
-  if(S.wireDone)return;
-  mgRound=0;mgConn={};
-  const dp=document.getElementById('mgProgress');dp.innerHTML='';mgDots=[];
-  for(let i=0;i<ROUNDS;i++){const d=document.createElement('div');d.className='mgdot';dp.appendChild(d);mgDots.push(d);}
-  document.getElementById('mgOverlay').classList.add('show');
-  document.getElementById('mgNextBtn').style.display='none';
-  buildRound();
-}
-
-function buildRound(){
-  mgConn={};
-  document.getElementById('mgStatus').textContent='Glissez un fil depuis la gauche vers la bonne fiche à droite';
-  document.getElementById('mgStatus').className='mg-status';
-  document.getElementById('mgNextBtn').style.display='none';
-  const count=ROUND_COUNTS[Math.min(mgRound,ROUND_COUNTS.length-1)];
-  mgLeft=WIRE_DEFS.slice(0,count).map(w=>w.id);
-  mgRight=[...mgLeft].sort(()=>Math.random()-.5);
-  while(mgRight.every((id,i)=>id===mgLeft[i]))mgRight.sort(()=>Math.random()-.5);
-  buildDOM();
-  startTimer(count);
-}
-
-function buildDOM(){
-  const lc=document.getElementById('wireLeft');
-  const rc=document.getElementById('wireRight');
-  lc.innerHTML='';rc.innerHTML='';
-  mgLeft.forEach(id=>lc.appendChild(makeRow(WIRE_DEFS.find(x=>x.id===id),'left')));
-  mgRight.forEach(id=>rc.appendChild(makeRow(WIRE_DEFS.find(x=>x.id===id),'right')));
-  redrawWires();
-}
-
-function makeRow(w,side){
-  const row=document.createElement('div');
-  row.className='wrow';
-  row.dataset.id=w.id;
-  row.dataset.side=side;
-  row.style.setProperty('--rc',w.col);
-  const label=document.createElement('div');
-  label.className='wlabel';
-  label.style.color=w.col;
-  label.style.borderColor=w.col+'66';
-  label.textContent=w.label;
-  const plug=document.createElement('div');
-  plug.className='wplug';
-  plug.style.borderColor=w.col;
-  plug.style.setProperty('--rc',w.col);
-  const dot=document.createElement('div');
-  dot.className='wplug-dot';
-  dot.style.background=w.col;
-  dot.style.boxShadow='0 0 6px '+w.col;
-  plug.appendChild(dot);
-  row.appendChild(label);
-  row.appendChild(plug);
-  if(side==='left'){
-    plug.addEventListener('mousedown',e=>onPlugDown(e,w,plug,row));
-    plug.addEventListener('touchstart',e=>onPlugDown(e,w,plug,row),{passive:false});
-  } else {
-    row.addEventListener('mouseenter',()=>{if(mgDrag)row.classList.add('drop-hi');});
-    row.addEventListener('mouseleave',()=>row.classList.remove('drop-hi'));
-  }
-  return row;
-}
-
-function onPlugDown(e,w,plug,row){
-  e.preventDefault();e.stopPropagation();
-  if(mgConn[w.id]!==undefined){delete mgConn[w.id];redrawWires();}
-  mgDrag={id:w.id,col:w.col,plug,row};
-  row.classList.add('drag-src');
-  plug.classList.add('active');
-  document.body.style.cursor='crosshair';
-}
-
-function getXY(e){
-  const t=e.changedTouches?e.changedTouches[0]:e.touches?e.touches[0]:e;
-  return{x:t.clientX,y:t.clientY};
-}
-
-document.addEventListener('mousemove',e=>{if(mgDrag)updatePreview(getXY(e));});
-document.addEventListener('touchmove',e=>{if(mgDrag)updatePreview(getXY(e));},{passive:true});
-
-document.addEventListener('mouseup',e=>{if(mgDrag)doDropAt(getXY(e));});
-document.addEventListener('touchend',e=>{if(mgDrag)doDropAt(getXY(e));});
-
-function updatePreview(pt){
-  const arena=document.getElementById('wireArena');if(!arena)return;
-  const ar=arena.getBoundingClientRect();
-  const src=getPlugCenter('left',mgDrag.id);if(!src)return;
-  const svg=document.getElementById('wireSvg');
-  let prev=svg.getElementById?svg.getElementById('wirePreview'):null;
-  if(!prev){prev=document.getElementById('wirePreview');}
-  if(!prev){
-    prev=document.createElementNS('http://www.w3.org/2000/svg','path');
-    prev.setAttribute('id','wirePreview');
-    prev.setAttribute('fill','none');
-    prev.setAttribute('stroke-width','3');
-    prev.setAttribute('stroke-linecap','round');
-    prev.setAttribute('stroke-dasharray','7 4');
-    svg.appendChild(prev);
-  }
-  const tx=pt.x-ar.left,ty=pt.y-ar.top;
-  const mx=(src.x+tx)/2,sag=Math.abs(ty-src.y)*0.2+12;
-  prev.setAttribute('d','M'+src.x+','+src.y+' C'+mx+','+(src.y+sag)+' '+mx+','+(ty+sag)+' '+tx+','+ty);
-  prev.setAttribute('stroke',mgDrag.col);
-  prev.setAttribute('opacity','0.75');
-}
-
-function doDropAt(pt){
-  const drag=mgDrag;mgDrag=null;
-  drag.row.classList.remove('drag-src');
-  drag.plug.classList.remove('active');
-  document.body.style.cursor='';
-  // clear preview
-  const prev=document.getElementById('wirePreview');
-  if(prev){prev.setAttribute('d','');prev.setAttribute('opacity','0');}
-  // clear all drop-hi
-  document.querySelectorAll('.drop-hi').forEach(r=>r.classList.remove('drop-hi'));
-  // find right row under pointer
-  const hit=findRightRow(pt.x,pt.y);
-  if(hit){
-    const tid=hit.dataset.id;
-    for(const k in mgConn){if(mgConn[k]===tid){delete mgConn[k];break;}}
-    mgConn[drag.id]=tid;
-    redrawWires();
-    checkDone();
-  }
-}
-
-function findRightRow(cx,cy){
-  const rows=document.querySelectorAll('#wireRight .wrow');
-  for(const r of rows){
-    const b=r.getBoundingClientRect();
-    if(cx>=b.left-20&&cx<=b.right+20&&cy>=b.top-14&&cy<=b.bottom+14)return r;
-  }
-  return null;
-}
-
-function getPlugCenter(side,id){
-  const sel='#wire'+(side==='left'?'Left':'Right')+' .wrow[data-id="'+id+'"] .wplug';
-  const el=document.querySelector(sel);if(!el)return null;
-  const r=el.getBoundingClientRect();
-  const ar=document.getElementById('wireArena').getBoundingClientRect();
-  return{x:r.left+r.width/2-ar.left,y:r.top+r.height/2-ar.top};
-}
-
-function redrawWires(){
-  const svg=document.getElementById('wireSvg');if(!svg)return;
-  svg.querySelectorAll('.cwire').forEach(e=>e.remove());
-  document.querySelectorAll('.wrow').forEach(r=>r.classList.remove('done'));
-  for(const lid in mgConn){
-    const rid=mgConn[lid];
-    const src=getPlugCenter('left',lid);
-    const dst=getPlugCenter('right',rid);
-    if(!src||!dst)continue;
-    const correct=(lid===rid);
-    const w=WIRE_DEFS.find(x=>x.id===lid);
-    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-    const mx=(src.x+dst.x)/2,sag=Math.abs(dst.y-src.y)*0.15+10;
-    p.setAttribute('d','M'+src.x+','+src.y+' C'+mx+','+(src.y+sag)+' '+mx+','+(dst.y+sag)+' '+dst.x+','+dst.y);
-    p.setAttribute('stroke',w.col);
-    p.setAttribute('stroke-width',correct?'3':'2.5');
-    p.setAttribute('fill','none');
-    p.setAttribute('stroke-linecap','round');
-    p.setAttribute('opacity',correct?'1':'0.4');
-    if(!correct)p.setAttribute('stroke-dasharray','5 4');
-    p.setAttribute('class','cwire');
-    const prev=document.getElementById('wirePreview');
-    svg.insertBefore(p,prev||null);
-    if(correct){
-      const lr=document.querySelector('#wireLeft .wrow[data-id="'+lid+'"]');
-      const rr=document.querySelector('#wireRight .wrow[data-id="'+rid+'"]');
-      if(lr)lr.classList.add('done');
-      if(rr)rr.classList.add('done');
-    }
-  }
-}
-
-function checkDone(){
-  if(Object.keys(mgConn).length<mgLeft.length)return;
-  clearInterval(mgInterval);
-  const allOk=mgLeft.every(id=>mgConn[id]===id);
-  if(allOk){
-    document.getElementById('mgStatus').textContent='✓ CÂBLES CORRECTEMENT CONNECTÉS';
-    document.getElementById('mgStatus').className='mg-status ok';
-    mgDots[mgRound].className='mgdot ok';
-    addLog('ok','Câbles round '+(mgRound+1)+' : OK');
-    mgRound++;
-    if(mgRound>=ROUNDS)setTimeout(mgWin,700);
-    else document.getElementById('mgNextBtn').style.display='block';
-  }else{
-    document.getElementById('mgStatus').textContent='✗ MAUVAISES CONNEXIONS — recommencez';
-    document.getElementById('mgStatus').className='mg-status err';
-    mgDots[mgRound].className='mgdot bad';
-    doFlash();addLog('err','Câbles round '+(mgRound+1)+' : ÉCHEC');
-    setTimeout(()=>{mgDots[mgRound].className='mgdot';buildRound();},1400);
-  }
-}
-
-function startTimer(count){
-  const total=30+count*3;let secs=total;
-  document.getElementById('mgTimer').textContent=secs;
-  document.getElementById('mgTimer').className='mgtimer';
-  document.getElementById('mgBar').style.cssText='width:100%;background:var(--amber)';
-  clearInterval(mgInterval);
-  mgInterval=setInterval(()=>{
-    secs--;
-    const pct=(secs/total)*100;
-    const te=document.getElementById('mgTimer'),bar=document.getElementById('mgBar');
-    te.textContent=secs;bar.style.width=pct+'%';
-    if(secs<=8){te.className='mgtimer danger';bar.style.background='var(--red2)';}
-    else if(secs<=15){te.className='mgtimer warn';bar.style.background='var(--burn2)';}
-    if(secs<=0){clearInterval(mgInterval);timerFail();}
-  },1000);
-}
-
-function timerFail(){
-  document.getElementById('mgStatus').textContent='⏱ TEMPS ÉCOULÉ — recommencez';
-  document.getElementById('mgStatus').className='mg-status err';
-  doFlash();addLog('err','Temps écoulé round '+(mgRound+1));
-  mgDots[mgRound].className='mgdot bad';
-  setTimeout(()=>{mgDots[mgRound].className='mgdot';buildRound();},1000);
-}
-
-function mgNextRound(){
-  document.getElementById('mgNextBtn').style.display='none';
-  buildRound();
-}
-
-function mgWin(){
-  clearInterval(mgInterval);
-  document.getElementById('mgOverlay').classList.remove('show');
-  S.wireDone=true;
-  try{localStorage.setItem('s7_wiredone_'+(REGION?REGION.key:'x'),'1');}catch(e){}
-  addLog('ok','Reconnexion câbles : VALIDÉE');
-  toast('✔ Câbles validés — autorisation accordée');
-  refreshChk();
-}
-
-// ─── DISCORD ───
-async function sendWebhook(restored){
-  const now=new Date(),ts=now.toISOString();
-  const p=v=>String(v).padStart(2,'0');
-  const hr=`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
-  const offCount=(!SHARED.ls?1:0)+(!SHARED.bc?1:0);
-  const onCount=2-offCount;
-  const embeds=[];
-
-  if(!restored){
-    // COUPURE de MA région
-    embeds.push({
-      title:`🔴  COUPURE — ${REGION.name}  (${offCount}/2)`,
-      description:`❌ **Le secteur ${REGION.name} vient d'être coupé.**\n`+
-        (offCount===2?'⚠️ Les DEUX secteurs sont maintenant hors tension.':'L\'autre secteur est toujours alimenté.'),
-      color:0xbb1120,
-      fields:[
-        {name:'📍 Secteur coupé',value:REGION.name,inline:true},
-        {name:'🕐 Heure',value:hr,inline:true},
-        {name:'👤 Opérateur',value:`LVL ${S.accessLvl}`,inline:true},
-        {name:'🗺 Los Santos',value:SHARED.ls?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
-        {name:'🏜 Blaine County',value:SHARED.bc?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
-      ],
-      footer:{text:'LSEC Control Panel — Centrale S7'},
-      timestamp:ts,
-    });
-    if(offCount===2){
-      embeds.push({
-        title:'⚫  RÉSEAU TOTAL DÉSACTIVÉ  (2/2)',
-        description:'🌑 **TOUT LE RÉSEAU EST HORS TENSION.**\nLos Santos **ET** Blaine County sont coupés.\nLe black-out total est effectif.',
-        color:0x111111,
-        footer:{text:'LSEC Control Panel — Centrale S7'},
-        timestamp:ts,
-      });
-    }
-  } else {
-    // RÉTABLISSEMENT de MA région
-    embeds.push({
-      title:`🟢  RÉTABLI — ${REGION.name}  (${onCount}/2)`,
-      description:`✅ **Le secteur ${REGION.name} a été rétabli.**\n`+
-        (onCount===2?'⚡ Les DEUX secteurs sont de nouveau alimentés.':'L\'autre secteur est toujours coupé.'),
-      color:0x33aa44,
-      fields:[
-        {name:'📍 Secteur rétabli',value:REGION.name,inline:true},
-        {name:'🕐 Heure',value:hr,inline:true},
-        {name:'👤 Opérateur',value:`LVL ${S.accessLvl}`,inline:true},
-        {name:'🗺 Los Santos',value:SHARED.ls?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
-        {name:'🏜 Blaine County',value:SHARED.bc?'`⚡ ALIMENTÉ`':'`✖ COUPÉ`',inline:true},
-      ],
-      footer:{text:'LSEC Control Panel — Centrale S7'},
-      timestamp:ts,
-    });
-    if(onCount===2){
-      embeds.push({
-        title:'⚡  RÉSEAU COMPLET RÉTABLI  (2/2)',
-        description:'🌇 **TOUT LE RÉSEAU EST DE NOUVEAU EN LIGNE.**\nLos Santos et Blaine County sont alimentés.\nFin du black-out.',
-        color:0xffaa00,
-        footer:{text:'LSEC Control Panel — Centrale S7'},
-        timestamp:ts,
-      });
-    }
-  }
-
+document.getElementById('send').addEventListener('click',async function(){
+  const c=compute(); const btn=document.getElementById('send');
+  btn.disabled=true; btn.textContent="Transmission…";
   try{
-    const r=await fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({embeds})});
-    addLog(r.ok?'ok':'warn',r.ok?'📡 Discord notifié':'📡 Webhook : erreur');
-  }catch(e){addLog('warn','📡 Webhook : connexion échouée');}
+    const res=await fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildPayload(c))});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    showOverlay(true,"Commande transmise","Total : "+eur(c.totalMoney)+" · "+c.totalComps+" composant(s). La commande est partie sur Discord.");
+  }catch(err){
+    showOverlay(false,"Échec de l'envoi","Impossible de joindre le webhook Discord ("+err.message+"). Vérifie la connexion ou le lien du webhook, puis réessaie.");
+  }finally{ btn.textContent="Envoyer la commande"; refresh(); }
+});
+function showOverlay(ok,title,msg){
+  const ov=document.getElementById('ov'); ov.className=ok?'show ok':'show err';
+  document.getElementById('ov_icon').textContent=ok?'🦅':'⚠️';
+  document.getElementById('ov_title').textContent=title;
+  document.getElementById('ov_msg').textContent=msg;
 }
-
-
-refreshChk();
+document.getElementById('ov_btn').addEventListener('click',function(){
+  if(document.getElementById('ov').classList.contains('ok')){
+    ITEMS.forEach(function(it){qty[it.id]=0;document.querySelector('input[data-id="'+it.id+'"]').value=0;});
+    ['f_groupe','f_tel','f_livr','f_note'].forEach(function(id){document.getElementById(id).value='';});
+  }
+  document.getElementById('ov').className=''; refresh();
+});
+refresh();
 </script>
 </body>
 </html>
