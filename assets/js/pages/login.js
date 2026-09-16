@@ -100,7 +100,7 @@ function translateAuthError(err) {
     if (m.includes("charid")) return "Cet ID personnage est déjà utilisé.";
     return "Un compte existe déjà avec ces identifiants.";
   }
-  if (m.includes("Password should be")) return "Mot de passe trop court (6 caractères minimum).";
+  if (m.includes("Password should be") || m.includes("password") && m.includes("character")) return m.replace("Password", "Le mot de passe").replace("should be at least", "doit faire au moins").replace("characters", "caractères");
   if (m.includes("phone_format")) return "Le téléphone doit commencer par 555-";
   return m || "Une erreur est survenue.";
 }
