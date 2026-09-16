@@ -14,16 +14,15 @@ auth, sécurité), hébergé gratuitement sur **Vercel**.
 1. Va sur [supabase.com](https://supabase.com) → **New project**.
 2. Une fois le projet créé, ouvre **SQL Editor** → **New query**, colle le
    contenu entier de [`supabase/schema.sql`](supabase/schema.sql) et
-   exécute-le. Ça crée toutes les tables, la sécurité (RLS), le moteur de
-   permissions, et tente de créer un **compte admin prêt à l'emploi**
-   (`raptor` / `admin` — voir plus bas).
+   exécute-le. Ça crée toutes les tables, la sécurité (RLS) et le moteur de
+   permissions.
 3. Va dans **Authentication → Settings** et **désactive "Confirm email"**
    (Enable email confirmations = OFF). C'est obligatoire ici : aucun compte
    n'utilise une vraie adresse email (voir plus bas), donc un email de
    confirmation ne pourrait jamais arriver.
 4. Va dans **Project Settings → API** et note :
    - **Project URL**
-   - **anon public key**
+   - **anon public key** (ou la nouvelle clé **publishable**, ça marche pareil)
 
 ## 2. Configurer le site
 
@@ -51,17 +50,14 @@ réellement les données.
 
 ## 4. Premier lancement
 
-1. Ouvre le site et connecte-toi directement avec le compte admin
-   pré-créé : identifiant **`raptor`**, mot de passe **`admin`**
-   (rôle Patron, toutes les permissions). **Change ce mot de passe tout de
-   suite** depuis le menu de profil (en bas de la barre latérale) ▸ *Mot de
-   passe*.
-2. Si ce compte n'a pas pu être créé automatiquement (ça peut arriver selon
-   la version de Supabase — voir la note dans `schema.sql`), va simplement
-   dans **Créer un compte** et inscris-toi avec exactement ces mêmes
-   identifiants (`raptor` / `admin`) : comme c'est alors le tout premier
-   compte de l'entreprise, il devient Patron automatiquement, avec le même
-   résultat.
+1. Ouvre le site → onglet **Créer un compte** → inscris-toi avec le nom
+   d'utilisateur **`raptor`**, mot de passe **`admin`** (+ ID personnage,
+   téléphone `555-...` et numéro de compte, au choix). **Étant le tout
+   premier compte de l'entreprise, il devient automatiquement Patron**,
+   avec toutes les permissions, et seed le catalogue de départ (Services /
+   Customs / Ventes / Peinture).
+2. Change ce mot de passe dès que possible depuis le menu de profil (en bas
+   de la barre latérale) ▸ *Mot de passe*.
 3. Chaque personne qui crée un compte ensuite (onglet **Créer un compte**)
    rejoint la même entreprise avec le rôle de base **"Employé"** (accès
    limité). Tu peux ensuite lui attribuer d'autres rôles, ou forcer une
@@ -164,8 +160,9 @@ supabase/schema.sql        tables, sécurité (RLS), moteur de permissions, cata
 - Le format actuel privilégie plusieurs pages HTML plutôt qu'un seul
   fichier, pour garder chaque page légère à charger — dis-moi si tu
   préfères tout regrouper en un seul fichier comme tes autres interfaces.
-- Le compte `raptor` / `admin` est créé directement dans le schéma
-  d'authentification interne de Supabase — un procédé courant pour
-  démarrer avec un compte prêt à l'emploi, mais qui reste "best effort"
-  selon la version exacte de Supabase (détails et solution de repli dans
-  `schema.sql`). Change son mot de passe dès la première connexion.
+- Pas de compte pré-inséré par SQL : sur les projets Supabase hébergés, le
+  SQL Editor ne peut généralement pas écrire directement dans les tables
+  internes `auth.users` / `auth.identities` (Supabase les protège), donc ce
+  genre d'insertion échoue silencieusement. Le chemin fiable reste de
+  s'inscrire une fois via **Créer un compte** — le tout premier compte
+  devient Patron automatiquement.

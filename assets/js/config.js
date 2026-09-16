@@ -5,6 +5,6 @@
 // read or write anything outside what a signed-in user is allowed to.
 // ============================================================================
 window.LSC_CONFIG = {
-  SUPABASE_URL: "https://YOUR-PROJECT.supabase.co",
-  SUPABASE_ANON_KEY: "YOUR-ANON-PUBLIC-KEY",
+  SUPABASE_URL: "https://ycprveapwnbrrueovvua.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_FOroBBvYAFnqpbQKXwLIdQ_p6TEa_HM",
 };
