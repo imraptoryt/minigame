@@ -1,444 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>BLACK VULTURES MC — Bon de commande</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Connexion — Los Santos Customs</title>
+<link rel="icon" href="data:,">
+<script>(function(){try{var t=JSON.parse(localStorage.getItem('lsc_theme'))||{};document.documentElement.setAttribute('data-theme',t.mode==='dark'?'dark':'light');document.documentElement.setAttribute('data-accent',t.accent||'green');document.documentElement.setAttribute('data-radius',t.radius||'soft');}catch(e){}})();</script>
+<script src="assets/js/config.js"></script>
+<link rel="stylesheet" href="assets/css/theme.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
 <style>
-:root{
-  --bg:#0a0807; --panel:#15110d; --panel2:#1c1711; --line:#352b20; --line2:#46382a;
-  --orange:#ff6a00; --amber:#ffae3a; --ember:#ff7a1a; --blood:#9b2218;
-  --bone:#f1e8d8; --txt:#ece2d2; --muted:#94836c;
-  --glow:0 0 22px rgba(255,106,0,.5);
-  --term:#37f06a;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:'Inter',system-ui,sans-serif; font-size:16px;
-  background:#050403;
-  color:var(--txt); min-height:100vh; -webkit-font-smoothing:antialiased;
-}
-.device{
-  position:relative; width:100vw; height:100vh; overflow:hidden; background:var(--bg);
-  background-image:radial-gradient(1200px 800px at 50% -12%, #1d1409 0%, transparent 58%);
-}
-.grain{position:absolute;inset:0;z-index:56;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.vignette{position:absolute;inset:0;z-index:55;pointer-events:none;background:radial-gradient(120% 120% at 50% 35%, transparent 55%, rgba(0,0,0,.5) 100%)}
-
-/* ===== BOOT : console de hack ===== */
-#boot{position:absolute;inset:0;z-index:30;background:#020402;overflow:hidden;transition:opacity .55s ease}
-#boot::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
-  background:repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px);
-  animation:crt 7s linear infinite;mix-blend-mode:multiply}
-@keyframes crt{from{background-position:0 0}to{background-position:0 120px}}
-.console{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:16px 20px 64px;overflow:hidden;font-family:'JetBrains Mono',ui-monospace,monospace}
-.console .ln{font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:var(--term);
-  text-shadow:0 0 6px rgba(55,240,106,.3);opacity:.92}
-.console .ln.dim{color:#1f8a45;opacity:.7}
-.console .ln.ok{color:#caffb0}
-.console .ln.warn{color:#ff7a1a;text-shadow:0 0 8px rgba(255,122,26,.5)}
-.console .ln.hi{color:#fff;background:rgba(255,106,0,.12);text-shadow:0 0 8px rgba(255,106,0,.6)}
-.console .cursor{display:inline-block;width:8px;height:14px;background:var(--term);box-shadow:0 0 8px var(--term);
-  vertical-align:-2px;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-
-.hud{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:14px;
-  padding:13px 20px;background:linear-gradient(0deg,#020402 30%,transparent);
-  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--term)}
-.hud .tag{color:var(--orange);font-weight:700;letter-spacing:1px;text-shadow:var(--glow)}
-.hud .bar{flex:1;height:6px;border:1px solid #134d27;border-radius:3px;background:#031007;overflow:hidden}
-.hud .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0a8a3a,var(--term));box-shadow:0 0 10px var(--term)}
-.hud .cnt{color:#9be8b4} .hud .pct{color:#fff;font-weight:700;min-width:38px;text-align:right}
-
-.granted{position:absolute;inset:0;z-index:8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-  background:radial-gradient(600px 400px at 50% 50%, rgba(0,40,10,.6), #010301 70%)}
-.granted.show{display:flex;animation:flick .12s steps(2) 6}
-@keyframes flick{50%{opacity:.6}}
-.granted .g1{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:34px;letter-spacing:6px;color:var(--term);
-  text-shadow:2px 0 #ff006a, -2px 0 #00e5ff, 0 0 26px rgba(55,240,106,.6)}
-.granted .g2{font-family:'Inter';font-weight:900;font-size:18px;letter-spacing:8px;color:var(--orange);text-shadow:var(--glow)}
-
-/* ===== APP (agrandi, police basique) ===== */
-#app{position:absolute;inset:0;z-index:10;display:none;flex-direction:column;
-  background:linear-gradient(0deg, rgba(255,106,0,.025), transparent 42%), var(--bg)}
-#app.show{display:flex;animation:fadein .55s ease}
-@keyframes fadein{from{opacity:0}to{opacity:1}}
-
-.app-head{display:flex;align-items:center;gap:16px;padding:22px 26px 18px;border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg, rgba(255,106,0,.05), transparent)}
-.patch{position:relative;width:62px;height:62px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;
-  background:#0c0a07;border:2px solid var(--orange);box-shadow:0 0 18px rgba(255,106,0,.35), inset 0 0 12px rgba(0,0,0,.6)}
-.patch::after{content:"";position:absolute;inset:3px;border:1px dashed rgba(255,174,58,.4);border-radius:11px}
-.patch img{width:46px;height:46px;object-fit:contain}
-.patch .fb{display:none}.patch.nologo img{display:none}.patch.nologo .fb{display:block}
-.app-head .club-sm{font-family:'Inter';font-weight:900;font-size:28px;line-height:1;letter-spacing:1.5px;color:var(--bone);text-transform:uppercase}
-.app-head .club-sm b{color:var(--orange)}
-.app-head .sub{font-family:'Inter';font-weight:600;font-size:12px;letter-spacing:4px;color:var(--amber);margin-top:5px;text-transform:uppercase}
-.app-head .badge{margin-left:auto;font-family:'Inter';font-weight:600;font-size:12px;letter-spacing:.5px;
-  color:var(--amber);border:1px solid var(--line2);border-radius:6px;padding:7px 13px;background:#0d0a07}
-.app-head .badge .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber);margin-right:6px;vertical-align:middle}
-
-.body{flex:1;min-height:0;display:grid;grid-template-columns:1.5fr 1fr;gap:20px;padding:22px;overflow:hidden}
-.body>div{min-height:0;overflow:auto}
-.body>div::-webkit-scrollbar{width:8px}.body>div::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
-
-.card{position:relative;background:linear-gradient(180deg,var(--panel),#0f0c08);border:1px solid var(--line);border-radius:12px;padding:20px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.015), 0 6px 18px rgba(0,0,0,.4)}
-.card::before{content:"";position:absolute;top:0;left:16px;right:16px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,106,0,.5),transparent)}
-.card h2{font-family:'Inter';font-weight:800;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:var(--bone);
-  margin-bottom:16px;display:flex;align-items:center;gap:10px}
-.card h2::before{content:"";width:8px;height:8px;background:var(--orange);box-shadow:var(--glow);transform:rotate(45deg)}
-
-.item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--panel2);
-  border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin-bottom:11px;transition:border-color .2s,box-shadow .2s}
-.item.active{border-color:var(--orange);box-shadow:inset 0 0 22px rgba(255,106,0,.08)}
-.item .nm{font-family:'Inter';font-weight:700;font-size:19px;letter-spacing:.3px;color:var(--bone)}
-.item .nm .code{font-family:'JetBrains Mono',monospace;font-size:11px;color:#6f5c46;letter-spacing:0;font-weight:400}
-.item .meta{font-family:'Inter';font-weight:500;font-size:13px;color:var(--muted);margin-top:4px}
-.item .meta b{color:var(--amber);font-weight:700}
-.qty{display:flex;align-items:center;gap:8px}
-.qty button{width:38px;height:38px;border-radius:9px;border:1px solid var(--line2);background:linear-gradient(180deg,#1a140d,#0d0a06);
-  color:var(--orange);font-size:22px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s}
-.qty button:hover{border-color:var(--orange);box-shadow:0 0 10px rgba(255,106,0,.3)}
-.qty button:active{transform:scale(.9)}
-.qty input{width:62px;height:38px;text-align:center;background:#0a0705;border:1px solid var(--line);border-radius:9px;color:var(--bone);
-  font-family:'Inter';font-weight:700;font-size:18px}
-.qty input:focus{outline:none;border-color:var(--orange)}
-
-.field{margin-bottom:15px}
-.field label{display:block;font-family:'Inter';font-weight:600;font-size:12px;color:var(--amber);letter-spacing:1.5px;margin-bottom:7px;text-transform:uppercase}
-.field label .req{color:var(--blood)}
-.field input,.field textarea{width:100%;background:#0a0705;border:1px solid var(--line);border-radius:9px;padding:13px 15px;color:var(--txt);font-family:'Inter';font-size:15px;transition:.15s}
-.field input:focus,.field textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 0 12px rgba(255,106,0,.2)}
-.field textarea{resize:none;min-height:70px}
-
-.readout{position:sticky;top:0}
-.line{display:flex;justify-content:space-between;align-items:baseline;font-family:'Inter';font-weight:500;font-size:15px;padding:10px 0;border-bottom:1px dashed var(--line)}
-.line span:first-child{color:var(--muted)} .line b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
-.line.acc b{color:var(--amber)}
-.tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:16px;border-top:2px solid var(--orange)}
-.tot span{font-family:'Inter';font-weight:700;font-size:13px;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase}
-.tot b{font-family:'Inter';font-weight:900;font-size:34px;color:var(--orange);text-shadow:var(--glow);font-variant-numeric:tabular-nums}
-.wline{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;font-family:'Inter';font-weight:500;font-size:14px}
-.wline span{color:var(--muted);letter-spacing:.5px;text-transform:uppercase} .wline b{color:var(--amber);font-weight:700}
-
-.send{width:100%;margin-top:18px;padding:17px;border:none;border-radius:10px;cursor:pointer;font-family:'Inter';font-weight:800;
-  letter-spacing:2px;font-size:16px;color:#150900;background:linear-gradient(180deg,var(--amber),var(--orange));
-  box-shadow:0 0 26px rgba(255,106,0,.4), inset 0 1px 0 rgba(255,255,255,.3);transition:.18s;text-transform:uppercase}
-.send:hover{filter:brightness(1.07);transform:translateY(-1px)}
-.send:active{transform:translateY(0) scale(.99)}
-.send:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.4);box-shadow:none}
-.note-mini{font-family:'Inter';font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
-
-#ov{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:rgba(6,4,3,.95);backdrop-filter:blur(4px)}
-#ov.show{display:flex;animation:fadein .3s}
-#ov .icon{font-size:58px}
-#ov h3{font-family:'Inter';font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}
-#ov p{font-family:'Inter';font-size:14px;color:var(--muted);max-width:430px;line-height:1.6}
-#ov.ok h3{color:var(--amber);text-shadow:0 0 18px rgba(255,174,58,.5)}
-#ov.err h3{color:var(--blood);text-shadow:0 0 18px rgba(155,34,24,.6)}
-#ov button{margin-top:6px;padding:13px 26px;border:1px solid var(--orange);background:transparent;color:var(--orange);border-radius:9px;
-  font-family:'Inter';font-weight:700;letter-spacing:2px;font-size:13px;cursor:pointer;transition:.15s;text-transform:uppercase}
-#ov button:hover{background:var(--orange);color:#150900}
-
-@media (max-width:760px){.body{grid-template-columns:1fr;overflow:auto}.app-head .club-sm{font-size:22px}}
+  .field-err { color: var(--c-danger); font-size: 12px; min-height: 16px; }
+  .field-ok { color: var(--c-success); font-size: 12px; min-height: 16px; }
 </style>
 </head>
 <body>
-<div class="device">
-  <div class="vignette"></div>
-  <div class="grain"></div>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-brand"><span>🚘</span> Los Santos Customs</div>
 
-  <!-- ======= BOOT : console hack ======= -->
-  <div id="boot">
-    <div class="console" id="console"></div>
-    <div class="granted" id="granted">
-      <div class="g1">ACCESS GRANTED</div>
-      <div class="g2">BLACK VULTURES MC</div>
-    </div>
-    <div class="hud">
-      <span class="tag">BLACK_VULTURES//INTRUSION</span>
-      <div class="bar"><i id="barfill"></i></div>
-      <span class="cnt" id="cnt">0000 lignes</span>
-      <span class="pct" id="pct">0%</span>
+      <div class="auth-tabs" id="auth-tabs">
+        <button class="active" data-tab="signin">Connexion</button>
+        <button data-tab="signup">Créer un compte</button>
+      </div>
+
+      <form id="form-signin" class="modal-body" style="padding:0;gap:14px;">
+        <div class="field"><label>Identifiant (username ou ID personnage)</label><input class="input" id="si-id" required autocomplete="username" placeholder="raptor" /></div>
+        <div class="field"><label>Mot de passe</label><input class="input" type="password" id="si-password" required autocomplete="current-password" /></div>
+        <div class="field-err" id="si-err"></div>
+        <button class="btn btn-accent btn-block" type="submit" id="si-submit">Se connecter</button>
+        <p class="auth-note">Compte admin de démonstration : <strong>raptor</strong> / <strong>admin</strong> — pense à changer ce mot de passe une fois connecté.</p>
+      </form>
+
+      <form id="form-signup" class="modal-body" style="padding:0;gap:14px;display:none;">
+        <div class="field"><label>Nom complet (RP)</label><input class="input" id="su-name" required placeholder="Ethan Davis Caldwell" /></div>
+        <div class="form-grid">
+          <div class="field"><label>Nom d'utilisateur</label><input class="input" id="su-username" required placeholder="ethan.davis" pattern="[a-zA-Z0-9_.-]{3,20}" title="3 à 20 caractères : lettres, chiffres, . _ -" /></div>
+          <div class="field"><label>ID personnage</label><input class="input" id="su-charid" required placeholder="12345" /></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Téléphone</label><input class="input" id="su-phone" required placeholder="555-0134" pattern="555-.*" title="Doit commencer par 555-" /></div>
+          <div class="field"><label>N° compte bancaire</label><input class="input" id="su-bank" required placeholder="123456" /></div>
+        </div>
+        <div class="field"><label>Mot de passe</label><input class="input" type="password" id="su-password" required minlength="6" autocomplete="new-password" /></div>
+        <div class="field-err" id="su-err"></div>
+        <button class="btn btn-accent btn-block" type="submit" id="su-submit">Créer mon compte</button>
+        <p class="auth-note">Le tout premier compte créé devient automatiquement <strong>Patron</strong> avec tous les accès. Les suivants rejoignent l'entreprise avec le rôle de base <strong>Employé</strong>.</p>
+      </form>
+
+      <div id="finish-setup" style="display:none;" class="modal-body">
+        <p class="auth-note" style="margin-bottom:4px;">Encore une étape pour finaliser ton profil.</p>
+        <div class="field"><label>Nom complet (RP)</label><input class="input" id="fs-name" placeholder="Ethan Davis Caldwell" /></div>
+        <div class="field"><label>Nom d'utilisateur</label><input class="input" id="fs-username" placeholder="ethan.davis" /></div>
+        <div class="field"><label>ID personnage</label><input class="input" id="fs-charid" placeholder="12345" /></div>
+        <div class="field"><label>Téléphone</label><input class="input" id="fs-phone" placeholder="555-0134" /></div>
+        <div class="field"><label>N° compte bancaire</label><input class="input" id="fs-bank" placeholder="123456" /></div>
+        <div class="field-err" id="fs-err"></div>
+        <button class="btn btn-accent btn-block mt-16" id="fs-submit">Finaliser mon profil</button>
+      </div>
+
+      <p class="auth-note" id="config-note"></p>
     </div>
   </div>
 
-  <!-- ======= APP ======= -->
-  <div id="app">
-    <div class="app-head">
-      <div class="patch" id="patch">
-        <img src="https://imgg.fr/r/bDf0pGQR.png" alt="logo">
-        <svg class="fb" width="46" height="46" viewBox="0 0 200 200"><g fill="none" stroke="#ff6a00" stroke-width="6" stroke-linejoin="round"><path d="M100 70 C60 40 24 52 18 70 C40 66 56 74 70 90 C50 96 40 110 42 128 C58 112 78 110 96 120 L100 150 L104 120 C122 110 142 112 158 128 C160 110 150 96 130 90 C144 74 160 66 182 70 C176 52 140 40 100 70 Z"/></g></svg>
-      </div>
-      <div>
-        <div class="club-sm">BLACK <b>VULTURES</b></div>
-        <div class="sub">MC · Bon de commande</div>
-      </div>
-      <div class="badge"><span class="dot"></span>Clubhouse en ligne</div>
-    </div>
-
-    <div class="body">
-      <div>
-        <div class="card">
-          <h2>Matériel disponible</h2>
-          <div id="items"></div>
-        </div>
-        <div class="card" style="margin-top:18px">
-          <h2>Informations client</h2>
-          <div class="field"><label>Nom de groupe <span class="req">*</span></label>
-            <input id="f_groupe" type="text" placeholder="Ex: Los Diablos" maxlength="60"></div>
-          <div class="field"><label>Numéro de téléphone <span class="req">*</span></label>
-            <input id="f_tel" type="text" placeholder="Ex: 555-0123" maxlength="30"></div>
-          <div class="field"><label>Date &amp; heure de livraison souhaitée <span class="req">*</span></label>
-            <input id="f_livr" type="text" placeholder="Ex: Vendredi 21h — Pier 400"></div>
-          <div class="field"><label>Note (autre)</label>
-            <textarea id="f_note" placeholder="Précisions, lieu de remise, demande spéciale…" maxlength="400"></textarea></div>
-        </div>
-      </div>
-      <div>
-        <div class="card readout">
-          <h2>Récapitulatif</h2>
-          <div id="recap"></div>
-          <div class="tot"><span>Total à payer</span><b id="total">0$</b></div>
-          <div class="wline"><span>Poids des composants</span><b id="poids">0.0 kg</b></div>
-          <button class="send" id="send" disabled>Envoyer la commande</button>
-          <div class="note-mini" id="hint">Renseigne au moins 1 article + groupe + téléphone + livraison.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======= OVERLAY ======= -->
-  <div id="ov">
-    <div class="icon" id="ov_icon">🦅</div>
-    <h3 id="ov_title">Commande transmise</h3>
-    <p id="ov_msg"></p>
-    <button id="ov_btn">Nouvelle commande</button>
-  </div>
-</div>
-
-<script>
-const WEBHOOK = "https://discord.com/api/webhooks/1516921523477287072/iKCtoNUkPNg2TQwWk4bnNPUynNuCnohusr49CFZ_igCZIRSTyVY7lkzCAhurCBI9cpRz";
-const LOGO    = "https://imgg.fr/r/bDf0pGQR.png";
-const ROLE_ID = "1516921823965479022";
-
-const ITEMS = [
-  { id:"comp_canon",   nom:"Canon",     prix:850, batch:5, mat:{plastic:1, caoutchouc:1}, craftCost:150, perem:2 },
-  { id:"comp_barrel",  nom:"Tunnel",    prix:850, batch:5, mat:{plastic:1, caoutchouc:1}, craftCost:150, perem:4 },
-  { id:"comp_striker", nom:"Percuteur", prix:700, batch:5, mat:{metal:1,   caoutchouc:1}, craftCost:100, perem:4 },
-];
-const POIDS_MATIERE=0.1, POIDS_COMPOSANT=0.1, CRAFT_MIN=5, TABLES=2, SLOTS_PAR_TABLE=15;
-const SLOTS_TOTAL=TABLES*SLOTS_PAR_TABLE;
-const MAT_LABEL={plastic:"Plastique",metal:"Métal",caoutchouc:"Caoutchouc"};
-const MAT_ICON ={plastic:"🟦",metal:"⬜",caoutchouc:"⚫"};
-
-/* =================== BOOT : console hack =================== */
-(function(){
-  const consoleEl=document.getElementById('console'), barfill=document.getElementById('barfill'),
-        pct=document.getElementById('pct'), cnt=document.getElementById('cnt');
-  const TARGET=520, CAP=150;
-  let count=0, done=false;
-  const pick=a=>a[Math.floor(Math.random()*a.length)];
-  const hex=n=>{let s="";for(let i=0;i<n;i++)s+="0123456789abcdef"[Math.floor(Math.random()*16)];return s;};
-  const ip=()=>(10+(Math.random()*240|0))+"."+(Math.random()*255|0)+"."+(Math.random()*255|0)+"."+(Math.random()*255|0);
-
-  const CMDS=["./vulture_breach --target=clubhouse.db","nmap -sS -p- "+ip(),"hydra -l admin -P rock.txt ssh://"+ip(),
-    "sudo inject ./payload.bin --pid 4471","openssl enc -d -aes-256-cbc -in vault.enc","scp loot.tar "+ip()+":/tmp",
-    "tcpdump -i eth0 -w cap.pcap","python3 exploit.py --rce","gdb -p 9182 --batch","strings core.dump | grep -i key"];
-  const ASM=["mov   eax, [ebp-0x"+hex(2)+"]","xor   ecx, ecx","push  0x"+hex(6),"call  0x"+hex(8),
-    "lea   rdi, [rsp+0x"+hex(2)+"]","cmp   eax, 0x"+hex(2),"jne   0x"+hex(6),"add   rsp, 0x"+hex(2),"syscall","ret"];
-  const NET=["[net] SYN -> "+ip()+":443","[net] ACK <- "+ip(),"GET /admin HTTP/1.1  200 OK","handshake TLS1.3 ok",
-    "[dns] resolve clubhouse.lan","[arp] spoof gateway "+ip(),"pkt 0x"+hex(4)+" forwarded","route +"+ip()+"/24"];
-  const STAT=["firewall rule bypassed","auth token forged","privilege escalated -> root","payload delivered",
-    "hash cracked ("+hex(8)+")","tunnel established","keylogger armed","db dump 0x"+hex(4)+" complete"];
-  const VULT=["[BLACK VULTURES] breaching perimeter…","[BLACK VULTURES] no witnesses.","[BLACK VULTURES] we run this city.",
-    "[BLACK VULTURES] decrypting member roster…","[BLACK VULTURES] wiping logs…"];
-  const DIM=["0x"+hex(8)+":  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2)+"  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2),
-    "....","loading module "+hex(4),"chk "+hex(16),"buf@0x"+hex(6)+" -> 0x"+hex(6)];
-  const MILES={5:"[ 05% ] reconnaissance…",25:"[ 25% ] firewall contourné",50:"[ 50% ] accès base de données",
-    75:"[ 75% ] extraction des stocks",95:"[ 95% ] nettoyage des traces"};
-
-  function makeLine(){
-    const r=Math.random();
-    if(r<0.12) return {t:"root@blackvultures:~# "+pick(CMDS)};
-    if(r<0.30) return {t:"0x"+hex(8)+":  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2)+"  "+hex(2)+" "+hex(2)+" "+hex(2)+" "+hex(2),c:"dim"};
-    if(r<0.48) return {t:"  "+pick(ASM),c:"dim"};
-    if(r<0.64) return {t:pick(NET)};
-    if(r<0.80) return {t:"[ "+pick(["OK","**",">>","✓"])+" ] "+pick(STAT),c:"ok"};
-    if(r<0.90) return {t:pick(VULT),c:"warn"};
-    return {t:pick(DIM),c:"dim"};
-  }
-  function add(obj){
-    const d=document.createElement('div'); d.className='ln'+(obj.c?' '+obj.c:''); d.textContent=obj.t;
-    consoleEl.appendChild(d);
-    while(consoleEl.childElementCount>CAP) consoleEl.removeChild(consoleEl.firstChild);
-  }
-  function step(){
-    if(done) return;
-    const burst=2+(Math.random()*2|0);
-    for(let i=0;i<burst;i++){
-      count++;
-      const p=Math.floor(count/TARGET*100);
-      if(MILES[p]){ add({t:MILES[p],c:'hi'}); }
-      else add(makeLine());
-    }
-    const p=Math.min(100,Math.round(count/TARGET*100));
-    barfill.style.width=p+'%'; pct.textContent=p+'%';
-    cnt.textContent=String(count).padStart(4,'0')+" lignes";
-    if(count>=TARGET){ finish(); return; }
-    setTimeout(step, 13);
-  }
-  function finish(){
-    done=true; barfill.style.width='100%'; pct.textContent='100%';
-    add({t:"root@blackvultures:~# access granted_",c:'ok'});
-    setTimeout(function(){
-      document.getElementById('granted').classList.add('show');
-      setTimeout(function(){
-        const boot=document.getElementById('boot'); boot.style.opacity='0';
-        setTimeout(function(){boot.style.display='none';document.getElementById('app').classList.add('show');},560);
-      },1400);
-    },400);
-  }
-  setTimeout(step, 350);
-})();
-
-/* fallback logo header */
-(function(){const p=document.getElementById('patch');const im=p.querySelector('img');im.addEventListener('error',function(){p.classList.add('nologo');});})();
-
-/* =================== ITEMS UI =================== */
-const itemsEl=document.getElementById('items'); const qty={};
-ITEMS.forEach(function(it){
-  qty[it.id]=0;
-  const row=document.createElement('div'); row.className='item'; row.id='it_'+it.id;
-  row.innerHTML='<div><div class="nm">'+it.nom+' <span class="code">'+it.id+'</span></div>'+
-    '<div class="meta">Prix <b>'+it.prix+'$/u</b> · péremption <b>'+it.perem+'j</b></div></div>'+
-    '<div class="qty"><button data-act="-" data-id="'+it.id+'">−</button>'+
-    '<input type="number" min="0" value="0" data-id="'+it.id+'" inputmode="numeric">'+
-    '<button data-act="+" data-id="'+it.id+'">+</button></div>';
-  itemsEl.appendChild(row);
-});
-itemsEl.addEventListener('click',function(e){
-  const b=e.target.closest('button'); if(!b)return;
-  const id=b.dataset.id, step=b.dataset.act==='+'?1:-1;
-  qty[id]=Math.max(0,qty[id]+step);
-  document.querySelector('input[data-id="'+id+'"]').value=qty[id]; refresh();
-});
-itemsEl.addEventListener('input',function(e){
-  const inp=e.target.closest('input'); if(!inp)return;
-  let v=parseInt(inp.value,10); if(isNaN(v)||v<0)v=0; qty[inp.dataset.id]=v; refresh();
-});
-
-/* =================== CALCUL =================== */
-function compute(){
-  let totalMoney=0,totalCrafts=0,totalComps=0,totalCraftCost=0;
-  const mats={plastic:0,metal:0,caoutchouc:0}; const lignes=[];
-  ITEMS.forEach(function(it){
-    const q=qty[it.id]||0;
-    document.getElementById('it_'+it.id).classList.toggle('active',q>0);
-    if(q<=0)return;
-    const crafts=Math.ceil(q/it.batch);          // jobs de craft (5 max) pour le temps
-    for(const k in it.mat) mats[k]+=it.mat[k]*q;  // 1 matière par composant
-    const coutCraft=it.craftCost*q;               // coût par composant (150$/100$)
-    totalCrafts+=crafts; totalComps+=q; totalMoney+=q*it.prix; totalCraftCost+=coutCraft;
-    lignes.push(Object.assign({},it,{q:q,crafts:crafts,sub:q*it.prix,coutCraft:coutCraft}));
-  });
-  const totalMat=mats.plastic+mats.metal+mats.caoutchouc;
-  const fournees=totalCrafts>0?Math.ceil(totalCrafts/SLOTS_TOTAL):0;
-  const craftMin=fournees*CRAFT_MIN;
-  return {totalMoney,totalCrafts,totalComps,totalCraftCost,gain:totalMoney-totalCraftCost,mats,totalMat,fournees,craftMin,lignes,
-          poidsComp:totalComps*POIDS_COMPOSANT,poidsMat:totalMat*POIDS_MATIERE};
-}
-function fmtTime(m){if(m<=0)return"0 min";if(m<60)return m+" min";const h=Math.floor(m/60),mm=m%60;return mm?h+'h'+String(mm).padStart(2,'0'):h+'h';}
-function eur(n){return n.toLocaleString('fr-FR')+"$";}
-
-/* =================== REFRESH (tablette épurée) =================== */
-function refresh(){
-  const c=compute();
-  const recap=document.getElementById('recap');
-  recap.innerHTML=c.lignes.length===0
-    ? '<div class="line"><span>Aucun article</span><b>—</b></div>'
-    : c.lignes.map(function(l){return '<div class="line acc"><span>'+l.nom+' ×'+l.q+' <span style="color:#6f5c46">('+l.prix+'$)</span></span><b>'+eur(l.sub)+'</b></div>';}).join('');
-  document.getElementById('total').textContent=eur(c.totalMoney);
-  document.getElementById('poids').textContent=c.poidsComp.toFixed(1)+" kg";
-  validate(c);
-}
-function validate(c){
-  const g=val('f_groupe'),t=val('f_tel'),l=val('f_livr');
-  const ok=c.totalComps>0&&g&&t&&l;
-  document.getElementById('send').disabled=!ok;
-  const hint=document.getElementById('hint');
-  if(c.totalComps<=0)hint.textContent="Sélectionne au moins 1 article.";
-  else if(!g)hint.textContent="Renseigne le nom de groupe.";
-  else if(!t)hint.textContent="Renseigne le numéro de téléphone.";
-  else if(!l)hint.textContent="Renseigne la date/heure de livraison.";
-  else hint.textContent="Prêt à envoyer ✓";
-}
-function val(id){return document.getElementById(id).value.trim();}
-['f_groupe','f_tel','f_livr','f_note'].forEach(function(id){document.getElementById(id).addEventListener('input',function(){validate(compute());});});
-
-/* =================== EMBED =================== */
-function buildPayload(c){
-  const detail=c.lignes.map(function(l){return '**'+l.nom+'** ×'+l.q+' — '+l.prix+'$/u → **'+eur(l.sub)+'** · *péremption '+l.perem+'j*';}).join('\n');
-  const matsTxt=Object.entries(c.mats).filter(function(e){return e[1]>0;}).map(function(e){return MAT_ICON[e[0]]+' '+MAT_LABEL[e[0]]+' : **'+e[1]+'**';}).join('\n')||'—';
-  const fields=[
-    {name:"👥 Groupe",value:val('f_groupe')||'—',inline:true},
-    {name:"📞 Téléphone",value:val('f_tel')||'—',inline:true},
-    {name:"🚚 Livraison souhaitée",value:val('f_livr')||'—',inline:false},
-    {name:"📦 Détail de la commande",value:detail,inline:false},
-    {name:"💰 Total à encaisser",value:'**'+eur(c.totalMoney)+'**',inline:true},
-    {name:"💸 Coût de craft (argent sale)",value:eur(c.totalCraftCost),inline:true},
-    {name:"📈 Gain net",value:'**'+eur(c.gain)+'**',inline:true},
-    {name:"🧱 Composants",value:c.totalComps+' · '+c.poidsComp.toFixed(1)+' kg',inline:true},
-    {name:"🧪 Matières nécessaires",value:matsTxt,inline:false},
-    {name:"⚖️ Total matières",value:c.totalMat+' · '+c.poidsMat.toFixed(1)+' kg',inline:true},
-    {name:"⚙️ Crafts",value:c.totalCrafts+' craft(s) — '+c.fournees+' fournée(s)',inline:true},
-    {name:"⏱️ Temps de craft",value:fmtTime(c.craftMin)+'  _('+SLOTS_TOTAL+' crafts/fournée)_',inline:true}
-  ];
-  const note=val('f_note'); if(note)fields.push({name:"📝 Note (autre)",value:note,inline:false});
-  return {
-    content:'<@&'+ROLE_ID+'> 🦅 Nouvelle commande — Black Vultures MC',
-    username:"Black Vultures MC", avatar_url:LOGO,
-    allowed_mentions:{ parse:[], roles:[ROLE_ID] },
-    embeds:[{
-      title:"🦅 NOUVELLE COMMANDE REÇUE", color:0xff6a00, thumbnail:{url:LOGO},
-      author:{name:"BLACK VULTURES MC", icon_url:LOGO},
-      fields, footer:{text:"Black Vultures MC · Bon de commande",icon_url:LOGO},
-      timestamp:new Date().toISOString()
-    }]
-  };
-}
-document.getElementById('send').addEventListener('click',async function(){
-  const c=compute(); const btn=document.getElementById('send');
-  btn.disabled=true; btn.textContent="Transmission…";
-  try{
-    const res=await fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildPayload(c))});
-    if(!res.ok)throw new Error("HTTP "+res.status);
-    showOverlay(true,"Commande transmise","Total : "+eur(c.totalMoney)+" · "+c.totalComps+" composant(s). La commande est partie sur Discord.");
-  }catch(err){
-    showOverlay(false,"Échec de l'envoi","Impossible de joindre le webhook Discord ("+err.message+"). Vérifie la connexion ou le lien du webhook, puis réessaie.");
-  }finally{ btn.textContent="Envoyer la commande"; refresh(); }
-});
-function showOverlay(ok,title,msg){
-  const ov=document.getElementById('ov'); ov.className=ok?'show ok':'show err';
-  document.getElementById('ov_icon').textContent=ok?'🦅':'⚠️';
-  document.getElementById('ov_title').textContent=title;
-  document.getElementById('ov_msg').textContent=msg;
-}
-document.getElementById('ov_btn').addEventListener('click',function(){
-  if(document.getElementById('ov').classList.contains('ok')){
-    ITEMS.forEach(function(it){qty[it.id]=0;document.querySelector('input[data-id="'+it.id+'"]').value=0;});
-    ['f_groupe','f_tel','f_livr','f_note'].forEach(function(id){document.getElementById(id).value='';});
-  }
-  document.getElementById('ov').className=''; refresh();
-});
-refresh();
-</script>
+  <script type="module" src="assets/js/pages/login.js"></script>
 </body>
 </html>

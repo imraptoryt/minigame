@@ -1,0 +1,135 @@
+/* ==========================================================================
+   LOS SANTOS CUSTOMS — Compta
+   Design tokens. Everything themeable lives here as CSS custom properties.
+   JS (theme.js) toggles [data-theme] and [data-accent] on <html>.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+:root {
+  /* ---- type ------------------------------------------------------------ */
+  --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---- radius / spacing / motion ---------------------------------------- */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(16,16,20,.04), 0 1px 1px rgba(16,16,20,.03);
+  --shadow-md: 0 8px 24px rgba(16,16,20,.08), 0 2px 6px rgba(16,16,20,.04);
+  --ease: cubic-bezier(.4,0,.2,1);
+  --dur: .18s;
+
+  /* ---- base surfaces (light) --------------------------------------------- */
+  --c-bg: #F5F5F7;
+  --c-surface: #FFFFFF;
+  --c-surface-2: #FAFAFB;
+  --c-surface-hover: #F0F0F3;
+  --c-border: #E4E4E9;
+  --c-border-strong: #D3D3DA;
+  --c-text: #17171C;
+  --c-text-muted: #74747E;
+  --c-text-faint: #A3A3AD;
+
+  --c-sidebar-bg: #121214;
+  --c-sidebar-text: #A3A3AD;
+  --c-sidebar-text-active: #FFFFFF;
+  --c-sidebar-hover: #1E1E22;
+  --c-sidebar-border: #232327;
+
+  --c-danger: #DC2626;
+  --c-danger-soft: #FEE2E2;
+  --c-warning: #D97706;
+  --c-warning-soft: #FEF3C7;
+  --c-success: #16A34A;
+  --c-success-soft: #DCFCE7;
+}
+
+/* ---- dark mode ----------------------------------------------------------- */
+html[data-theme="dark"] {
+  --c-bg: #0B0B0D;
+  --c-surface: #17171B;
+  --c-surface-2: #1C1C21;
+  --c-surface-hover: #222228;
+  --c-border: #29292F;
+  --c-border-strong: #35353C;
+  --c-text: #F2F2F5;
+  --c-text-muted: #9C9CA6;
+  --c-text-faint: #6C6C76;
+
+  --c-sidebar-bg: #000000;
+  --c-sidebar-hover: #17171B;
+  --c-sidebar-border: #1C1C21;
+
+  --c-danger-soft: #3A1518;
+  --c-warning-soft: #3A2A10;
+  --c-success-soft: #0F2C1B;
+}
+
+/* ---- accent presets -------------------------------------------------------
+   Pick one at a time via html[data-accent="..."]. Each defines the trio
+   accent / accent-soft (tint, for badges) / accent-contrast (text on accent).
+   -------------------------------------------------------------------------- */
+html, html[data-accent="green"] {
+  --c-accent: #16A34A;
+  --c-accent-hover: #15803D;
+  --c-accent-soft: #DCFCE7;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-accent="blue"] {
+  --c-accent: #2563EB;
+  --c-accent-hover: #1D4ED8;
+  --c-accent-soft: #DBEAFE;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-accent="purple"] {
+  --c-accent: #7C3AED;
+  --c-accent-hover: #6D28D9;
+  --c-accent-soft: #EDE4FF;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-accent="orange"] {
+  --c-accent: #EA580C;
+  --c-accent-hover: #C2410C;
+  --c-accent-soft: #FFE7D6;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-accent="red"] {
+  --c-accent: #DC2626;
+  --c-accent-hover: #B91C1C;
+  --c-accent-soft: #FEE2E2;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-accent="teal"] {
+  --c-accent: #0D9488;
+  --c-accent-hover: #0F766E;
+  --c-accent-soft: #CCFBF1;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-accent="pink"] {
+  --c-accent: #DB2777;
+  --c-accent-hover: #BE185D;
+  --c-accent-soft: #FCE7F3;
+  --c-accent-contrast: #FFFFFF;
+}
+html[data-theme="dark"] { --c-accent-soft: color-mix(in srgb, var(--c-accent) 22%, transparent); }
+
+/* ---- radius presets (Paramètres lets people pick "carré / doux / rond") -- */
+html[data-radius="sharp"] { --radius: 6px; --radius-lg: 10px; }
+html[data-radius="soft"]  { --radius: 14px; --radius-lg: 20px; }
+html[data-radius="round"] { --radius: 20px; --radius-lg: 28px; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  background: var(--c-bg);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+::selection { background: var(--c-accent); color: var(--c-accent-contrast); }
+:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

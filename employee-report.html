@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bilan employé — Los Santos Customs</title>
+<link rel="icon" href="data:,">
+<script>(function(){try{var t=JSON.parse(localStorage.getItem('lsc_theme'))||{};document.documentElement.setAttribute('data-theme',t.mode==='dark'?'dark':'light');document.documentElement.setAttribute('data-accent',t.accent||'green');document.documentElement.setAttribute('data-radius',t.radius||'soft');}catch(e){}})();</script>
+<script src="assets/js/config.js"></script>
+<link rel="stylesheet" href="assets/css/theme.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div class="shell">
+    <div id="sidebar-root"></div>
+    <div class="main">
+      <div id="topbar-root"></div>
+      <div class="content">
+
+        <div class="page-head">
+          <div><h1>Bilan employé</h1><div class="sub">Ta performance personnelle</div></div>
+        </div>
+
+        <div class="stat-grid" id="bilan-stats"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title-row"><h3>Historique de paie</h3></div>
+            <div class="table-wrap" id="payroll-table" style="padding:0 20px 20px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title-row"><h3>Dernières ventes</h3></div>
+            <div class="table-wrap" id="sales-table" style="padding:0 20px 20px;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/pages/employee-report.js"></script>
+</body>
+</html>

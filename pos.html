@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Point de vente — Los Santos Customs</title>
+<link rel="icon" href="data:,">
+<script>(function(){try{var t=JSON.parse(localStorage.getItem('lsc_theme'))||{};document.documentElement.setAttribute('data-theme',t.mode==='dark'?'dark':'light');document.documentElement.setAttribute('data-accent',t.accent||'green');document.documentElement.setAttribute('data-radius',t.radius||'soft');}catch(e){}})();</script>
+<script src="assets/js/config.js"></script>
+<link rel="stylesheet" href="assets/css/theme.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div class="shell">
+    <div id="sidebar-root"></div>
+    <div class="main">
+      <div id="topbar-root"></div>
+      <div class="content">
+
+        <div class="page-head">
+          <div><h1>Point de vente</h1><div class="sub">Los Santos Customs</div></div>
+        </div>
+
+        <div class="tabs" id="cat-tabs"></div>
+
+        <div class="pos-layout mt-16">
+          <div>
+            <div class="pos-toolbar">
+              <div class="search" style="max-width:320px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.3-4.3"/></svg><input id="product-search" placeholder="Rechercher un produit..." /></div>
+            </div>
+            <div id="product-zone"></div>
+          </div>
+
+          <div class="card" style="position:sticky;top:80px;">
+            <div class="card-title-row"><div><h3>Panier</h3><div class="sub" id="cart-sub">Nouvelle commande</div></div></div>
+            <div style="padding:14px 20px;">
+              <div class="form-grid one" style="margin-bottom:14px;">
+                <div class="field"><label>Plaque</label><input class="input" id="plate-input" placeholder="ENTRER LA PLAQUE" style="text-transform:uppercase" /></div>
+                <div class="field"><label>Partenaire</label>
+                  <select class="input" id="partner-select"><option value="">Aucun partenaire</option></select>
+                </div>
+              </div>
+              <div id="cart-lines"><div class="empty-state" style="padding:26px 10px;"><div class="icon">🛒</div><p>Le panier est vide</p></div></div>
+            </div>
+            <div class="kv-list" style="border-top:1px solid var(--c-border);">
+              <div class="kv-row"><span class="k">Commission :</span><span class="v" id="cart-commission">$0.00</span></div>
+              <div class="kv-row"><span class="k">Prix usine :</span><span class="v" id="cart-cost">$0.00</span></div>
+              <div class="kv-row total"><span class="k">Total :</span><span class="v" id="cart-total">$0</span></div>
+            </div>
+            <div style="padding:0 20px 20px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button class="btn btn-outline" id="clear-cart">Vider le panier</button>
+              <button class="btn btn-primary" id="save-cart">Enregistrer</button>
+              <button class="btn btn-outline" id="discount-btn">Réduction</button>
+              <button class="btn btn-outline" id="markup-btn">Majoration</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/pages/pos.js"></script>
+</body>
+</html>
