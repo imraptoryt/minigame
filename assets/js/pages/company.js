@@ -203,8 +203,8 @@ function bankModal() {
 }
 
 // ---- Paramètres (entreprise + thème + catalogue) ------------------------------
-const ACCENT_COLORS = { green: "#16A34A", blue: "#2563EB", purple: "#7C3AED", orange: "#EA580C", red: "#DC2626", teal: "#0D9488", pink: "#DB2777" };
-const ACCENT_LABELS = { green: "Vert", blue: "Bleu", purple: "Violet", orange: "Orange", red: "Rouge", teal: "Turquoise", pink: "Rose" };
+const ACCENT_COLORS = { or: "#F0B90B", green: "#16A34A", blue: "#2563EB", purple: "#7C3AED", orange: "#EA580C", red: "#DC2626", teal: "#0D9488", pink: "#DB2777" };
+const ACCENT_LABELS = { or: "Or", green: "Vert", blue: "Bleu", purple: "Violet", orange: "Orange", red: "Rouge", teal: "Turquoise", pink: "Rose" };
 
 async function renderSettings() {
   $("#tab-sub").textContent = "Informations, thème et catalogue";

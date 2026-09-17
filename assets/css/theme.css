@@ -32,11 +32,11 @@
   --c-text-muted: #74747E;
   --c-text-faint: #A3A3AD;
 
-  --c-sidebar-bg: #121214;
+  --c-sidebar-bg: #10102E;
   --c-sidebar-text: #A3A3AD;
   --c-sidebar-text-active: #FFFFFF;
-  --c-sidebar-hover: #1E1E22;
-  --c-sidebar-border: #232327;
+  --c-sidebar-hover: #1B1B45;
+  --c-sidebar-border: #23234F;
 
   --c-danger: #DC2626;
   --c-danger-soft: #FEE2E2;
@@ -58,9 +58,9 @@ html[data-theme="dark"] {
   --c-text-muted: #9C9CA6;
   --c-text-faint: #6C6C76;
 
-  --c-sidebar-bg: #000000;
-  --c-sidebar-hover: #17171B;
-  --c-sidebar-border: #1C1C21;
+  --c-sidebar-bg: #05051A;
+  --c-sidebar-hover: #14143A;
+  --c-sidebar-border: #1A1A42;
 
   --c-danger-soft: #3A1518;
   --c-warning-soft: #3A2A10;
@@ -71,7 +71,13 @@ html[data-theme="dark"] {
    Pick one at a time via html[data-accent="..."]. Each defines the trio
    accent / accent-soft (tint, for badges) / accent-contrast (text on accent).
    -------------------------------------------------------------------------- */
-html, html[data-accent="green"] {
+html, html[data-accent="or"] {
+  --c-accent: #F0B90B;
+  --c-accent-hover: #D9A400;
+  --c-accent-soft: #FDF0C6;
+  --c-accent-contrast: #151538;
+}
+html[data-accent="green"] {
   --c-accent: #16A34A;
   --c-accent-hover: #15803D;
   --c-accent-soft: #DCFCE7;

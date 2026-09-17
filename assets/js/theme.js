@@ -1,7 +1,7 @@
 // ============================================================================
 // Theme engine. Three independent axes, each a CSS attribute on <html>:
 //   data-theme  : "light" | "dark"
-//   data-accent : "green" | "blue" | "purple" | "orange" | "red" | "teal" | "pink"
+//   data-accent : "or" | "green" | "blue" | "purple" | "orange" | "red" | "teal" | "pink"
 //   data-radius : "sharp" | "soft" | "round"
 // Persisted to localStorage immediately (instant, per-device) and mirrored to
 // companies.theme so a fresh login on another device picks up the shop's
@@ -10,7 +10,7 @@
 
 const KEY = "lsc_theme";
 
-export const ACCENTS = ["green", "blue", "purple", "orange", "red", "teal", "pink"];
+export const ACCENTS = ["or", "green", "blue", "purple", "orange", "red", "teal", "pink"];
 export const RADII = [
   { key: "sharp", label: "Carré" },
   { key: "soft", label: "Doux" },
@@ -19,14 +19,14 @@ export const RADII = [
 
 export function getTheme() {
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || { mode: "light", accent: "green", radius: "soft" };
-  } catch { return { mode: "light", accent: "green", radius: "soft" }; }
+    return JSON.parse(localStorage.getItem(KEY)) || { mode: "light", accent: "or", radius: "soft" };
+  } catch { return { mode: "light", accent: "or", radius: "soft" }; }
 }
 
 export function applyTheme(theme) {
   const t = { ...getTheme(), ...theme };
   document.documentElement.setAttribute("data-theme", t.mode === "dark" ? "dark" : "light");
-  document.documentElement.setAttribute("data-accent", t.accent || "green");
+  document.documentElement.setAttribute("data-accent", t.accent || "or");
   document.documentElement.setAttribute("data-radius", t.radius || "soft");
   localStorage.setItem(KEY, JSON.stringify(t));
   return t;

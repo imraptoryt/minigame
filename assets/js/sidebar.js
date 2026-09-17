@@ -1,53 +1,43 @@
 import { supabase } from "./supabaseClient.js";
-import { $, $$, el, ICONS, toast, openModal, closeModal } from "./ui.js";
+import { $, $$, el, ICONS, toast, relTime, escapeHtml, openModal, closeModal } from "./ui.js";
 import { getTheme, applyTheme, toggleMode, setAccent, setRadius, ACCENTS, RADII, saveCompanyTheme } from "./theme.js";
 import { signOut, changePassword } from "./auth.js";
+
+const ACCENT_COLOR_MAP = { or: "#F0B90B", green: "#16A34A", blue: "#2563EB", purple: "#7C3AED", orange: "#EA580C", red: "#DC2626", teal: "#0D9488", pink: "#DB2777" };
 
 const NAV = [
   { group: "Dashboard", items: [
     { href: "dashboard.html", label: "Accueil", icon: "home", perm: "dashboard.view" },
     { href: "pos.html", label: "Point de vente", icon: "cart", perm: "pos.access" },
-    { href: "sales.html?tab=mine", match: "sales.html", label: "Mes ventes", icon: "trending", perm: "sales.view_own" },
     { href: "employee-report.html", label: "Bilan employé", icon: "bars", perm: "sales.view_bilan_employe" },
   ]},
   { group: "Comptabilité", items: [
-    { href: "accounting.html?tab=bilan", match: "accounting.html", label: "Bilan", icon: "pie", perm: "accounting.view_bilan" },
-    { href: "sales.html?tab=all", match: "sales.html", label: "Ventes", icon: "dollar", perm: "accounting.view_ventes" },
-    { href: "sales.html?tab=byproduct", match: "sales.html", label: "Ventes par produit", icon: "bars", perm: "accounting.view_ventes_par_produit" },
-    { href: "accounting.html?tab=client", match: "accounting.html", label: "Facturation client", icon: "fileText", perm: "accounting.manage_facturation_client" },
-    { href: "accounting.html?tab=payable", match: "accounting.html", label: "Factures à payer", icon: "file", perm: "accounting.manage_factures_a_payer" },
-    { href: "accounting.html?tab=salaries", match: "accounting.html", label: "Salaires", icon: "handshake", perm: "accounting.manage_salaires" },
-    { href: "accounting.html?tab=charges", match: "accounting.html", label: "Charges", icon: "list", perm: "accounting.manage_charges" },
+    { href: "sales.html", label: "Ventes", icon: "dollar", perms: ["sales.view_own", "accounting.view_ventes", "accounting.view_ventes_par_produit"] },
+    { href: "accounting.html", label: "Bilan", icon: "pie", perms: ["accounting.view_bilan", "accounting.manage_facturation_client", "accounting.manage_factures_a_payer", "accounting.manage_salaires", "accounting.manage_charges"] },
   ]},
   { group: "Ressources humaines", items: [
-    { href: "hr.html?tab=list", match: "hr.html", label: "Liste du personnel", icon: "users", perm: "hr.view_personnel" },
-    { href: "hr.html?tab=archive", match: "hr.html", label: "Archives du personnel", icon: "archive", perm: "hr.view_archives" },
-    { href: "hr.html?tab=recruitment", match: "hr.html", label: "Recrutement", icon: "briefcase", perm: "hr.manage_recrutement" },
-    { href: "hr.html?tab=services", match: "hr.html", label: "Services", icon: "clock", perm: "hr.manage_services" },
-    { href: "announcements.html", label: "Adverts", icon: "megaphone", perm: "announcements.view" },
+    { href: "hr.html", label: "Personnel", icon: "users", perms: ["hr.view_personnel", "hr.view_archives", "hr.manage_recrutement", "hr.manage_services"] },
+    { href: "announcements.html", label: "Annonces", icon: "megaphone", perm: "announcements.view" },
   ]},
   { group: "Mon entreprise", items: [
     { href: "roles.html", label: "Gestion des rôles", icon: "shield", perm: "company.manage_roles" },
-    { href: "company.html?tab=inventory", match: "company.html", label: "Inventaire & Production", icon: "box", perm: "company.manage_inventory" },
-    { href: "company.html?tab=partners", match: "company.html", label: "Gestion partenaires", icon: "handshake", perm: "company.manage_partners" },
-    { href: "company.html?tab=bank", match: "company.html", label: "Compte bancaire", icon: "bank", perm: "company.manage_bank" },
-    { href: "company.html?tab=settings", match: "company.html", label: "Paramètres", icon: "settings", perm: "company.manage_settings" },
+    { href: "company.html", label: "Entreprise", icon: "settings", perms: ["company.manage_inventory", "company.manage_partners", "company.manage_bank", "company.manage_settings"] },
   ]},
 ];
 
-export function mountShell({ session, defaultTab = "" }) {
+function canAccess(session, it) {
+  return it.perms ? it.perms.some((p) => session.can(p)) : session.can(it.perm);
+}
+
+export function mountShell({ session }) {
   const path = location.pathname.split("/").pop() || "dashboard.html";
-  const currentTab = new URLSearchParams(location.search).get("tab") || defaultTab;
 
   const navHtml = NAV.map((g) => `
     <div class="nav-group-label">${g.group}</div>
     ${g.items.map((it) => {
-      const has = session.can(it.perm);
-      const [hrefPath, hrefQuery] = it.href.split("?");
-      const targetFile = it.match || hrefPath;
-      const targetTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
-      const isActive = targetFile === path && (!targetTab || targetTab === currentTab);
-      return `<a class="nav-item${isActive ? " active" : ""}${has ? "" : " locked"}" href="${has ? it.href : "#"}" title="${has ? "" : "Permission requise: " + it.perm}">
+      const has = canAccess(session, it);
+      const isActive = it.href.split("?")[0] === path;
+      return `<a class="nav-item${isActive ? " active" : ""}${has ? "" : " locked"}" href="${has ? it.href : "#"}" title="${has ? "" : "Permission requise"}">
         ${ICONS[it.icon] || ""}<span>${it.label}</span>
       </a>`;
     }).join("")}
@@ -55,7 +45,7 @@ export function mountShell({ session, defaultTab = "" }) {
 
   const sidebar = el(`
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-brand"><span class="logo">${session.company?.logo_emoji || "🚘"}</span> ${session.company?.name || "Los Santos Customs"}</div>
+      <div class="sidebar-brand"><img class="brand-logo" src="assets/img/logo.webp" alt="" /> ${session.company?.name || "Los Santos Customs"}</div>
       <div class="sidebar-actions">
         <button class="btn-clock" id="clock-btn">${ICONS.play} Prise de service</button>
         <button class="btn-ghost-dark" id="announce-btn">${ICONS.megaphone} Menu annonces</button>
@@ -86,13 +76,10 @@ export function mountShell({ session, defaultTab = "" }) {
 
   $("#sidebar-root").replaceWith(sidebar);
 
-  // accent swatches
   const row = $("#accent-row", sidebar);
   ACCENTS.forEach((a) => {
-    const sw = el(`<button class="swatch${getTheme().accent === a ? " active" : ""}" style="--sw:var(--c-accent);" data-accent="${a}"></button>`);
-    // resolve real color for the dot regardless of current active accent
-    const colorMap = { green: "#16A34A", blue: "#2563EB", purple: "#7C3AED", orange: "#EA580C", red: "#DC2626", teal: "#0D9488", pink: "#DB2777" };
-    sw.style.setProperty("--sw", colorMap[a]);
+    const sw = el(`<button class="swatch${getTheme().accent === a ? " active" : ""}" data-accent="${a}"></button>`);
+    sw.style.setProperty("--sw", ACCENT_COLOR_MAP[a]);
     sw.addEventListener("click", () => {
       setAccent(a);
       $$(".swatch", row).forEach((s) => s.classList.toggle("active", s.dataset.accent === a));
@@ -103,7 +90,6 @@ export function mountShell({ session, defaultTab = "" }) {
 
   $("#pm-theme-toggle", sidebar).addEventListener("click", () => {
     const t = toggleMode();
-    $("#pm-theme-toggle span", sidebar).textContent = `Mode ${t.mode === "dark" ? "clair" : "sombre"}`;
     $("#pm-theme-toggle", sidebar).innerHTML = (t.mode === "dark" ? ICONS.sun : ICONS.moon) + `<span style="flex:1">Mode ${t.mode === "dark" ? "clair" : "sombre"}</span>`;
     maybeSyncTheme(session);
   });
@@ -123,7 +109,6 @@ export function mountShell({ session, defaultTab = "" }) {
 
   setupClock(sidebar, session);
 
-  // mobile toggle (topbar wires a hamburger to #sidebar .open)
   return sidebar;
 }
 
@@ -133,7 +118,10 @@ export function mountTopbar({ session, onSearch = null } = {}) {
       <button class="icon-btn" id="mobile-toggle" style="display:none">${ICONS.list}</button>
       <div class="search">${ICONS.search}<input id="global-search" placeholder="Rechercher..." /></div>
       <div class="topbar-spacer"></div>
-      <a class="icon-btn" href="announcements.html" title="Annonces">${ICONS.bell}</a>
+      <div style="position:relative;">
+        <button class="icon-btn" id="bell-btn" title="Annonces">${ICONS.bell}</button>
+        <div class="notif-menu" id="notif-menu"></div>
+      </div>
     </header>
   `);
   $("#topbar-root").replaceWith(bar);
@@ -143,7 +131,31 @@ export function mountTopbar({ session, onSearch = null } = {}) {
   function checkWidth() { $("#mobile-toggle", bar).style.display = window.innerWidth <= 860 ? "flex" : "none"; }
   checkWidth();
   window.addEventListener("resize", checkWidth);
+
+  if (session) setupNotifBell(bar, session);
+
   return bar;
+}
+
+function setupNotifBell(bar, session) {
+  const btn = $("#bell-btn", bar);
+  const menu = $("#notif-menu", bar);
+  btn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const open = menu.classList.toggle("open");
+    if (!open || menu.dataset.loaded) return;
+    menu.innerHTML = `<div style="padding:14px;font-size:12.5px;color:var(--c-text-faint);">Chargement...</div>`;
+    const { data } = await supabase.from("announcements").select("title, created_at")
+      .eq("company_id", session.company.id).order("created_at", { ascending: false }).limit(5);
+    menu.dataset.loaded = "1";
+    if (!data?.length) {
+      menu.innerHTML = `<div style="padding:14px;font-size:12.5px;color:var(--c-text-faint);">Aucune annonce.</div>`;
+      return;
+    }
+    menu.innerHTML = data.map((a) => `<div class="notif-item"><div class="nt">${escapeHtml(a.title)}</div><div class="nd">${relTime(a.created_at)}</div></div>`).join("")
+      + `<a href="announcements.html" class="notif-footer">Voir toutes les annonces</a>`;
+  });
+  document.addEventListener("click", () => menu.classList.remove("open"));
 }
 
 async function maybeSyncTheme(session) {
@@ -195,8 +207,8 @@ function changePasswordModal() {
   openModal({
     title: "Changer mon mot de passe",
     bodyHtml: `
-      <div class="field"><label>Nouveau mot de passe</label><input class="input" id="cp-new" type="password" minlength="6" autocomplete="new-password" /></div>
-      <div class="field"><label>Confirmer</label><input class="input" id="cp-confirm" type="password" minlength="6" autocomplete="new-password" /></div>
+      <div class="field"><label>Nouveau mot de passe</label><input class="input" id="cp-new" type="password" autocomplete="new-password" /></div>
+      <div class="field"><label>Confirmer</label><input class="input" id="cp-confirm" type="password" autocomplete="new-password" /></div>
     `,
     footHtml: `<button class="btn btn-outline" data-close-modal>Annuler</button><button class="btn btn-accent" id="cp-save">Enregistrer</button>`,
     onMount: (m) => {
