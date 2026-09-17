@@ -107,10 +107,13 @@ create table if not exists products (
   id            uuid primary key default uuid_generate_v4(),
   company_id    uuid not null references companies(id) on delete cascade,
   category_id   uuid not null references product_categories(id) on delete cascade,
-  sub_category  text,                 -- e.g. 'Apparence' / 'Performance' inside Customs
+  sub_category  text,                 -- e.g. 'Apparence' / 'Performance' inside Customs — a tag from product_tags
   name          text not null,
-  price         numeric(12,2) not null default 0,
-  cost_price    numeric(12,2) not null default 0,   -- "prix usine"
+  price         numeric(12,2) not null default 0,      -- 0 = gratuit / pas de prix
+  cost_price    numeric(12,2) not null default 0,       -- "prix usine", 0 = aucun
+  tax_rate      numeric(5,2) not null default 0,         -- % du prix qui part en charge/impôt société, 0 = aucun
+  direct_payout boolean not null default true,           -- l'employé touche le prix directement (en jeu) :
+                                                           -- compte dans son chiffre d'affaires, PAS dans son salaire à verser
   image_emoji   text default '🔧',
   active        boolean not null default true,
   position      int not null default 0
@@ -118,38 +121,64 @@ create table if not exists products (
 create index if not exists idx_products_company on products(company_id);
 create index if not exists idx_products_category on products(category_id);
 
+-- Manageable tags used as `sub_category` — create/rename/delete independently of products.
+create table if not exists product_tags (
+  id          uuid primary key default uuid_generate_v4(),
+  company_id  uuid not null references companies(id) on delete cascade,
+  category_id uuid not null references product_categories(id) on delete cascade,
+  label       text not null
+);
+create index if not exists idx_product_tags_category on product_tags(category_id);
+
 create table if not exists partners (
   id              uuid primary key default uuid_generate_v4(),
   company_id      uuid not null references companies(id) on delete cascade,
   name            text not null,
-  commission_rate numeric(5,2) not null default 0,  -- percent
+  commission_rate numeric(5,2) not null default 0,  -- percent, 0 = aucune commission
   active          boolean not null default true
 );
 
 create table if not exists sales (
-  id            uuid primary key default uuid_generate_v4(),
-  company_id    uuid not null references companies(id) on delete cascade,
-  employee_id   uuid references profiles(id),
-  partner_id    uuid references partners(id),
-  plate         text,
-  subtotal      numeric(12,2) not null default 0,
-  adjustment    numeric(12,2) not null default 0,   -- +markup / -discount
-  commission    numeric(12,2) not null default 0,
-  cost_total    numeric(12,2) not null default 0,   -- "prix usine" total
-  total         numeric(12,2) not null default 0,
-  created_at    timestamptz not null default now()
+  id             uuid primary key default uuid_generate_v4(),
+  company_id     uuid not null references companies(id) on delete cascade,
+  employee_id    uuid references employees(id),
+  partner_id     uuid references partners(id),
+  plate          text,
+  subtotal       numeric(12,2) not null default 0,
+  adjustment     numeric(12,2) not null default 0,   -- +markup / -discount, 0 = aucun
+  commission     numeric(12,2) not null default 0,   -- 0 = aucune
+  cost_total     numeric(12,2) not null default 0,   -- "prix usine" total
+  tax_total      numeric(12,2) not null default 0,   -- part impôts/charges auto (produits taxés)
+  payable_total  numeric(12,2) not null default 0,   -- part qui reste DUE à l'employé en salaire
+                                                       -- (exclut les produits en "paiement direct")
+  total          numeric(12,2) not null default 0,
+  created_at     timestamptz not null default now()
 );
 create index if not exists idx_sales_company_date on sales(company_id, created_at);
 
 create table if not exists sale_items (
-  id           uuid primary key default uuid_generate_v4(),
-  sale_id      uuid not null references sales(id) on delete cascade,
-  product_id   uuid references products(id),
-  name_snap    text not null,
-  price_snap   numeric(12,2) not null,
-  cost_snap    numeric(12,2) not null default 0,
-  qty          int not null default 1
+  id             uuid primary key default uuid_generate_v4(),
+  sale_id        uuid not null references sales(id) on delete cascade,
+  product_id     uuid references products(id),
+  name_snap      text not null,
+  price_snap     numeric(12,2) not null,
+  cost_snap      numeric(12,2) not null default 0,
+  tax_rate_snap  numeric(5,2) not null default 0,
+  direct_payout_snap boolean not null default true,
+  qty            int not null default 1
 );
+
+-- Safety net for databases where these tables already existed before this
+-- update (adds any missing column and fixes sales.employee_id, which used
+-- to point at the wrong table). Safe to re-run.
+alter table products add column if not exists tax_rate numeric(5,2) not null default 0;
+alter table products add column if not exists direct_payout boolean not null default true;
+alter table sales add column if not exists tax_total numeric(12,2) not null default 0;
+alter table sales add column if not exists payable_total numeric(12,2) not null default 0;
+alter table sale_items add column if not exists tax_rate_snap numeric(5,2) not null default 0;
+alter table sale_items add column if not exists direct_payout_snap boolean not null default true;
+alter table sales drop constraint if exists sales_employee_id_fkey;
+alter table sales add constraint sales_employee_id_fkey foreign key (employee_id) references employees(id);
 
 -- ----------------------------------------------------------------------------
 -- 6. RESSOURCES HUMAINES
@@ -353,6 +382,7 @@ alter table role_permissions enable row level security;
 alter table user_roles enable row level security;
 alter table user_permission_overrides enable row level security;
 alter table product_categories enable row level security;
+alter table product_tags enable row level security;
 alter table products enable row level security;
 alter table partners enable row level security;
 alter table sales enable row level security;
@@ -369,121 +399,172 @@ alter table inventory_items enable row level security;
 alter table announcements enable row level security;
 
 -- Read: anyone belonging to the company can read. Permissions catalogue is global-read.
+drop policy if exists "read own company" on companies;
 create policy "read own company" on companies for select using (id = current_company_id());
+drop policy if exists "read own company profiles" on profiles;
 create policy "read own company profiles" on profiles for select using (company_id = current_company_id());
+drop policy if exists "read permissions" on permissions;
 create policy "read permissions" on permissions for select using (true);
+drop policy if exists "read own company roles" on roles;
 create policy "read own company roles" on roles for select using (company_id = current_company_id());
+drop policy if exists "read role_permissions" on role_permissions;
 create policy "read role_permissions" on role_permissions for select using (
   role_id in (select id from roles where company_id = current_company_id()));
+drop policy if exists "read user_roles" on user_roles;
 create policy "read user_roles" on user_roles for select using (
   user_id in (select id from profiles where company_id = current_company_id()));
+drop policy if exists "read overrides" on user_permission_overrides;
 create policy "read overrides" on user_permission_overrides for select using (
   user_id in (select id from profiles where company_id = current_company_id()));
 
+drop policy if exists "read categories" on product_categories;
 create policy "read categories" on product_categories for select using (company_id = current_company_id());
+drop policy if exists "read tags" on product_tags;
+create policy "read tags" on product_tags for select using (company_id = current_company_id());
+drop policy if exists "read products" on products;
 create policy "read products" on products for select using (company_id = current_company_id());
+drop policy if exists "read partners" on partners;
 create policy "read partners" on partners for select using (company_id = current_company_id());
+drop policy if exists "read sales" on sales;
 create policy "read sales" on sales for select using (company_id = current_company_id());
+drop policy if exists "read sale_items" on sale_items;
 create policy "read sale_items" on sale_items for select using (
   sale_id in (select id from sales where company_id = current_company_id()));
+drop policy if exists "read employees" on employees;
 create policy "read employees" on employees for select using (company_id = current_company_id());
+drop policy if exists "read shifts" on shifts;
 create policy "read shifts" on shifts for select using (company_id = current_company_id());
+drop policy if exists "read recruitment" on recruitment_applications;
 create policy "read recruitment" on recruitment_applications for select using (company_id = current_company_id());
+drop policy if exists "read payroll" on payroll_entries;
 create policy "read payroll" on payroll_entries for select using (
   company_id = current_company_id() and
   (has_permission(auth.uid(), 'accounting.manage_salaires') or employee_id = current_employee_id())
 );
+drop policy if exists "read charges" on charges;
 create policy "read charges" on charges for select using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_charges'));
+drop policy if exists "read client_invoices" on client_invoices;
 create policy "read client_invoices" on client_invoices for select using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_facturation_client'));
+drop policy if exists "read payable_invoices" on payable_invoices;
 create policy "read payable_invoices" on payable_invoices for select using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_factures_a_payer'));
+drop policy if exists "read bank" on bank_transactions;
 create policy "read bank" on bank_transactions for select using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_bank'));
+drop policy if exists "read inventory" on inventory_items;
 create policy "read inventory" on inventory_items for select using (company_id = current_company_id());
+drop policy if exists "read announcements" on announcements;
 create policy "read announcements" on announcements for select using (company_id = current_company_id());
 
 -- Write: gated by has_permission() against the matching permission key.
+drop policy if exists "write roles" on roles;
 create policy "write roles" on roles for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_roles')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_roles'));
 
+drop policy if exists "write role_permissions" on role_permissions;
 create policy "write role_permissions" on role_permissions for all using (
   has_permission(auth.uid(), 'company.manage_roles')
 ) with check (has_permission(auth.uid(), 'company.manage_roles'));
 
+drop policy if exists "write user_roles" on user_roles;
 create policy "write user_roles" on user_roles for all using (
   has_permission(auth.uid(), 'company.manage_roles')
 ) with check (has_permission(auth.uid(), 'company.manage_roles'));
 
+drop policy if exists "write overrides" on user_permission_overrides;
 create policy "write overrides" on user_permission_overrides for all using (
   has_permission(auth.uid(), 'company.manage_roles')
 ) with check (has_permission(auth.uid(), 'company.manage_roles'));
 
+drop policy if exists "write products" on products;
 create policy "write products" on products for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings'));
 
+drop policy if exists "write categories" on product_categories;
 create policy "write categories" on product_categories for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings'));
 
+drop policy if exists "write tags" on product_tags;
+create policy "write tags" on product_tags for all using (
+  company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings')
+) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings'));
+
+drop policy if exists "write partners" on partners;
 create policy "write partners" on partners for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_partners')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_partners'));
 
+drop policy if exists "write sales" on sales;
 create policy "write sales" on sales for insert with check (
   company_id = current_company_id() and has_permission(auth.uid(), 'pos.access')
 );
+drop policy if exists "write sale_items" on sale_items;
 create policy "write sale_items" on sale_items for insert with check (
   sale_id in (select id from sales where company_id = current_company_id())
 );
 
+drop policy if exists "write employees" on employees;
 create policy "write employees" on employees for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'hr.manage_personnel')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'hr.manage_personnel'));
 
+drop policy if exists "write shifts" on shifts;
 create policy "write shifts" on shifts for all using (company_id = current_company_id())
   with check (company_id = current_company_id());
 
+drop policy if exists "write recruitment" on recruitment_applications;
 create policy "write recruitment" on recruitment_applications for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'hr.manage_recrutement')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'hr.manage_recrutement'));
 
+drop policy if exists "write payroll" on payroll_entries;
 create policy "write payroll" on payroll_entries for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_salaires')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_salaires'));
 
+drop policy if exists "write charges" on charges;
 create policy "write charges" on charges for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_charges')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_charges'));
 
+drop policy if exists "write client_invoices" on client_invoices;
 create policy "write client_invoices" on client_invoices for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_facturation_client')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_facturation_client'));
 
+drop policy if exists "write payable_invoices" on payable_invoices;
 create policy "write payable_invoices" on payable_invoices for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_factures_a_payer')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'accounting.manage_factures_a_payer'));
 
+drop policy if exists "write bank" on bank_transactions;
 create policy "write bank" on bank_transactions for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_bank')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_bank'));
 
+drop policy if exists "write inventory" on inventory_items;
 create policy "write inventory" on inventory_items for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_inventory')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_inventory'));
 
+drop policy if exists "write announcements" on announcements;
 create policy "write announcements" on announcements for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'announcements.publish')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'announcements.publish'));
 
+drop policy if exists "write own company" on companies;
 create policy "write own company" on companies for update using (
   id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings')
 );
 
+drop policy if exists "write own profile" on profiles;
 create policy "write own profile" on profiles for update using (id = auth.uid());
+drop policy if exists "insert own profile" on profiles;
 create policy "insert own profile" on profiles for insert with check (id = auth.uid());
 
 -- ============================================================================

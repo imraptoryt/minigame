@@ -14,18 +14,20 @@ mountTopbar({ session });
 
   const [{ data: allSales }, { data: weekSales }, { data: payroll }] = await Promise.all([
     supabase.from("sales").select("total").eq("employee_id", empId),
-    supabase.from("sales").select("total, created_at").eq("employee_id", empId).gte("created_at", weekStart.toISOString()),
+    supabase.from("sales").select("total, payable_total, created_at").eq("employee_id", empId).gte("created_at", weekStart.toISOString()),
     supabase.from("payroll_entries").select("*").eq("employee_id", empId).order("week_number", { ascending: false }).limit(10),
   ]);
 
   const allRevenue = (allSales || []).reduce((s, r) => s + Number(r.total), 0);
   const weekRevenue = (weekSales || []).reduce((s, r) => s + Number(r.total), 0);
+  const weekDue = (weekSales || []).reduce((s, r) => s + Number(r.payable_total || 0), 0);
 
   const stats = [
     { icon: "cart", label: "Ventes cette semaine", value: String((weekSales || []).length) },
     { icon: "dollar", label: "CA cette semaine", value: formatMoney(weekRevenue) },
     { icon: "trending", label: "CA total (all-time)", value: formatMoney(allRevenue) },
     { icon: "clock", label: "Heures totales", value: Number(session.employee.hours_worked || 0).toFixed(1) + " h" },
+    { icon: "handshake", label: "Encore dû en salaire", value: formatMoney(weekDue) },
   ];
   $("#bilan-stats").innerHTML = "";
   stats.forEach((s) => $("#bilan-stats").appendChild(el(`

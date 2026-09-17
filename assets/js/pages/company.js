@@ -310,13 +310,15 @@ async function renderCatalogue() {
           </div>
         </div>
         ${items.length ? `<div class="table-wrap"><table class="data">
-          <thead><tr><th>Nom</th><th>Sous-cat.</th><th class="num">Prix</th><th class="num">Prix usine</th><th>Actif</th><th></th></tr></thead>
+          <thead><tr><th>Nom</th><th>Sous-cat.</th><th class="num">Prix</th><th class="num">Prix usine</th><th>Salaire</th><th class="num">Taxe</th><th>Actif</th><th></th></tr></thead>
           <tbody>${items.map((p) => `
             <tr>
               <td>${p.image_emoji || ""} ${escapeHtml(p.name)}</td>
               <td class="faint">${escapeHtml(p.sub_category || "—")}</td>
               <td class="num">${formatMoney(p.price)}</td>
               <td class="num">${formatMoney(p.cost_price)}</td>
+              <td>${p.direct_payout === false ? `<span class="badge badge-warning">À verser</span>` : `<span class="badge badge-neutral">Direct</span>`}</td>
+              <td class="num">${Number(p.tax_rate) > 0 ? p.tax_rate + "%" : "—"}</td>
               <td>${p.active ? `<span class="badge badge-success">Oui</span>` : `<span class="badge badge-neutral">Non</span>`}</td>
               <td style="text-align:right;white-space:nowrap;">
                 <button class="icon-btn btn-icon-only" data-editprod="${p.id}" style="width:28px;height:28px;">✎</button>
@@ -378,11 +380,16 @@ function productModal(prod, defaultCatId, cats) {
       <div class="field"><label>Nom</label><input class="input" id="pr-name" value="${prod ? escapeHtml(prod.name) : ""}" /></div>
       <div class="field"><label>Sous-catégorie (optionnel)</label><input class="input" id="pr-sub" value="${prod ? escapeHtml(prod.sub_category || "") : ""}" placeholder="Apparence, Performance..." /></div>
       <div class="form-grid">
-        <div class="field"><label>Prix ($)</label><input class="input" id="pr-price" type="number" step="0.01" value="${prod ? prod.price : 0}" /></div>
-        <div class="field"><label>Prix usine ($)</label><input class="input" id="pr-cost" type="number" step="0.01" value="${prod ? prod.cost_price : 0}" /></div>
+        <div class="field"><label>Prix ($, 0 = gratuit)</label><input class="input" id="pr-price" type="number" step="0.01" value="${prod ? prod.price : 0}" /></div>
+        <div class="field"><label>Prix usine ($, 0 = aucun)</label><input class="input" id="pr-cost" type="number" step="0.01" value="${prod ? prod.cost_price : 0}" /></div>
         <div class="field"><label>Icône (emoji)</label><input class="input" id="pr-emoji" value="${prod ? prod.image_emoji || "🔧" : "🔧"}" /></div>
         <div class="field"><label>Actif</label><select class="input" id="pr-active"><option value="1" ${!prod || prod.active ? "selected" : ""}>Oui</option><option value="0" ${prod && !prod.active ? "selected" : ""}>Non</option></select></div>
       </div>
+      <div class="field"><label>Taux de taxe / charge société (%, 0 = aucune)</label><input class="input" id="pr-tax" type="number" step="0.1" min="0" max="100" value="${prod ? prod.tax_rate : 0}" /></div>
+      <label class="flex-center" style="font-size:13px;font-weight:600;">
+        <input type="checkbox" id="pr-direct" ${!prod || prod.direct_payout !== false ? "checked" : ""}/>
+        Paiement direct à l'employé (compte dans son chiffre d'affaires, pas dans son salaire à verser)
+      </label>
     `,
     footHtml: `<button class="btn btn-outline" data-close-modal>Annuler</button><button class="btn btn-accent" id="pr-save">Enregistrer</button>`,
     onMount: (m) => {
@@ -392,6 +399,7 @@ function productModal(prod, defaultCatId, cats) {
           sub_category: $("#pr-sub", m).value.trim() || null,
           price: Number($("#pr-price", m).value) || 0, cost_price: Number($("#pr-cost", m).value) || 0,
           image_emoji: $("#pr-emoji", m).value.trim() || "🔧", active: $("#pr-active", m).value === "1",
+          tax_rate: Number($("#pr-tax", m).value) || 0, direct_payout: $("#pr-direct", m).checked,
         };
         if (!payload.name) return toast("Nom requis", "error");
         const { error } = prod

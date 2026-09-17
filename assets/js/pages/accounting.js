@@ -41,25 +41,26 @@ function emptyState(icon, title, sub) { return `<div class="card"><div class="em
 async function renderBilan() {
   $("#tab-sub").textContent = "Vue d'ensemble financière";
   const [{ data: sales }, { data: charges }, { data: payroll }, { data: client }, { data: payable }] = await Promise.all([
-    supabase.from("sales").select("total").eq("company_id", session.company.id),
+    supabase.from("sales").select("total,tax_total").eq("company_id", session.company.id),
     supabase.from("charges").select("amount,paid").eq("company_id", session.company.id),
     supabase.from("payroll_entries").select("salaire_brut,paid").eq("company_id", session.company.id),
     supabase.from("client_invoices").select("amount,status").eq("company_id", session.company.id),
     supabase.from("payable_invoices").select("amount,status").eq("company_id", session.company.id),
   ]);
   const revenue = sum(sales, "total");
+  const taxTotal = sum(sales, "tax_total");
   const chargesTotal = sum(charges, "amount");
   const salariesTotal = sum(payroll, "salaire_brut");
   const clientDue = sum((client || []).filter((c) => c.status !== "paid"), "amount");
   const payableDue = sum((payable || []).filter((c) => c.status !== "paid"), "amount");
-  const net = revenue - chargesTotal - salariesTotal;
+  const net = revenue - chargesTotal - salariesTotal - taxTotal;
 
   $("#acc-body").innerHTML = `
     <div class="stat-grid">
       ${statCard("Chiffre d'affaires total", formatMoney(revenue), "var(--c-success)")}
       ${statCard("Charges", formatMoney(chargesTotal), "var(--c-danger)")}
       ${statCard("Salaires", formatMoney(salariesTotal), "var(--c-danger)")}
-      ${statCard("À encaisser (clients)", formatMoney(clientDue), "var(--c-warning)")}
+      ${statCard("Taxes (auto, ventes)", formatMoney(taxTotal), "var(--c-warning)")}
       ${statCard("Résultat net", formatMoney(net), net >= 0 ? "var(--c-success)" : "var(--c-danger)")}
     </div>
     <div class="card card-pad">
@@ -67,7 +68,9 @@ async function renderBilan() {
       <div class="kv-row"><span class="k">Chiffre d'affaires</span><span class="v" style="color:var(--c-success)">+${formatMoney(revenue)}</span></div>
       <div class="kv-row"><span class="k">Charges</span><span class="v" style="color:var(--c-danger)">−${formatMoney(chargesTotal)}</span></div>
       <div class="kv-row"><span class="k">Salaires</span><span class="v" style="color:var(--c-danger)">−${formatMoney(salariesTotal)}</span></div>
+      <div class="kv-row"><span class="k">Taxes (calculées automatiquement sur les ventes taxées)</span><span class="v" style="color:var(--c-danger)">−${formatMoney(taxTotal)}</span></div>
       <div class="kv-row"><span class="k">Factures à payer (en attente)</span><span class="v" style="color:var(--c-danger)">−${formatMoney(payableDue)}</span></div>
+      <div class="kv-row"><span class="k">À encaisser (clients, en attente)</span><span class="v" style="color:var(--c-warning)">${formatMoney(clientDue)}</span></div>
       <div class="kv-row total"><span class="k">Résultat net</span><span class="v">${formatMoney(net)}</span></div>
     </div>
   `;
@@ -191,16 +194,31 @@ async function salaryModal() {
     title: "Nouvelle fiche de paie",
     bodyHtml: `
       <div class="field"><label>Employé</label><select class="input" id="sa-emp">${(employees || []).map((e) => `<option value="${e.id}">${escapeHtml(e.full_name)}</option>`).join("")}</select></div>
-      <div class="field"><label>Semaine</label><input class="input" id="sa-week" type="number" value="${isoWeek()}" /></div>
+      <div class="form-grid">
+        <div class="field"><label>Semaine</label><input class="input" id="sa-week" type="number" value="${isoWeek()}" /></div>
+        <div class="field" style="justify-content:flex-end;"><button class="btn btn-outline btn-sm" id="sa-calc" type="button">↻ Calculer depuis les ventes</button></div>
+      </div>
       <div class="form-grid">
         <div class="field"><label>Chiffre d'affaires</label><input class="input" id="sa-ca" type="number" step="0.01" value="0" /></div>
-        <div class="field"><label>Avances</label><input class="input" id="sa-av" type="number" step="0.01" value="0" /></div>
-        <div class="field"><label>Primes</label><input class="input" id="sa-pr" type="number" step="0.01" value="0" /></div>
-        <div class="field"><label>Salaire brut</label><input class="input" id="sa-brut" type="number" step="0.01" value="0" /></div>
+        <div class="field"><label>Avances (0 = aucune)</label><input class="input" id="sa-av" type="number" step="0.01" value="0" /></div>
+        <div class="field"><label>Primes (0 = aucune)</label><input class="input" id="sa-pr" type="number" step="0.01" value="0" /></div>
+        <div class="field"><label>Salaire brut à verser</label><input class="input" id="sa-brut" type="number" step="0.01" value="0" /></div>
       </div>
+      <p class="faint" style="font-size:11.5px;">"Calculer depuis les ventes" remplit le CA avec le total des ventes de la semaine, et le salaire brut avec seulement la part qui n'a <strong>pas</strong> été payée directement à l'employé (produits marqués "à verser").</p>
     `,
     footHtml: `<button class="btn btn-outline" data-close-modal>Annuler</button><button class="btn btn-accent" id="sa-save">Créer</button>`,
     onMount: (m) => {
+      $("#sa-calc", m).addEventListener("click", async () => {
+        const empId = $("#sa-emp", m).value;
+        const week = Number($("#sa-week", m).value) || isoWeek();
+        if (!empId) return;
+        const { start, end } = isoWeekToDates(week, new Date().getFullYear());
+        const { data: empSales } = await supabase.from("sales").select("total,payable_total")
+          .eq("employee_id", empId).gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+        $("#sa-ca", m).value = sum(empSales, "total").toFixed(2);
+        $("#sa-brut", m).value = sum(empSales, "payable_total").toFixed(2);
+        toast("Calculé depuis les ventes de cette semaine");
+      });
       $("#sa-save", m).addEventListener("click", async () => {
         if (!employees?.length) return toast("Ajoute d'abord un employé", "error");
         const { error } = await supabase.from("payroll_entries").insert({
@@ -222,6 +240,17 @@ function isoWeek() {
   const dayNum = date.getUTCDay() || 7; date.setUTCDate(date.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+function isoWeekToDates(week, year) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
+  const start = new Date(week1Monday);
+  start.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 7);
+  return { start, end };
 }
 
 // ---- Charges -----------------------------------------------------------------

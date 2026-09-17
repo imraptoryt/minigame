@@ -115,18 +115,38 @@ peuvent servir indifféremment à se connecter.
 ## Le point de vente
 
 - Les onglets (Services / Ventes / Customs / Peinture, ...) viennent de la
-  table `product_categories` — ajoute, renomme ou supprime des catégories
-  et des produits depuis **Mon entreprise ▸ Paramètres ▸ Catalogue
-  produits**. Utilise les clés `services`, `ventes`, `customs`, `peinture`
-  si tu veux que les permissions dédiées (`pos.services`, `pos.customs`,
-  ...) s'appliquent ; toute autre clé reste visible à qui a l'accès général
-  au Point de vente.
-- Chaque produit a un **Prix** (facturé au client) et un **Prix usine**
-  (son coût, affiché séparément dans le panier — comme dans tes captures).
+  table `product_categories`. Quiconque a la permission "Gérer les
+  paramètres" voit un bouton **✎ Éditer** directement dans le Point de
+  vente : il permet d'ajouter/modifier/supprimer les produits de l'onglet
+  ouvert, et de gérer les **étiquettes** (sous-catégories, ex. "Apparence" /
+  "Performance") — renommer une étiquette met à jour tous les produits qui
+  l'utilisent. La même chose reste aussi disponible depuis **Mon
+  entreprise ▸ Paramètres ▸ Catalogue produits**.
+- Chaque produit a : **Prix** (facturé au client, 0 = gratuit), **Prix
+  usine** (son coût, 0 = aucun), un **Taux de taxe** (%, 0 = aucune) et un
+  interrupteur **Paiement direct à l'employé**.
 - Un **partenaire** appliqué au panier calcule automatiquement une
   **commission** (%) affichée à part.
 - **Réduction** / **Majoration** ouvrent une petite fenêtre pour appliquer
-  un pourcentage ou un montant fixe au total.
+  un pourcentage ou un montant fixe au total (0 = aucune).
+
+### Chiffre d'affaires vs salaire
+
+Quand un produit est marqué **"Paiement direct à l'employé"** (coché par
+défaut — ex. une Carrosserie à $50 que le jeu paie directement au joueur),
+sa vente :
+- compte normalement dans le **chiffre d'affaires** (Bilan, dashboard,
+  Ventes par produit) ;
+- compte aussi dans les **taxes** si le produit a un taux de taxe fixé ;
+- mais ne rajoute **rien** au salaire à verser — l'employé a déjà été payé.
+
+Si tu décoches "Paiement direct", le montant reste dû par l'entreprise et
+s'additionne dans la fiche de paie de l'employé. Dans **Comptabilité ▸
+Salaires ▸ Nouvelle fiche de paie**, le bouton **↻ Calculer depuis les
+ventes** remplit automatiquement le chiffre d'affaires (toutes les ventes
+de la semaine) et le salaire brut (seulement la part encore due) pour
+l'employé et la semaine choisis — à ajuster ensuite si besoin (primes,
+avances...).
 
 ## Structure du projet
 
