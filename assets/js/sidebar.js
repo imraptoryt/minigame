@@ -166,7 +166,7 @@ async function maybeSyncTheme(session) {
 
 async function setupClock(sidebar, session) {
   const btn = $("#clock-btn", sidebar);
-  if (!session.employee) { btn.disabled = true; return; }
+  if (!session.employee) { btn.disabled = true; btn.title = "Profil employé introuvable — reconnecte-toi ou contacte un admin"; return; }
   const { data: open } = await supabase
     .from("shifts").select("*")
     .eq("employee_id", session.employee.id).is("clock_out", null)

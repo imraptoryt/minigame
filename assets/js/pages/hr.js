@@ -57,8 +57,8 @@ async function renderList() {
         <td>${formatDate(e.hire_date)}</td>
         <td class="num">${Number(e.hours_worked || 0).toFixed(1)} h</td>
         ${canManage ? `<td style="text-align:right;white-space:nowrap;">
-          <button class="icon-btn btn-icon-only" data-edit="${e.id}" style="width:30px;height:30px;">✎</button>
-          <button class="icon-btn btn-icon-only" data-archive="${e.id}" style="width:30px;height:30px;">🗄️</button>
+          <button class="btn btn-sm btn-outline" data-edit="${e.id}">Modifier</button>
+          <button class="btn btn-sm btn-outline" data-archive="${e.id}">Archiver</button>
         </td>` : ""}
       </tr>
     `).join("")}</tbody>
@@ -134,7 +134,7 @@ async function renderRecruitment() {
         <td><select class="input" data-status="${a.id}" style="width:140px;padding:6px 8px;font-size:12.5px;">
           ${Object.entries(STATUS_LABEL).map(([k, l]) => `<option value="${k}" ${a.status === k ? "selected" : ""}>${l}</option>`).join("")}
         </select></td>
-        <td style="text-align:right;"><button class="icon-btn btn-icon-only" data-del="${a.id}" style="width:30px;height:30px;">✕</button></td>
+        <td style="text-align:right;"><button class="btn btn-sm btn-danger" data-del="${a.id}">Supprimer</button></td>
       </tr>
     `).join("")}</tbody>
   </table></div></div>`;

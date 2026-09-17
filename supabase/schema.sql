@@ -15,7 +15,18 @@ create table if not exists companies (
   name          text not null default 'Los Santos Customs',
   logo_emoji    text not null default '🚘',
   theme         jsonb not null default '{"mode":"dark-sidebar","accent":"green","radius":"14"}'::jsonb,
+  weekly_quota  numeric(12,2) not null default 0,   -- objectif de CA hebdo par employé, 0 = aucun quota
   created_at    timestamptz not null default now()
+);
+alter table companies add column if not exists weekly_quota numeric(12,2) not null default 0;
+
+-- Reusable, repeatable bonus amounts (recruitment bonus, ranking bonus...)
+-- picked from a list rather than retyped every time in a payroll entry.
+create table if not exists bonus_templates (
+  id          uuid primary key default uuid_generate_v4(),
+  company_id  uuid not null references companies(id) on delete cascade,
+  label       text not null,
+  amount      numeric(12,2) not null default 0
 );
 
 -- ----------------------------------------------------------------------------
@@ -348,6 +359,44 @@ as $$
   select id from employees where profile_id = auth.uid() limit 1;
 $$;
 
+-- Self-heal: some accounts (created via manual SQL, or from an older version
+-- of this app) can end up without a matching `employees` row, which breaks
+-- clocking in/out and sale attribution. Any signed-in user can call this to
+-- fix their OWN row only — it can never touch anyone else's.
+create or replace function public.ensure_my_employee_row()
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_profile profiles%rowtype;
+  v_role_name text;
+begin
+  select id into v_id from employees where profile_id = auth.uid() limit 1;
+  if v_id is not null then
+    return v_id;
+  end if;
+
+  select * into v_profile from profiles where id = auth.uid();
+  if v_profile.id is null then
+    return null;
+  end if;
+
+  select r.name into v_role_name
+    from user_roles ur join roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+    order by r.priority desc limit 1;
+
+  insert into employees (company_id, profile_id, full_name, grade, status)
+    values (v_profile.company_id, auth.uid(), v_profile.full_name, coalesce(v_role_name, 'Employé'), 'active')
+    returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
 -- Resolve a login identifier (username OR char_id) to the synthetic email
 -- used internally by Supabase Auth. Must be callable by signed-OUT visitors
 -- (that's the whole point — it runs before login), so it's granted to
@@ -383,6 +432,7 @@ alter table user_roles enable row level security;
 alter table user_permission_overrides enable row level security;
 alter table product_categories enable row level security;
 alter table product_tags enable row level security;
+alter table bonus_templates enable row level security;
 alter table products enable row level security;
 alter table partners enable row level security;
 alter table sales enable row level security;
@@ -421,6 +471,8 @@ drop policy if exists "read categories" on product_categories;
 create policy "read categories" on product_categories for select using (company_id = current_company_id());
 drop policy if exists "read tags" on product_tags;
 create policy "read tags" on product_tags for select using (company_id = current_company_id());
+drop policy if exists "read bonus_templates" on bonus_templates;
+create policy "read bonus_templates" on bonus_templates for select using (company_id = current_company_id());
 drop policy if exists "read products" on products;
 create policy "read products" on products for select using (company_id = current_company_id());
 drop policy if exists "read partners" on partners;
@@ -491,6 +543,11 @@ create policy "write categories" on product_categories for all using (
 
 drop policy if exists "write tags" on product_tags;
 create policy "write tags" on product_tags for all using (
+  company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings')
+) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings'));
+
+drop policy if exists "write bonus_templates" on bonus_templates;
+create policy "write bonus_templates" on bonus_templates for all using (
   company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings')
 ) with check (company_id = current_company_id() and has_permission(auth.uid(), 'company.manage_settings'));
 
@@ -746,6 +803,7 @@ grant execute on function public.seed_starter_catalogue(uuid) to authenticated;
 grant execute on function public.has_permission(uuid, text) to authenticated;
 grant execute on function public.current_company_id() to authenticated;
 grant execute on function public.current_employee_id() to authenticated;
+grant execute on function public.ensure_my_employee_row() to authenticated;
 grant execute on function public.resolve_login_email(text) to anon, authenticated;
 
 -- ============================================================================

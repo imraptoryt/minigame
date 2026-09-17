@@ -102,7 +102,7 @@ async function renderInvoices(table, nameField, nameLabel) {
         <td>${statusBadge(r.status)}</td>
         <td style="text-align:right;white-space:nowrap;">
           ${r.status !== "paid" ? `<button class="btn btn-sm btn-outline" data-pay="${r.id}">Marquer payée</button>` : ""}
-          <button class="icon-btn btn-icon-only" data-del="${r.id}" style="width:30px;height:30px;">✕</button>
+          <button class="btn btn-sm btn-danger" data-del="${r.id}">Supprimer</button>
         </td>
       </tr>
     `).join("")}</tbody>
@@ -156,13 +156,60 @@ async function renderSalaries() {
   $("#tab-sub").textContent = "Paie hebdomadaire par employé";
   $("#add-btn").style.display = "inline-flex"; $("#add-btn").onclick = () => salaryModal();
 
-  const { data } = await supabase.from("payroll_entries").select("*, employees(full_name)").eq("company_id", session.company.id).order("week_number", { ascending: false });
-  const body = $("#acc-body");
-  if (!data?.length) { body.innerHTML = emptyState("💰", "Aucune paie", "Ajoute une fiche de paie hebdomadaire."); return; }
+  const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - (weekStart.getDay() || 7) + 1);
 
-  body.innerHTML = `<div class="card"><div class="table-wrap"><table class="data">
+  const [{ data: payroll }, { data: employees }, { data: weekSales }, { data: allSales }] = await Promise.all([
+    supabase.from("payroll_entries").select("*, employees(full_name)").eq("company_id", session.company.id).order("week_number", { ascending: false }),
+    supabase.from("employees").select("id,full_name,grade,hours_worked,profiles(bank_number,phone)").eq("company_id", session.company.id).eq("status", "active").order("full_name"),
+    supabase.from("sales").select("employee_id,total,payable_total").eq("company_id", session.company.id).gte("created_at", weekStart.toISOString()),
+    supabase.from("sales").select("employee_id,total,payable_total").eq("company_id", session.company.id),
+  ]);
+
+  const body = $("#acc-body");
+  const quota = Number(session.company?.weekly_quota || 0);
+
+  const byEmpWeek = {}, byEmpAll = {};
+  (weekSales || []).forEach((s) => {
+    const e = (byEmpWeek[s.employee_id] ||= { ca: 0, due: 0 });
+    e.ca += Number(s.total); e.due += Number(s.payable_total || 0);
+  });
+  (allSales || []).forEach((s) => {
+    const e = (byEmpAll[s.employee_id] ||= { ca: 0, due: 0 });
+    e.ca += Number(s.total); e.due += Number(s.payable_total || 0);
+  });
+
+  const overviewHtml = (employees || []).length ? `<div class="card mb-16"><div class="card-title-row"><div><h3>Aperçu par employé</h3><div class="sub">Chiffre d'affaires généré cette semaine${quota > 0 ? ` — quota : ${formatMoney(quota)} (en rouge si en dessous)` : ""}</div></div></div>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>Employé</th><th>Grade</th><th>Compte bancaire</th><th>Téléphone</th><th class="num">CA cette semaine</th>${quota > 0 ? '<th>Quota</th>' : ""}<th class="num">Dû en salaire (semaine)</th><th class="num">CA total</th><th class="num">Total reçu direct</th></tr></thead>
+      <tbody>${employees.map((e) => {
+        const w = byEmpWeek[e.id] || { ca: 0, due: 0 };
+        const all = byEmpAll[e.id] || { ca: 0, due: 0 };
+        const receivedDirect = all.ca - all.due;
+        const pct = quota > 0 ? Math.min(100, (w.ca / quota) * 100) : 0;
+        const belowQuota = quota > 0 && w.ca < quota;
+        return `<tr${belowQuota ? ' style="background:var(--c-danger-soft);"' : ""}>
+          <td><strong${belowQuota ? ' style="color:var(--c-danger);"' : ""}>${escapeHtml(e.full_name)}</strong></td>
+          <td class="faint">${escapeHtml(e.grade)}</td>
+          <td class="mono">${escapeHtml(e.profiles?.bank_number || "—")}</td>
+          <td class="mono faint">${escapeHtml(e.profiles?.phone || "—")}</td>
+          <td class="num"${belowQuota ? ' style="color:var(--c-danger);font-weight:700;"' : ""}>${formatMoney(w.ca)}</td>
+          ${quota > 0 ? `<td style="min-width:110px;"><div style="background:var(--c-surface-2);border-radius:6px;height:8px;overflow:hidden;"><div style="width:${pct}%;background:${belowQuota ? "var(--c-danger)" : "var(--c-success)"};height:100%;"></div></div></td>` : ""}
+          <td class="num">${formatMoney(w.due)}</td>
+          <td class="num faint">${formatMoney(all.ca)}</td>
+          <td class="num faint">${formatMoney(receivedDirect)}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>
+  </div>` : "";
+
+  if (!payroll?.length) {
+    body.innerHTML = overviewHtml + emptyState("💰", "Aucune fiche de paie", "Ajoute une fiche de paie hebdomadaire.");
+    return;
+  }
+
+  body.innerHTML = overviewHtml + `<div class="card"><div class="table-wrap"><table class="data">
     <thead><tr><th>Employé</th><th>Semaine</th><th class="num">CA</th><th class="num">Avances</th><th class="num">Primes</th><th class="num">Brut</th><th>Statut</th><th></th></tr></thead>
-    <tbody>${data.map((p) => `
+    <tbody>${payroll.map((p) => `
       <tr>
         <td><strong>${escapeHtml(p.employees?.full_name || "—")}</strong></td>
         <td class="mono">S${p.week_number}</td>
@@ -173,7 +220,7 @@ async function renderSalaries() {
         <td>${p.paid ? `<span class="badge badge-success">Versé</span>` : `<span class="badge badge-warning">Dû</span>`}</td>
         <td style="text-align:right;white-space:nowrap;">
           ${!p.paid ? `<button class="btn btn-sm btn-outline" data-pay="${p.id}">Marquer versé</button>` : ""}
-          <button class="icon-btn btn-icon-only" data-del="${p.id}" style="width:30px;height:30px;">✕</button>
+          <button class="btn btn-sm btn-danger" data-del="${p.id}">Supprimer</button>
         </td>
       </tr>
     `).join("")}</tbody>
@@ -189,7 +236,10 @@ async function renderSalaries() {
   })));
 }
 async function salaryModal() {
-  const { data: employees } = await supabase.from("employees").select("id,full_name").eq("company_id", session.company.id).eq("status", "active").order("full_name");
+  const [{ data: employees }, { data: bonuses }] = await Promise.all([
+    supabase.from("employees").select("id,full_name").eq("company_id", session.company.id).eq("status", "active").order("full_name"),
+    supabase.from("bonus_templates").select("*").eq("company_id", session.company.id).order("label"),
+  ]);
   openModal({
     title: "Nouvelle fiche de paie",
     bodyHtml: `
@@ -204,6 +254,14 @@ async function salaryModal() {
         <div class="field"><label>Primes (0 = aucune)</label><input class="input" id="sa-pr" type="number" step="0.01" value="0" /></div>
         <div class="field"><label>Salaire brut à verser</label><input class="input" id="sa-brut" type="number" step="0.01" value="0" /></div>
       </div>
+      ${bonuses?.length ? `
+        <div class="field"><label>Prime récurrente</label>
+          <div style="display:flex;gap:8px;">
+            <select class="input" id="sa-bonus-pick">${bonuses.map((b) => `<option value="${b.amount}">${escapeHtml(b.label)} (${formatMoney(b.amount)})</option>`).join("")}</select>
+            <button class="btn btn-outline btn-sm" id="sa-bonus-add" type="button">＋ Ajouter</button>
+          </div>
+        </div>
+      ` : ""}
       <p class="faint" style="font-size:11.5px;">"Calculer depuis les ventes" remplit le CA avec le total des ventes de la semaine, et le salaire brut avec seulement la part qui n'a <strong>pas</strong> été payée directement à l'employé (produits marqués "à verser").</p>
     `,
     footHtml: `<button class="btn btn-outline" data-close-modal>Annuler</button><button class="btn btn-accent" id="sa-save">Créer</button>`,
@@ -218,6 +276,11 @@ async function salaryModal() {
         $("#sa-ca", m).value = sum(empSales, "total").toFixed(2);
         $("#sa-brut", m).value = sum(empSales, "payable_total").toFixed(2);
         toast("Calculé depuis les ventes de cette semaine");
+      });
+      $("#sa-bonus-add", m)?.addEventListener("click", () => {
+        const amount = Number($("#sa-bonus-pick", m).value) || 0;
+        $("#sa-pr", m).value = (Number($("#sa-pr", m).value) || 0) + amount;
+        $("#sa-brut", m).value = (Number($("#sa-brut", m).value) || 0) + amount;
       });
       $("#sa-save", m).addEventListener("click", async () => {
         if (!employees?.length) return toast("Ajoute d'abord un employé", "error");
@@ -273,7 +336,7 @@ async function renderCharges() {
         <td>${c.paid ? `<span class="badge badge-success">Payée</span>` : `<span class="badge badge-warning">En attente</span>`}</td>
         <td style="text-align:right;white-space:nowrap;">
           ${!c.paid ? `<button class="btn btn-sm btn-outline" data-pay="${c.id}">Marquer payée</button>` : ""}
-          <button class="icon-btn btn-icon-only" data-del="${c.id}" style="width:30px;height:30px;">✕</button>
+          <button class="btn btn-sm btn-danger" data-del="${c.id}">Supprimer</button>
         </td>
       </tr>
     `).join("")}</tbody>

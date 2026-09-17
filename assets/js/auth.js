@@ -30,6 +30,18 @@ export async function loadSession({ force = false } = {}) {
     supabase.from("employees").select("*").eq("profile_id", uid).maybeSingle(),
   ]);
 
+  // Self-heal: some accounts can end up without a matching `employees` row
+  // (created via manual SQL, or from an older version of the app), which
+  // silently breaks clocking in/out and sale attribution. Fix it once here.
+  let employeeRow = employee;
+  if (!employeeRow) {
+    const { data: newId } = await supabase.rpc("ensure_my_employee_row");
+    if (newId) {
+      const { data: refetched } = await supabase.from("employees").select("*").eq("id", newId).maybeSingle();
+      employeeRow = refetched || null;
+    }
+  }
+
   const roles = (userRoles || []).map((r) => r.roles).filter(Boolean).sort((a, b) => b.priority - a.priority);
   const roleIds = roles.map((r) => r.id);
 
@@ -51,7 +63,7 @@ export async function loadSession({ force = false } = {}) {
     profile,
     company,
     roles,
-    employee,
+    employee: employeeRow,
     permissionSet: granted,
     can: (key) => granted.has(key),
   };

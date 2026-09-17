@@ -54,8 +54,8 @@ async function renderInventory() {
         <td class="faint">${escapeHtml(i.unit)}</td>
         <td class="num">${i.production_rate}</td>
         <td style="text-align:right;white-space:nowrap;">
-          <button class="icon-btn btn-icon-only" data-edit="${i.id}" style="width:30px;height:30px;">✎</button>
-          <button class="icon-btn btn-icon-only" data-del="${i.id}" style="width:30px;height:30px;">✕</button>
+          <button class="btn btn-sm btn-outline" data-edit="${i.id}">Modifier</button>
+          <button class="btn btn-sm btn-danger" data-del="${i.id}">Supprimer</button>
         </td>
       </tr>
     `).join("")}</tbody>
@@ -115,8 +115,8 @@ async function renderPartners() {
         <td class="num">${p.commission_rate}%</td>
         <td>${p.active ? `<span class="badge badge-success">Actif</span>` : `<span class="badge badge-neutral">Inactif</span>`}</td>
         <td style="text-align:right;white-space:nowrap;">
-          <button class="icon-btn btn-icon-only" data-edit="${p.id}" style="width:30px;height:30px;">✎</button>
-          <button class="icon-btn btn-icon-only" data-del="${p.id}" style="width:30px;height:30px;">✕</button>
+          <button class="btn btn-sm btn-outline" data-edit="${p.id}">Modifier</button>
+          <button class="btn btn-sm btn-danger" data-del="${p.id}">Supprimer</button>
         </td>
       </tr>
     `).join("")}</tbody>
@@ -218,6 +218,8 @@ async function renderSettings() {
         <div class="field"><label>Nom de l'entreprise</label><input class="input" id="cf-name" value="${escapeHtml(session.company.name)}" /></div>
         <div class="field"><label>Logo (emoji)</label><input class="input" id="cf-logo" value="${escapeHtml(session.company.logo_emoji || "🚘")}" maxlength="4" /></div>
       </div>
+      <div class="field mt-16"><label>Quota hebdomadaire par employé ($, 0 = aucun quota)</label><input class="input" id="cf-quota" type="number" step="0.01" min="0" value="${session.company.weekly_quota || 0}" style="max-width:220px;" /></div>
+      <p class="faint" style="font-size:11.5px;margin-top:4px;">Objectif de chiffre d'affaires par semaine et par employé, affiché dans Comptabilité ▸ Salaires.</p>
       <button class="btn btn-accent mt-16" id="cf-save">Enregistrer</button>
     </div>
 
@@ -252,6 +254,18 @@ async function renderSettings() {
       <button class="btn btn-outline" id="theme-sync-btn">Définir comme thème par défaut de l'entreprise</button>
     </div>
 
+    <div class="card card-pad mb-16">
+      <div class="flex-between mb-16">
+        <div><h3 style="font-size:15px;">Primes récurrentes</h3><p class="faint" style="font-size:12.5px;">Des montants réutilisables (recrutement, classement...) à piocher plutôt qu'à retaper dans une fiche de paie.</p></div>
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div class="field"><label>Libellé</label><input class="input" id="bo-label" placeholder="Prime de recrutement" /></div>
+        <div class="field"><label>Montant ($)</label><input class="input" id="bo-amount" type="number" step="0.01" min="0" /></div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="bo-add">＋ Ajouter une prime</button>
+      <div id="bonus-list" class="mt-16"></div>
+    </div>
+
     <div class="card card-pad">
       <div class="flex-between mb-16"><h3 style="font-size:15px;">Catalogue produits</h3><button class="btn btn-outline btn-sm" id="new-cat-btn">＋ Nouvelle catégorie</button></div>
       <div id="catalogue-zone"></div>
@@ -262,8 +276,10 @@ async function renderSettings() {
     const { error } = await supabase.from("companies").update({
       name: $("#cf-name").value.trim() || session.company.name,
       logo_emoji: $("#cf-logo").value.trim() || "🚘",
+      weekly_quota: Number($("#cf-quota").value) || 0,
     }).eq("id", session.company.id);
     if (error) return toast(error.message, "error");
+    session.company.weekly_quota = Number($("#cf-quota").value) || 0;
     toast("Enregistré — recharge la page pour voir le nom mis à jour dans la barre latérale");
   });
 
@@ -287,6 +303,64 @@ async function renderSettings() {
 
   $("#new-cat-btn").addEventListener("click", () => categoryModal());
   renderCatalogue();
+
+  $("#bo-add").addEventListener("click", async () => {
+    const label = $("#bo-label").value.trim();
+    if (!label) return toast("Libellé requis", "error");
+    const { error } = await supabase.from("bonus_templates").insert({
+      company_id: session.company.id, label, amount: Number($("#bo-amount").value) || 0,
+    });
+    if (error) return toast(error.message, "error");
+    $("#bo-label").value = ""; $("#bo-amount").value = "";
+    toast("Prime ajoutée");
+    renderBonusList();
+  });
+  renderBonusList();
+}
+
+async function renderBonusList() {
+  const host = $("#bonus-list");
+  if (!host) return;
+  const { data } = await supabase.from("bonus_templates").select("*").eq("company_id", session.company.id).order("label");
+  if (!data?.length) { host.innerHTML = `<p class="faint" style="font-size:12.5px;">Aucune prime récurrente définie.</p>`; return; }
+  host.innerHTML = data.map((b) => `
+    <div class="kv-row">
+      <span class="k">${escapeHtml(b.label)}</span>
+      <span class="v flex-center" style="gap:10px;">${formatMoney(b.amount)}<button class="btn btn-sm btn-outline" data-edit-bonus="${b.id}">Modifier</button><button class="btn btn-sm btn-danger" data-del-bonus="${b.id}">Supprimer</button></span>
+    </div>
+  `).join("");
+  $$("[data-edit-bonus]", host).forEach((btn) => btn.addEventListener("click", () => {
+    bonusModal(data.find((b) => b.id === btn.dataset.editBonus));
+  }));
+  $$("[data-del-bonus]", host).forEach((btn) => btn.addEventListener("click", () => confirmDialog("Supprimer cette prime récurrente ?", async () => {
+    await supabase.from("bonus_templates").delete().eq("id", btn.dataset.delBonus);
+    toast("Supprimée");
+    renderBonusList();
+  })));
+}
+
+function bonusModal(bonus) {
+  openModal({
+    title: "Modifier la prime",
+    bodyHtml: `
+      <div class="field"><label>Libellé</label><input class="input" id="eb-label" value="${escapeHtml(bonus.label)}" /></div>
+      <div class="field"><label>Montant ($)</label><input class="input" id="eb-amount" type="number" step="0.01" min="0" value="${bonus.amount}" /></div>
+    `,
+    footHtml: `<button class="btn btn-outline" data-close-modal>Annuler</button><button class="btn btn-accent" id="eb-save">Enregistrer</button>`,
+    onMount: (m) => {
+      $("#eb-save", m).addEventListener("click", async () => {
+        const label = $("#eb-label", m).value.trim();
+        if (!label) return toast("Libellé requis", "error");
+        const { error } = await supabase.from("bonus_templates").update({
+          label, amount: Number($("#eb-amount", m).value) || 0,
+        }).eq("id", bonus.id);
+        if (error) return toast(error.message, "error");
+        toast("Prime mise à jour");
+        closeModal();
+        renderBonusList();
+      });
+    },
+  });
 }
 
 async function renderCatalogue() {
@@ -306,7 +380,7 @@ async function renderCatalogue() {
           <div class="flex-center"><span style="font-size:18px;">${c.icon}</span><strong>${escapeHtml(c.label)}</strong><span class="faint mono" style="font-size:11px;">${c.key}</span></div>
           <div class="flex-center">
             <button class="btn btn-sm btn-outline" data-newprod="${c.id}">＋ Produit</button>
-            <button class="icon-btn btn-icon-only" data-delcat="${c.id}" style="width:28px;height:28px;">✕</button>
+            <button class="btn btn-sm btn-danger" data-delcat="${c.id}">Supprimer la catégorie</button>
           </div>
         </div>
         ${items.length ? `<div class="table-wrap"><table class="data">
@@ -321,8 +395,8 @@ async function renderCatalogue() {
               <td class="num">${Number(p.tax_rate) > 0 ? p.tax_rate + "%" : "—"}</td>
               <td>${p.active ? `<span class="badge badge-success">Oui</span>` : `<span class="badge badge-neutral">Non</span>`}</td>
               <td style="text-align:right;white-space:nowrap;">
-                <button class="icon-btn btn-icon-only" data-editprod="${p.id}" style="width:28px;height:28px;">✎</button>
-                <button class="icon-btn btn-icon-only" data-delprod="${p.id}" style="width:28px;height:28px;">✕</button>
+                <button class="btn btn-sm btn-outline" data-editprod="${p.id}">Modifier</button>
+                <button class="btn btn-sm btn-danger" data-delprod="${p.id}">Supprimer</button>
               </td>
             </tr>
           `).join("")}</tbody>

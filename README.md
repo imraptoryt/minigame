@@ -148,6 +148,22 @@ de la semaine) et le salaire brut (seulement la part encore due) pour
 l'employé et la semaine choisis — à ajuster ensuite si besoin (primes,
 avances...).
 
+Si tu as déjà rejoué l'appli avant cette mise à jour, l'app corrige aussi
+automatiquement, à la prochaine connexion, tout compte qui se retrouverait
+sans fiche employé liée (ça pouvait arriver avec des comptes créés à la
+main par SQL) — c'était la cause probable d'une Prise de service qui ne
+réagissait pas.
+
+### Quota et primes récurrentes
+
+Dans **Mon entreprise ▸ Paramètres** :
+- **Quota hebdomadaire** : objectif de chiffre d'affaires par employé et
+  par semaine (0 = aucun quota). Affiché avec une barre de progression
+  dans **Comptabilité ▸ Salaires**.
+- **Primes récurrentes** : des montants réutilisables (prime de
+  recrutement, de classement...) que tu ajoutes en un clic dans une fiche
+  de paie au lieu de retaper un chiffre à chaque fois.
+
 ## Structure du projet
 
 ```

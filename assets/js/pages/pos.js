@@ -81,6 +81,8 @@ async function loadAll() {
   psel.innerHTML = `<option value="">Aucun partenaire</option>`;
   partners.forEach((p) => psel.appendChild(el(`<option value="${p.id}">${escapeHtml(p.name)} (${p.commission_rate}%)</option>`)));
   psel.value = keepPartner;
+  const hint = $("#no-partner-hint");
+  if (hint) hint.style.display = partners.length ? "none" : "block";
 }
 loadAll();
 
@@ -107,8 +109,8 @@ function renderProducts() {
       const card = el(`
         <div class="product-card" data-id="${p.id}" style="position:relative;">
           ${editMode ? `<div style="position:absolute;top:6px;right:6px;display:flex;gap:4px;">
-            <button data-edit-prod="${p.id}" class="icon-btn btn-icon-only" style="width:24px;height:24px;background:var(--c-surface);">✎</button>
-            <button data-del-prod="${p.id}" class="icon-btn btn-icon-only" style="width:24px;height:24px;background:var(--c-surface);">✕</button>
+            <button data-edit-prod="${p.id}" class="icon-btn btn-icon-only" title="Modifier" style="width:24px;height:24px;background:var(--c-surface);">✎</button>
+            <button data-del-prod="${p.id}" class="icon-btn btn-icon-only" title="Supprimer" style="width:24px;height:24px;background:var(--c-surface);">✕</button>
           </div>` : ""}
           <div class="emoji">${p.image_emoji || "🔧"}</div>
           <div class="name">${escapeHtml(p.name)}</div>
