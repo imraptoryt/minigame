@@ -35,7 +35,13 @@
             <div class="card-title-row"><div><h3>Panier</h3><div class="sub" id="cart-sub">Nouvelle commande</div></div></div>
             <div style="padding:14px 20px;">
               <div class="form-grid one" style="margin-bottom:14px;">
-                <div class="field"><label>Plaque</label><input class="input" id="plate-input" placeholder="ENTRER LA PLAQUE" style="text-transform:uppercase" /></div>
+                <div class="field"><label>Plaque</label>
+                  <div style="display:flex;gap:6px;">
+                    <input class="input" id="plate-input" placeholder="ENTRER LA PLAQUE" style="text-transform:uppercase" />
+                    <button class="btn btn-outline btn-sm" id="plate-lookup-btn" type="button" title="Rechercher le véhicule">🔍</button>
+                  </div>
+                  <div id="plate-result" style="display:none;"></div>
+                </div>
                 <div class="field"><label>Partenaire</label>
                   <select class="input" id="partner-select"><option value="">Aucun partenaire</option></select>
                   <p class="faint" id="no-partner-hint" style="font-size:11px;margin-top:4px;display:none;">Aucun partenaire configuré — <a href="company.html?tab=partners" style="color:var(--c-accent);font-weight:700;">en ajouter un</a></p>

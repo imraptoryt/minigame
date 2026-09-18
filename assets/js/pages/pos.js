@@ -91,22 +91,24 @@ $("#product-search").addEventListener("input", debounce((e) => { searchTerm = e.
 
 function renderProducts() {
   const zone = $("#product-zone");
-  zone.innerHTML = "";
   let list = products.filter((p) => p.category_id === activeCatId && p.name.toLowerCase().includes(searchTerm));
 
   if (!list.length && !editMode) {
-    zone.appendChild(el(`<div class="empty-state"><div class="icon">📦</div><h4>Aucun produit</h4><p>${canEdit ? "Clique sur \"Éditer\" pour en ajouter." : "Ajoute des produits depuis Mon entreprise ▸ Paramètres."}</p></div>`));
+    zone.innerHTML = `<div class="empty-state"><div class="icon">📦</div><h4>Aucun produit</h4><p>${canEdit ? "Clique sur \"Éditer\" pour en ajouter." : "Ajoute des produits depuis Mon entreprise ▸ Paramètres."}</p></div>`;
     return;
   }
 
   const subGroups = {};
   list.forEach((p) => { const key = p.sub_category || ""; (subGroups[key] ||= []).push(p); });
 
+  // Built as one HTML string (instead of many individual DOM inserts) so
+  // switching categories stays instant even with large catalogues.
+  let html = "";
   Object.keys(subGroups).sort().forEach((key) => {
-    if (key) zone.appendChild(el(`<div class="sub-group-label">${escapeHtml(key)}</div>`));
-    const grid = el(`<div class="product-grid"></div>`);
+    if (key) html += `<div class="sub-group-label">${escapeHtml(key)}</div>`;
+    html += `<div class="product-grid">`;
     subGroups[key].forEach((p) => {
-      const card = el(`
+      html += `
         <div class="product-card" data-id="${p.id}" style="position:relative;">
           ${editMode ? `<div style="position:absolute;top:6px;right:6px;display:flex;gap:4px;">
             <button data-edit-prod="${p.id}" class="icon-btn btn-icon-only" title="Modifier" style="width:24px;height:24px;background:var(--c-surface);">✎</button>
@@ -116,31 +118,33 @@ function renderProducts() {
           <div class="name">${escapeHtml(p.name)}</div>
           <div class="price">${formatMoney(p.price)}${p.direct_payout === false ? ' <span class="faint" title="Salaire">🏦</span>' : ""}${Number(p.tax_rate) > 0 ? ` <span class="faint" title="Taxe ${p.tax_rate}%">📊</span>` : ""}</div>
         </div>
-      `);
-      card.addEventListener("click", (e) => {
-        if (e.target.closest("[data-edit-prod]") || e.target.closest("[data-del-prod]")) return;
-        if (editMode) productModal(p); else addToCart(p);
-      });
-      grid.appendChild(card);
+      `;
     });
-    zone.appendChild(grid);
+    html += `</div>`;
   });
-
-  if (editMode) {
-    $$("[data-edit-prod]", zone).forEach((b) => b.addEventListener("click", (e) => {
-      e.stopPropagation();
-      productModal(products.find((p) => p.id === b.dataset.editProd));
-    }));
-    $$("[data-del-prod]", zone).forEach((b) => b.addEventListener("click", (e) => {
-      e.stopPropagation();
-      confirmDialog("Supprimer ce produit ?", async () => {
-        await supabase.from("products").delete().eq("id", b.dataset.delProd);
-        toast("Produit supprimé");
-        loadAll();
-      });
-    }));
-  }
+  zone.innerHTML = html;
 }
+
+// One delegated listener, attached once, handles every product card click
+// for the lifetime of the page — no per-card listeners to create/destroy.
+$("#product-zone").addEventListener("click", (e) => {
+  const editBtn = e.target.closest("[data-edit-prod]");
+  if (editBtn) { productModal(products.find((p) => p.id === editBtn.dataset.editProd)); return; }
+  const delBtn = e.target.closest("[data-del-prod]");
+  if (delBtn) {
+    confirmDialog("Supprimer ce produit ?", async () => {
+      await supabase.from("products").delete().eq("id", delBtn.dataset.delProd);
+      toast("Produit supprimé");
+      loadAll();
+    });
+    return;
+  }
+  const card = e.target.closest(".product-card");
+  if (!card) return;
+  const p = products.find((x) => x.id === card.dataset.id);
+  if (!p) return;
+  if (editMode) productModal(p); else addToCart(p);
+});
 
 function productModal(prod) {
   const catTags = tags.filter((t) => t.category_id === activeCatId);
@@ -354,7 +358,34 @@ $("#markup-btn").addEventListener("click", () => {
   adjustModal("markup");
 });
 
-$("#clear-cart").addEventListener("click", () => { cart = []; adjustment = 0; $("#plate-input").value = ""; renderCart(); });
+$("#clear-cart").addEventListener("click", () => { cart = []; adjustment = 0; $("#plate-input").value = ""; $("#plate-result").style.display = "none"; renderCart(); });
+
+$("#plate-lookup-btn").addEventListener("click", async () => {
+  const plate = $("#plate-input").value.trim();
+  if (!plate) return;
+  const box = $("#plate-result");
+  box.style.display = "block";
+  box.innerHTML = `<p class="faint" style="font-size:12px;margin-top:6px;">Recherche...</p>`;
+  try {
+    const r = await fetch(`/api/vehicle-lookup?plate=${encodeURIComponent(plate)}`);
+    const data = await r.json();
+    if (!r.ok) {
+      box.innerHTML = `<p class="faint" style="font-size:12px;margin-top:6px;">${escapeHtml(data.error || "Véhicule introuvable")}</p>`;
+      return;
+    }
+    box.innerHTML = `
+      <div class="copy-field" style="margin-top:8px;padding:10px 12px;">
+        <div class="txt">
+          <strong>${escapeHtml(data.name || data.model || "Véhicule")}</strong><br/>
+          Propriétaire : ${escapeHtml(data.owner?.name || "Inconnu")}
+          ${data.illegal ? '<div class="badge badge-danger mt-4" style="display:inline-flex;">Illégal</div>' : ""}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    box.innerHTML = `<p class="faint" style="font-size:12px;margin-top:6px;">Erreur de connexion à l'API véhicules</p>`;
+  }
+});
 
 $("#save-cart").addEventListener("click", async () => {
   if (!cart.length) return toast("Le panier est vide", "error");
@@ -382,7 +413,7 @@ $("#save-cart").addEventListener("click", async () => {
     if (itemsErr) throw itemsErr;
 
     toast("Vente enregistrée");
-    cart = []; adjustment = 0; $("#plate-input").value = ""; $("#partner-select").value = "";
+    cart = []; adjustment = 0; $("#plate-input").value = ""; $("#partner-select").value = ""; $("#plate-result").style.display = "none";
     renderCart();
   } catch (e) {
     toast(e.message || "Erreur lors de l'enregistrement", "error");

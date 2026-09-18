@@ -164,6 +164,26 @@ Dans **Mon entreprise ▸ Paramètres** :
   recrutement, de classement...) que tu ajoutes en un clic dans une fiche
   de paie au lieu de retaper un chiffre à chaque fois.
 
+## Recherche de véhicule (API GLife)
+
+Le champ **Plaque** du Point de vente a un bouton 🔍 qui va chercher le
+véhicule et son propriétaire sur `api.glife.fr` (nom, propriétaire, statut
+illégal). Ça passe par une petite fonction serveur (`api/vehicle-lookup.js`)
+plutôt qu'un appel direct depuis le site, pour garder ta clé API secrète et
+éviter les soucis CORS.
+
+Pour l'activer :
+1. Sur Vercel : **Settings ▸ Environment Variables** → ajoute
+   `GLIFE_API_KEY` avec ta vraie clé → redéploie.
+2. Vérifie le format d'authentification attendu par l'API (bouton
+   "Authorize" sur `api.glife.fr/docs`). Le fichier suppose
+   `Authorization: Bearer <clé>` — si GLife attend autre chose (un header
+   personnalisé par exemple), change la ligne `headers` dans
+   `api/vehicle-lookup.js`.
+
+Sans cette variable configurée, le bouton affiche juste une erreur — le
+reste du site fonctionne normalement.
+
 ## Structure du projet
 
 ```
@@ -189,6 +209,7 @@ assets/js/ui.js           icônes, toasts, fenêtres modales, formatage
 assets/js/pages/*.js      logique propre à chaque page
 
 supabase/schema.sql        tables, sécurité (RLS), moteur de permissions, catalogue de départ
+api/vehicle-lookup.js      fonction serveur Vercel — recherche de véhicule (API GLife)
 ```
 
 ## Pistes d'amélioration
