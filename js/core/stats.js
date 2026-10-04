@@ -67,6 +67,8 @@
     S.bank.forEach(b => { if (b.type === 'out' && b.category === 'achat') L.push({ t: ts(b.at), purchases: b.amount }); });
     return L;
   }
+  /* commission d'une vente à 100 % (bénéfice) : le % du grade ne s'applique qu'au salaire */
+  const comBase = s => s.commissionBase != null ? s.commissionBase : s.commissionRate > 0 ? Math.round(s.commission * 100 / s.commissionRate * 100) / 100 : Math.max(0, s.total - (s.factory || 0));
   const KEYS = ['revenue', 'count', 'factory', 'charges', 'chargesND', 'bills', 'salaries', 'commissions', 'purchases'];
   /* Impôt par tranches : chaque tranche n'est taxée que sur la part du résultat qui s'y trouve */
   function tax(amount, brackets) {
@@ -145,5 +147,5 @@
   const billStatus = b => b.status === 'pending' && ts(b.due) < Date.now() ? 'overdue' : b.status;
 
   window.LSC = window.LSC || {};
-  window.LSC.stats = { tax, range, prev, within, buckets, summary, series, trend, salesIn, byProduct, minutes, employee, bankBalance, invoiceStatus, billStatus, sod, DAY, weekNum, weekLabel, absencesIn, absentNow, prereq };
+  window.LSC.stats = { comBase, tax, range, prev, within, buckets, summary, series, trend, salesIn, byProduct, minutes, employee, bankBalance, invoiceStatus, billStatus, sod, DAY, weekNum, weekLabel, absencesIn, absentNow, prereq };
 })();

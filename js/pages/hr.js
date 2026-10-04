@@ -40,7 +40,7 @@
     U.table(el.querySelector('#esSales'), { id: 'es-sales', rows: z.sales, sort: 'createdAt', pageSize: 8, resetPage: true, compact: true, onRow: x => LSC.open.sale(x.id),
       empty: { icon: 'receipt', title: 'Aucune vente', text: 'Aucune vente sur cette période.', hint: false },
       columns: [{ key: 'num', label: 'ID', render: x => '#' + x.num }, { key: 'customerName', label: 'Client' }, { key: 'total', label: 'Total', align: 'right', render: x => `<b>${money(x.total)}</b>` },
-        { key: 'commission', label: 'Commission', align: 'right', render: x => money(x.commission) }, { key: 'createdAt', label: 'Date', render: x => U.fmtDT(x.createdAt) }] });
+        { key: 'commission', label: 'Commission', align: 'right', sortValue: x => ST.comBase(x), render: x => money(ST.comBase(x)) }, { key: 'createdAt', label: 'Date', render: x => U.fmtDT(x.createdAt) }] });
     const sel = el.querySelector('#esEmp');
     if (sel) sel.onchange = () => { est.emp = sel.value; empStats(el); };
     U.bindPeriod(el, est, () => empStats(el));

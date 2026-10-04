@@ -366,7 +366,7 @@
       customerId: null, customerName: partner ? partner.name : 'Client',
       partnerId: partner ? partner.id : null, partnerName: partner ? partner.name : null,
       items: q.items, subtotal: q.subtotal, factory: q.factory, discount, markup, total: q.total,
-      commissionRate: q.commissionRate, commission: q.commission,
+      commissionRate: q.commissionRate, commission: q.commission, commissionBase: q.commissionBase,
       payment: method.id, status: method.id === 'invoice' ? 'pending' : 'paid', note: str(p.note, 300), vehicle, createdAt: c.iso
     };
     db.sales.push(sale);

@@ -164,7 +164,7 @@
 
   /* =================== VENTES =================== */
   const sst = { period: 'week', q: '', emp: '', pay: '', status: '', min: '', max: '' };
-  const mst = { period: 'week', q: '', pay: '', status: '' };
+  const mst = { period: 'week', q: '', pay: '', status: '', min: '', max: '' };
   function salesPage(el, own) {
     const s = S(), st = own ? mst : sst, me = A().me.id;
     const emps = s.employees.filter(e => s.sales.some(x => x.employeeId === e.id));
@@ -185,12 +185,12 @@
         && (st.min === '' || x.total >= +st.min) && (st.max === '' || x.total <= +st.max)
         && (!q || ('#' + x.num + ' ' + x.ref + ' ' + x.customerName + ' ' + x.employeeName).toLowerCase().includes(q)));
       const ok = rows.filter(x => x.status !== 'cancelled'), tot = ok.reduce((a, x) => a + x.total, 0);
-      const com = ok.reduce((a, x) => a + (x.commission || 0), 0);
+      const com = ok.reduce((a, x) => a + ST.comBase(x), 0);
       el.querySelector('#salesStats').innerHTML = `<div class="grid stats">
         ${U.stat({ label: 'Total des ventes', value: money(tot), icon: 'dollar-sign' })}
         ${U.stat({ label: 'Nombre de ventes', value: ok.length, sub: rows.length - ok.length ? `${rows.length - ok.length} annulée(s)` : '', icon: 'receipt', tone: 'info' })}
         ${U.stat({ label: 'Panier moyen', value: money(ok.length ? tot / ok.length : 0), icon: 'shopping-basket' })}
-        ${U.stat({ label: own ? 'Mes commissions' : 'Commissions', value: money(com), icon: 'percent', tone: 'info' })}</div>`;
+        ${U.stat({ label: 'Commissions (100 %)', value: money(com), sub: 'le % du grade s’applique au salaire', icon: 'percent', tone: 'info' })}</div>`;
       U.table(el.querySelector('#salesTable'), {
         id: own ? 'mysales' : 'sales', rows, sort: 'createdAt', resetPage: reset, onRow: x => LSC.open.sale(x.id),
         empty: { icon: 'receipt', title: 'Aucune transaction', text: 'Aucune vente pour ces filtres.', hint: 'Modifiez les filtres ou créez une nouvelle vente.' },
@@ -201,7 +201,7 @@
           ...(own ? [] : [{ key: 'employeeName', label: 'Employé', render: x => esc(x.employeeName) }]),
           { key: 'items', label: 'Articles', sortValue: x => x.items.length, render: x => `<span class="muted">${esc(x.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', ')).slice(0, 60)}</span>` },
           { key: 'total', label: 'Total', align: 'right', render: x => `<b>${money(x.total)}</b>${x.discount ? `<br><small class="warn-t">-${money(x.discount.amount)}</small>` : ''}` },
-          ...(own ? [{ key: 'commission', label: 'Commission', align: 'right', render: x => money(x.commission) }] : []),
+          ...(own ? [{ key: 'commission', label: 'Commission', align: 'right', sortValue: x => ST.comBase(x), render: x => money(ST.comBase(x)) }] : []),
           { key: 'payment', label: 'Paiement', render: x => esc(A().payLabel(x.payment)) },
           { key: 'createdAt', label: 'Date', render: x => `<span class="nowrap">${U.fmtDate(x.createdAt)} <span class="muted">${U.fmtTime(x.createdAt)}</span></span>` },
           { key: 'status', label: 'Statut', render: x => U.status('sale', x.status) }]
@@ -223,7 +223,7 @@
           ${s.vehicle ? `<dt>Véhicule</dt><dd>${s.vehicle.name ? esc(s.vehicle.name) + ' · ' : ''}${esc(s.vehicle.plate || '—')}${s.vehicle.class ? ` · Catégorie ${s.vehicle.class}` : ''} <small class="muted">(${s.vehicle.source === 'auto' ? 'auto' : 'manuel'})</small></dd>` : ''}
           <dt>Date</dt><dd>${U.fmtDT(s.createdAt)}</dd><dt>Paiement</dt><dd>${esc(A().payLabel(s.payment))}</dd><dt>Statut</dt><dd>${U.status('sale', s.status)}</dd></dl>
         <dl class="kv"><dt>Sous-total</dt><dd>${money(s.subtotal)}</dd>${adj(s.discount, 'Réduction')}${adj(s.markup, 'Majoration')}
-          <dt>Prix usine</dt><dd>${money(s.factory)}</dd><dt>Commission (${s.commissionRate}%)</dt><dd>${money(s.commission)}</dd><dt><b>Total</b></dt><dd class="ok-t"><b>${money(s.total)}</b></dd></dl></div>
+          <dt>Prix usine</dt><dd>${money(s.factory)}</dd><dt>Commission</dt><dd>${money(ST.comBase(s))}</dd><dt><b>Total</b></dt><dd class="ok-t"><b>${money(s.total)}</b></dd></dl></div>
         <div class="section-title">Articles</div>
         <table class="tbl compact"><thead><tr><th>Article</th><th class="right">Prix</th><th class="right">Qté</th><th class="right">Total</th></tr></thead>
           <tbody>${s.items.map(i => `<tr><td>${esc(i.name)}</td><td class="right">${money(i.price)}</td><td class="right">${i.qty}</td><td class="right">${money(i.total)}</td></tr>`).join('')}</tbody></table>
