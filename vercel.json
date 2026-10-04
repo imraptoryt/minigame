@@ -1,0 +1,3 @@
+{
+  "crons": [{ "path": "/api/rpc?ping=1", "schedule": "0 6 * * *" }]
+}

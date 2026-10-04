@@ -1,225 +1,114 @@
-# Los Santos Customs — Compta
+# LS Customs — Management & Comptabilité
 
-Un back-office complet pour un garage/customs FiveM : point de vente par
-catégories, comptabilité, RH, et un système de rôles façon **Discord**
-(rôles de base + permission par permission, exceptions par employé).
+Application de gestion RP (point de vente, comptabilité, RH, stock) pour Los Santos Customs.
+HTML/CSS/JS sans build : fonctionne en local, sur Vercel et dans une NUI FiveM.
 
-Stack : HTML/CSS/JS "vanilla" (pas de build), **Supabase** (base de données,
-auth, sécurité), hébergé gratuitement sur **Vercel**.
+## Lancer en local
 
----
+Servir le dossier avec n'importe quel serveur statique, par exemple :
 
-## 1. Créer le projet Supabase
-
-1. Va sur [supabase.com](https://supabase.com) → **New project**.
-2. Une fois le projet créé, ouvre **SQL Editor** → **New query**, colle le
-   contenu entier de [`supabase/schema.sql`](supabase/schema.sql) et
-   exécute-le. Ça crée toutes les tables, la sécurité (RLS) et le moteur de
-   permissions.
-3. Va dans **Authentication → Settings** et **désactive "Confirm email"**
-   (Enable email confirmations = OFF). C'est obligatoire ici : aucun compte
-   n'utilise une vraie adresse email (voir plus bas), donc un email de
-   confirmation ne pourrait jamais arriver.
-4. Va dans **Project Settings → API** et note :
-   - **Project URL**
-   - **anon public key** (ou la nouvelle clé **publishable**, ça marche pareil)
-
-## 2. Configurer le site
-
-Ouvre `assets/js/config.js` et remplace les deux valeurs :
-
-```js
-window.LSC_CONFIG = {
-  SUPABASE_URL: "https://xxxxxxxx.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOi...",
-};
+```bash
+python -m http.server 5510
 ```
 
-La clé "anon" est faite pour être publique côté client — c'est la sécurité
-au niveau des lignes (RLS), déjà en place dans `schema.sql`, qui protège
-réellement les données.
+puis ouvrir http://localhost:5510. En mode local, la logique serveur tourne dans le navigateur et les
+données sont stockées dans `localStorage`.
 
-## 3. Déployer sur Vercel
+Connexion : Char ID + mot de passe (on arrive sur le Point de vente ; en rouvrant la page dans l'heure, on revient sur
+la dernière page de la même personne). La base démarre vide : **le premier compte créé** (« Créer un compte ») devient PDG ;
+les suivants apparaissent dans Personnel → Liste et doivent être validés par un Recruteur ou plus.
+Sécurité : mots de passe de 6 caractères minimum, jamais affichés ni transmis à l'interface. 5 échecs → compte bloqué
+15 min (Recruteur + peut le débloquer dans Personnel → Liste). DRH + peut réinitialiser un mot de passe : à la connexion
+suivante avec ce Char ID, l'employé en choisit un nouveau (même chose pour un compte créé par la direction).
 
-1. Pousse ce dossier sur un repo GitHub (ou glisse-dépose le dossier
-   directement sur [vercel.com/new](https://vercel.com/new)).
-2. Sur Vercel, "Import Project" → sélectionne le repo.
-3. Aucune configuration de build nécessaire : c'est un site statique
-   (Framework Preset = "Other"). Déploie.
-4. Ouvre l'URL fournie par Vercel.
+Licenciement (onglet du menu) : aide à la décision (salaire et prérequis des 2 dernières semaines), puis fenêtre d'étapes à
+cocher — Company, Discord, Compta (dernier salaire réglé) — modifiables dans Paramètres → Licenciement. Quand tout est coché,
+« Confirmer » envoie le message Discord et supprime le compte de la compta (plus d'accès ; historique gardé dans les archives).
 
-## 4. Premier lancement
+Discord (Paramètres → Discord) : webhook des sorties de stock (par défaut, ou un webhook par produit dans sa fiche ;
+une annulation envoie un retour) et rappel d'archivage en début de mois avec le rôle à pinger.
+Aussi : logs des grosses ventes (seuil réglable) et des licenciements, et récap quotidien des factures en jeu
+(API GLife `/roleplay/company/invoices`, entreprise 139 par défaut) ; le Bilan affiche ces factures par personnage.
+La session dure 1 h : en rouvrant la page dans l'heure, on revient sur la dernière page ouverte.
+« Créer un compte » (écran de connexion) : Prénom, Nom, Char ID et mot de passe obligatoires. La demande apparaît dans
+Personnel → Liste (« Demandes de compte ») et le compte n'est actif qu'après validation par la direction (grade Apprenti).
+Paramètres → Données permet de réinitialiser ou d'exporter.
 
-1. Ouvre le site → onglet **Créer un compte** → inscris-toi avec le nom
-   d'utilisateur **`raptor`**, mot de passe **`admin`** (+ ID personnage,
-   téléphone `555-...` et numéro de compte, au choix). **Étant le tout
-   premier compte de l'entreprise, il devient automatiquement Patron**,
-   avec toutes les permissions, et seed le catalogue de départ (Services /
-   Customs / Ventes / Peinture).
-2. Change ce mot de passe dès que possible depuis le menu de profil (en bas
-   de la barre latérale) ▸ *Mot de passe*.
-3. Chaque personne qui crée un compte ensuite (onglet **Créer un compte**)
-   rejoint la même entreprise avec le rôle de base **"Employé"** (accès
-   limité). Tu peux ensuite lui attribuer d'autres rôles, ou forcer une
-   permission précise pour elle uniquement, depuis **Mon entreprise ▸
-   Gestion des rôles**.
+Grades : direction (PDG > Co-PDG > DRH) > Chef d'équipe > Recruteur > CDI > CDD > Apprenti (rangs, salaires et permissions dans Rôles).
 
----
+Plaques : le POS interroge l'API publique GLife (`GET https://apirp.glife.fr/roleplay/vehicles?plate=XXXX`, sans clé,
+URL réglable dans `js/config.js` → `vehicleApi`). Elle renvoie le ou les véhicules de la plaque (choix du modèle s'il y en a plusieurs). La catégorie (1 à 5) n'est pas fournie : elle est reprise de l'historique de la plaque, sinon du
+dernier véhicule du même modèle passé au garage, sinon choisie à la main.
 
-## Connexion sans email
+Facturation : uniquement les partenaires (pas de fiche client). Une vente faite avec un partenaire est « à facturer » ;
+dans Factures, « Générer la facture » regroupe ses ventes et l'envoie sur le webhook Discord du partenaire, en mentionnant
+l'ID Discord et/ou l'ID de rôle renseignés dans sa fiche. Les factures personnalisées (lignes libres) restent possibles.
 
-Comme demandé, il n'y a **aucun email** nulle part dans l'app :
-
-- **Connexion** : identifiant (nom d'utilisateur *ou* ID personnage) + mot
-  de passe.
-- **Création de compte** : nom complet, nom d'utilisateur, ID personnage,
-  mot de passe, téléphone (doit commencer par `555-`) et numéro de compte
-  bancaire.
-
-Techniquement, Supabase Auth a besoin d'un email en interne — l'app en
-fabrique donc un invisible à partir du nom d'utilisateur
-(`ethan.davis@lsc.internal`, jamais affiché ni utilisable pour recevoir un
-vrai message) uniquement pour que la sécurité éprouvée de Supabase
-(hachage du mot de passe, sessions, jetons) continue de fonctionner
-normalement. Le nom d'utilisateur et l'ID personnage sont chacun uniques et
-peuvent servir indifféremment à se connecter.
-
-## Le système de rôles (façon Discord)
-
-- **Mon entreprise ▸ Gestion des rôles** : crée autant de rôles que tu veux
-  (couleur, nom), coche les permissions qu'il accorde, regroupées par
-  section (Dashboard, Comptabilité, RH, Mon entreprise). Un rôle marqué
-  **"Rôle de base"** est celui donné automatiquement aux nouveaux employés
-  qui s'inscrivent.
-- Un employé peut avoir **plusieurs rôles** — ses permissions sont l'union
-  de tous ses rôles (onglet **Membres** de chaque rôle).
-- **Permissions individuelles** (bas de la page) : comme un "permission
-  overwrite" par membre sur Discord — force une permission précise à
-  **Autorisé** ou **Refusé** pour une seule personne, peu importe ses
-  rôles. Remets sur **Hérité** pour revenir au comportement normal.
-- Tout ça est appliqué **à la fois côté interface** (le menu grise les
-  pages non autorisées) **et côté base de données** (Row Level Security —
-  même en trafiquant les requêtes, un utilisateur ne peut pas agir hors de
-  ses permissions réelles).
-
-## Le système de thème
-
-- Chaque personne peut changer l'apparence depuis le menu de profil (en bas
-  de la barre latérale) ou depuis **Mon entreprise ▸ Paramètres** : mode
-  clair/sombre, 7 couleurs d'accent, et un arrondi (carré / doux / rond).
-- Le choix est instantané et gardé sur l'appareil (`localStorage`).
-- Un utilisateur avec la permission **"Gérer les paramètres"** peut cliquer
-  "Définir comme thème par défaut de l'entreprise" pour que ce thème soit
-  proposé à tout nouvel appareil/connexion.
-
-## Le point de vente
-
-- Les onglets (Services / Ventes / Customs / Peinture, ...) viennent de la
-  table `product_categories`. Quiconque a la permission "Gérer les
-  paramètres" voit un bouton **✎ Éditer** directement dans le Point de
-  vente : il permet d'ajouter/modifier/supprimer les produits de l'onglet
-  ouvert, et de gérer les **étiquettes** (sous-catégories, ex. "Apparence" /
-  "Performance") — renommer une étiquette met à jour tous les produits qui
-  l'utilisent. La même chose reste aussi disponible depuis **Mon
-  entreprise ▸ Paramètres ▸ Catalogue produits**.
-- Chaque produit a : **Prix** (facturé au client, 0 = gratuit), **Prix
-  usine** (son coût, 0 = aucun), un **Taux de taxe** (%, 0 = aucune) et un
-  interrupteur **Paiement direct à l'employé**.
-- Un **partenaire** appliqué au panier calcule automatiquement une
-  **commission** (%) affichée à part.
-- **Réduction** / **Majoration** ouvrent une petite fenêtre pour appliquer
-  un pourcentage ou un montant fixe au total (0 = aucune).
-
-### Chiffre d'affaires vs salaire
-
-Quand un produit est marqué **"Paiement direct à l'employé"** (coché par
-défaut — ex. une Carrosserie à $50 que le jeu paie directement au joueur),
-sa vente :
-- compte normalement dans le **chiffre d'affaires** (Bilan, dashboard,
-  Ventes par produit) ;
-- compte aussi dans les **taxes** si le produit a un taux de taxe fixé ;
-- mais ne rajoute **rien** au salaire à verser — l'employé a déjà été payé.
-
-Si tu décoches "Paiement direct", le montant reste dû par l'entreprise et
-s'additionne dans la fiche de paie de l'employé. Dans **Comptabilité ▸
-Salaires ▸ Nouvelle fiche de paie**, le bouton **↻ Calculer depuis les
-ventes** remplit automatiquement le chiffre d'affaires (toutes les ventes
-de la semaine) et le salaire brut (seulement la part encore due) pour
-l'employé et la semaine choisis — à ajuster ensuite si besoin (primes,
-avances...).
-
-Si tu as déjà rejoué l'appli avant cette mise à jour, l'app corrige aussi
-automatiquement, à la prochaine connexion, tout compte qui se retrouverait
-sans fiche employé liée (ça pouvait arriver avec des comptes créés à la
-main par SQL) — c'était la cause probable d'une Prise de service qui ne
-réagissait pas.
-
-### Quota et primes récurrentes
-
-Dans **Mon entreprise ▸ Paramètres** :
-- **Quota hebdomadaire** : objectif de chiffre d'affaires par employé et
-  par semaine (0 = aucun quota). Affiché avec une barre de progression
-  dans **Comptabilité ▸ Salaires**.
-- **Primes récurrentes** : des montants réutilisables (prime de
-  recrutement, de classement...) que tu ajoutes en un clic dans une fiche
-  de paie au lieu de retaper un chiffre à chaque fois.
-
-## Recherche de véhicule (API GLife)
-
-Le champ **Plaque** du Point de vente a un bouton 🔍 qui va chercher le
-véhicule et son propriétaire sur `api.glife.fr` (nom, propriétaire, statut
-illégal). Ça passe par une petite fonction serveur (`api/vehicle-lookup.js`)
-plutôt qu'un appel direct depuis le site, pour garder ta clé API secrète et
-éviter les soucis CORS.
-
-Pour l'activer :
-1. Sur Vercel : **Settings ▸ Environment Variables** → ajoute
-   `GLIFE_API_KEY` avec ta vraie clé → redéploie.
-2. Vérifie le format d'authentification attendu par l'API (bouton
-   "Authorize" sur `api.glife.fr/docs`). Le fichier suppose
-   `Authorization: Bearer <clé>` — si GLife attend autre chose (un header
-   personnalisé par exemple), change la ligne `headers` dans
-   `api/vehicle-lookup.js`.
-
-Sans cette variable configurée, le bouton affiche juste une erreur — le
-reste du site fonctionne normalement.
-
-## Structure du projet
+## Architecture
 
 ```
-index.html              connexion / création de compte
-dashboard.html           accueil (résumé + graphique + fiche de paie)
-pos.html                 point de vente
-sales.html                mes ventes / toutes les ventes / ventes par produit
-employee-report.html      bilan employé
-accounting.html            bilan / facturation client / factures à payer / salaires / charges
-hr.html                    personnel / archives / recrutement / services
-roles.html                  gestion des rôles (le cœur du système de permissions)
-announcements.html          menu annonces
-company.html                inventaire / partenaires / banque / paramètres
-
-assets/css/theme.css      variables de thème (couleurs, typo, arrondi)
-assets/css/app.css        composants & mise en page
-assets/js/config.js       tes identifiants Supabase (à remplir)
-assets/js/supabaseClient.js
-assets/js/auth.js         connexion / session / permissions effectives
-assets/js/theme.js        moteur de thème
-assets/js/sidebar.js      barre latérale + barre du haut, communes à toutes les pages
-assets/js/ui.js           icônes, toasts, fenêtres modales, formatage
-assets/js/pages/*.js      logique propre à chaque page
-
-supabase/schema.sql        tables, sécurité (RLS), moteur de permissions, catalogue de départ
-api/vehicle-lookup.js      fonction serveur Vercel — recherche de véhicule (API GLife)
+FiveM client (fivem/client.lua)  ->  NUI (index.html)  ->  LSC.api.call(action, payload)
+        |                                                         |
+        v                                                         v
+FiveM server (fivem/server.lua) --x-lsc-server-key + licence-->  api/rpc.js (Vercel)
+                                                                  |  js/core/server.js : permissions + calculs
+                                                                  v
+                                                             Supabase (lsc_state)
 ```
 
-## Pistes d'amélioration
+- `js/core/server.js` : **seule source de vérité**. Chaque action (vente, réduction, paie, stock...)
+  vérifie les permissions et recalcule les montants depuis la base. L'UI n'envoie que des ID et des quantités.
+- `js/core/seed.js` : catalogue de base + données de démo (produites en rejouant de vraies actions).
+- `js/core/api.js` : transport `local` / `http` / `nui` (choisi dans `js/config.js`).
+- `js/core/stats.js` : statistiques calculées (CA, bénéfice, séries, par produit, par employé).
+- `js/ui/components.js` : Modal, Form, Table (tri + pagination), Toast, StatCard, Chart SVG, EmptyState, Skeleton...
+- `js/pages/*` : pages (POS, comptabilité, RH, entreprise).
 
-- Le format actuel privilégie plusieurs pages HTML plutôt qu'un seul
-  fichier, pour garder chaque page légère à charger — dis-moi si tu
-  préfères tout regrouper en un seul fichier comme tes autres interfaces.
-- Pas de compte pré-inséré par SQL : sur les projets Supabase hébergés, le
-  SQL Editor ne peut généralement pas écrire directement dans les tables
-  internes `auth.users` / `auth.identities` (Supabase les protège), donc ce
-  genre d'insertion échoue silencieusement. Le chemin fiable reste de
-  s'inscrire une fois via **Créer un compte** — le tout premier compte
-  devient Patron automatiquement.
+## Déploiement Vercel + Supabase
+
+1. Supabase → SQL Editor : exécuter `supabase/schema.sql` (à relancer après une mise à jour : il est rejouable).
+2. Vercel : importer ce dossier, puis définir les variables d'environnement :
+   - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (jamais exposée au navigateur)
+   - `LSC_SECRET` (chaîne aléatoire longue, signature des sessions web)
+   - `LSC_FIVEM_KEY` (secret partagé avec le serveur FiveM)
+   - facultatif : `LSC_OWNER_CHARID`, `LSC_OWNER_PIN` (mot de passe), `LSC_OWNER_FIRSTNAME`, `LSC_OWNER_LASTNAME`, `LSC_OWNER_LICENSE`
+     pour créer le PDG dès le déploiement (sinon le premier compte créé sur le site devient PDG : créez-le tout de suite)
+   - `LSC_SEED=demo` uniquement si vous voulez les données de démonstration au premier lancement
+3. Dans `js/config.js`, passer `mode: 'http'`, puis redéployer.
+4. `vercel.json` déclare une tâche quotidienne (`/api/rpc?ping=1`) qui garde Supabase actif (pause après 7 jours sans activité en gratuit).
+
+Connexion web : Char ID + mot de passe (défini par la direction dans Liste du personnel, modifiable dans Mon compte). Session de 1 h renouvelée à chaque action.
+
+## FiveM
+
+Le dossier est directement une ressource (`fxmanifest.lua` à la racine). Dans `server.cfg` :
+
+```
+set lsc_api_url "https://votre-projet.vercel.app/api/rpc"
+set lsc_server_key "même valeur que LSC_FIVEM_KEY"
+ensure ls_customs
+```
+
+Ouverture : `/lscustoms` ou F7. À la première ouverture en jeu, l'employé se connecte une seule fois (Char ID + mot de
+passe) : sa licence FiveM (fournie par le serveur, jamais par le client) est reliée à son compte, la tablette s'ouvre
+ensuite directement. Le véhicule le plus proche est envoyé au POS (plaque, modèle, classe GTA).
+
+Catégories de véhicules (1 à 5) : liste de la direction (834 modèles, `VEHICLES` dans `js/core/seed.js`, modifiable et importable
+dans Paramètres → Catégories de véhicules). Le modèle vient de l'API GLife (plaque) ou du jeu ; la catégorie est
+sélectionnée automatiquement, le choix manuel reste possible. Un modèle absent de la liste :
+alerte « à vérifier en jeu » au POS, message Discord (une fois par modèle) et entrée « À recenser » dans Paramètres.
+
+## Limites connues
+
+- Stockage Supabase : `lsc_state` (document principal : réglages, comptes, grades, catalogue, paies, factures) +
+  `lsc_rows` (une ligne par vente, commission, service, opération bancaire, entrée d'historique, mouvement de stock).
+  Une action ne lit que le document + les éléments en cours + ce dont elle a besoin ; l'interface charge les 15 derniers
+  jours puis l'historique à la demande. Écriture atomique via la fonction SQL `lsc_commit` (verrou optimiste).
+  Une ancienne base « document unique » est découpée automatiquement au premier appel, sans perte.
+- Archives mensuelles (Paramètres → Données, PDG) : téléchargement JSON d'un mois terminé puis suppression.
+  Comptes, grades, produits, partenaires et réglages ne sont jamais supprimés ; le solde bancaire reste exact.
+  Supabase gratuit n'a pas de sauvegarde automatique des lignes : ces fichiers servent aussi de sauvegarde.
+- Images produits : miniatures 320 px dans `img/products/` (générées depuis `logo items/`). Pour un nouvel
+  article, déposer un PNG dans `img/products/` puis saisir `img/products/nom.png` dans sa fiche (ou une URL).
+  Les dossiers `logo/` et `logo items/` (originaux, ~50 Mo) ne sont pas utilisés par l'application.
+- Les charges « récurrentes » sont marquées comme telles ; le bouton Dupliquer crée la nouvelle échéance.

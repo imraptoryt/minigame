@@ -1,68 +1,56 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Connexion — Los Santos Customs</title>
-<link rel="icon" href="assets/img/logo.webp">
-<script>(function(){try{var t=JSON.parse(localStorage.getItem('lsc_theme'))||{};document.documentElement.setAttribute('data-theme',t.mode==='dark'?'dark':'light');document.documentElement.setAttribute('data-accent',t.accent||'green');document.documentElement.setAttribute('data-radius',t.radius||'soft');}catch(e){}})();</script>
-<script src="assets/js/config.js"></script>
-<link rel="stylesheet" href="assets/css/theme.css" />
-<link rel="stylesheet" href="assets/css/app.css" />
-<style>
-  .field-err { color: var(--c-danger); font-size: 12px; min-height: 16px; }
-  .field-ok { color: var(--c-success); font-size: 12px; min-height: 16px; }
-</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Customs — Management & Comptabilité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="icon" href="img/logo.png">
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <div class="auth-shell">
-    <div class="auth-card">
-      <div class="auth-brand"><img src="assets/img/logo.webp" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;" /> Los Santos Customs</div>
-
-      <div class="auth-tabs" id="auth-tabs">
-        <button class="active" data-tab="signin">Connexion</button>
-        <button data-tab="signup">Créer un compte</button>
-      </div>
-
-      <form id="form-signin" class="modal-body" style="padding:0;gap:14px;">
-        <div class="field"><label>Identifiant (username ou ID personnage)</label><input class="input" id="si-id" required autocomplete="username" placeholder="raptor" /></div>
-        <div class="field"><label>Mot de passe</label><input class="input" type="password" id="si-password" required autocomplete="current-password" /></div>
-        <div class="field-err" id="si-err"></div>
-        <button class="btn btn-accent btn-block" type="submit" id="si-submit">Se connecter</button>
-        <p class="auth-note">Pas encore de compte ? Onglet <strong>Créer un compte</strong> — le tout premier compte créé (par ex. <strong>raptor</strong>) devient automatiquement Patron avec tous les accès.</p>
-      </form>
-
-      <form id="form-signup" class="modal-body" style="padding:0;gap:14px;display:none;">
-        <div class="field"><label>Nom complet (RP)</label><input class="input" id="su-name" required placeholder="Ethan Davis Caldwell" /></div>
-        <div class="form-grid">
-          <div class="field"><label>Nom d'utilisateur</label><input class="input" id="su-username" required placeholder="ethan.davis" pattern="[a-zA-Z0-9_.-]{3,20}" title="3 à 20 caractères : lettres, chiffres, . _ -" /></div>
-          <div class="field"><label>ID personnage</label><input class="input" id="su-charid" required placeholder="12345" /></div>
-        </div>
-        <div class="form-grid">
-          <div class="field"><label>Téléphone</label><input class="input" id="su-phone" required placeholder="555-0134" pattern="555-.*" title="Doit commencer par 555-" /></div>
-          <div class="field"><label>N° compte bancaire</label><input class="input" id="su-bank" required placeholder="123456" /></div>
-        </div>
-        <div class="field"><label>Mot de passe</label><input class="input" type="password" id="su-password" required autocomplete="new-password" /></div>
-        <div class="field-err" id="su-err"></div>
-        <button class="btn btn-accent btn-block" type="submit" id="su-submit">Créer mon compte</button>
-        <p class="auth-note">Le tout premier compte créé devient automatiquement <strong>Patron</strong> avec tous les accès. Les suivants rejoignent l'entreprise avec le rôle de base <strong>Employé</strong>.</p>
-      </form>
-
-      <div id="finish-setup" style="display:none;" class="modal-body">
-        <p class="auth-note" style="margin-bottom:4px;">Encore une étape pour finaliser ton profil.</p>
-        <div class="field"><label>Nom complet (RP)</label><input class="input" id="fs-name" placeholder="Ethan Davis Caldwell" /></div>
-        <div class="field"><label>Nom d'utilisateur</label><input class="input" id="fs-username" placeholder="ethan.davis" /></div>
-        <div class="field"><label>ID personnage</label><input class="input" id="fs-charid" placeholder="12345" /></div>
-        <div class="field"><label>Téléphone</label><input class="input" id="fs-phone" placeholder="555-0134" /></div>
-        <div class="field"><label>N° compte bancaire</label><input class="input" id="fs-bank" placeholder="123456" /></div>
-        <div class="field-err" id="fs-err"></div>
-        <button class="btn btn-accent btn-block mt-16" id="fs-submit">Finaliser mon profil</button>
-      </div>
-
-      <p class="auth-note" id="config-note"></p>
-    </div>
+<div class="app" id="app">
+  <div class="brand">
+    <div class="logo img" id="brandLogo"><img src="img/logo.png" alt=""></div>
+    <div class="brand-txt"><b id="brandName">Los Santos Customs</b><span id="brandSub">Management & Comptabilité</span></div>
   </div>
 
-  <script type="module" src="assets/js/pages/login.js"></script>
+  <header class="topbar">
+    <div class="top-search">
+      <i data-lucide="search" class="ic"></i>
+      <input id="topSearch" type="text" placeholder="Rechercher un service, un produit..." autocomplete="off">
+      <kbd>Ctrl K</kbd>
+    </div>
+    <div class="top-partner" id="topPartner"></div>
+    <div class="top-right">
+      <button class="svc-btn off" id="svcBtn" hidden></button>
+      <button class="btn sm" id="advertBtn" title="Annonce publicitaire"><i data-lucide="megaphone" class="ic"></i>Advert</button>
+      <button class="icon-btn bell" id="bellBtn" title="Notifications"><i data-lucide="bell" class="ic"></i><span class="count" id="bellCount" hidden></span></button>
+      <div class="clock" id="clock"></div>
+      <button class="user-btn" id="userBtn"></button>
+    </div>
+  </header>
+
+  <nav class="sidebar" id="sidebar" aria-label="Navigation principale"></nav>
+  <main class="main" id="main"></main>
+</div>
+
+<div id="layer"></div>
+<div class="toasts" id="toasts"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/core/server.js"></script>
+<script src="js/core/seed.js"></script>
+<script src="js/core/api.js"></script>
+<script src="js/core/stats.js"></script>
+<script src="js/ui/components.js"></script>
+<script src="js/pages/dashboard.js"></script>
+<script src="js/pages/pos.js"></script>
+<script src="js/pages/accounting.js"></script>
+<script src="js/pages/hr.js"></script>
+<script src="js/pages/company.js"></script>
+<script src="js/ui/app.js"></script>
 </body>
 </html>
