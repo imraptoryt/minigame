@@ -215,7 +215,7 @@
 
   /* ---------- Blocs ---------- */
   function stat(o) {
-    const tr = o.trend != null && isFinite(o.trend) ? `<span class="trend ${o.trend >= 0 ? 'up' : 'down'}">${icon(o.trend >= 0 ? 'trending-up' : 'trending-down', 'xs')}${o.trend >= 0 ? '+' : ''}${o.trend.toFixed(1)}%</span>` : '';
+    const tr = o.trend != null && isFinite(o.trend) ? `<span class="trend ${(o.trend >= 0) !== !!o.inverse ? 'up' : 'down'}">${icon(o.trend >= 0 ? 'trending-up' : 'trending-down', 'xs')}${o.trend >= 0 ? '+' : ''}${o.trend.toFixed(1)}%</span>` : '';
     return `<div class="stat ${o.cls || ''}" ${o.route ? `data-go="${o.route}"` : ''}><div class="stat-top"><span class="stat-label">${esc(o.label)}</span><span class="stat-ic ${o.tone || ''}">${icon(o.icon || 'circle')}</span></div>
       <div class="stat-value ${o.valueCls || ''}">${o.value}</div><div class="stat-sub">${tr}<span>${o.sub || ''}</span></div></div>`;
   }

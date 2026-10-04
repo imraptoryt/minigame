@@ -65,20 +65,20 @@
     ['prd_nettoyage', 'Nettoyage', 'services', 50, 0, 'sparkles', null, 1, 6, 'nettoyage'],
     ['prd_karcher', 'Kärcher', 'services', 200, 0, 'droplets', null, 1, 0, 'karcher'],
     ['prd_carrosserie', 'Carrosserie', 'reparations', 50, 15, 'car-front', null, 1, 8, 'carrosserie'],
-    ['prd_repa_complete', 'Réparation complète', 'reparations', 250, 90, 'wrench', 'stk_repa', 1, 6, 'reparation-complete'],
+    ['prd_repa_complete', 'Réparation complète', 'reparations', 250, 0, 'wrench', 'stk_repa', 1, 6, 'reparation-complete'],
     ['prd_repa_moteur', 'Réparation moteur', 'reparations', 200, 90, 'cog', 'stk_moteur', 1, 5, 'reparation-moteur'],
     ['prd_pneu', 'Pneu', 'reparations', 100, 45, 'circle-dot', 'stk_pneu', 1, 6, 'pneu'],
     ['prd_kit_repa', 'Kit de réparation', 'reparations', 200, 60, 'package', 'stk_repa', 1, 3, 'kit-de-reparation'],
     ['prd_peinture_primaire', 'Peinture primaire', 'peinture', 200, 0, 'paintbrush', null, 1, 0, 'peinture-primaire'],
     ['prd_peinture_secondaire', 'Peinture secondaire', 'peinture', 200, 0, 'paintbrush', null, 1, 0, 'peinture-secondaire'],
-    ['prd_nacrage', 'Effet de couleur - Nacrage', 'peinture', 450, 0, 'sparkle', null, 1, 0, 'effet-de-couleur-nacrage'],
+    ['prd_nacrage', 'Effet de couleur - Nacrage', 'peinture', 450, 300, 'sparkle', null, 1, 0, 'effet-de-couleur-nacrage'],
     ['prd_couleur_roue', 'Couleur roue', 'peinture', 0, 0, 'circle-dot', null, 1, 0, 'couleur-roue'],
     ['prd_couleur_interieur', 'Couleur intérieur', 'peinture', 0, 0, 'armchair', null, 1, 0, 'couleur-interieur'],
     ['prd_couleur_tableau', 'Couleur tableau de bord', 'peinture', 0, 0, 'gauge', null, 1, 0, 'couleur-tableau-de-bord'],
     ['prd_couleur_phare', 'Couleur phare', 'peinture', 0, 0, 'lightbulb', null, 1, 0, 'couleur-phare'],
     ['prd_couleur_neon', 'Couleur néon', 'peinture', 0, 0, 'lightbulb', null, 1, 0, 'couleur-neon'],
     ['prd_couleur_fumee', 'Couleur fumée pneu', 'peinture', 0, 0, 'cloud', null, 1, 0, 'couleur-fumee-pneu'],
-    ['prd_moteur', 'Moteur', 'reparations', 700, 0, 'cog', null, 1, 0, 'moteur'],
+    ['prd_moteur', 'Moteur', 'reparations', 700, 300, 'cog', null, 1, 0, 'moteur'],
     ['prd_neons', 'Néon', 'custom', 0, 0, 'lightbulb', 'stk_neon', 1, 0, 'neon'],
     ['prd_xenon', 'Phares au xénon', 'custom', 0, 0, 'sun', null, 1, 0, 'phares-au-xenon'],
     ['prd_roue_perso', 'Roue personnalisée', 'custom', 0, 0, 'disc', null, 1, 0, 'roue-personnalisee'],
@@ -91,26 +91,28 @@
     ['prd_nitro', 'Nitro', 'custom', 0, 0, 'flame', null, 1, 0, 'nitro'],
     ['prd_drift', 'Drift', 'custom', 0, 0, 'wind', null, 1, 0, 'drift'],
     ['prd_coffre', 'Coffre agrandi', 'custom', 0, 0, 'package-open', null, 1, 0, 'coffre-agrandi'],
-    ['prd_cachette', 'Cachette secrète', 'custom', 0, 0, 'lock', null, 1, 0, 'cachette-secrete']
+    ['prd_cachette', 'Cachette secrète', 'custom', 0, 0, 'lock', null, 1, 0, 'cachette-secrete'],
+    ['prd_fumee_pneus', 'Fumée pneus', 'custom', 3400, 3000, 'cloud', null, 1, 0, null],
+    ['prd_livery', 'Livery', 'custom', 1000, 700, 'brush', null, 1, 0, null]
   ];
   /* Performances : tarif fixe par catégorie de véhicule (prix de vente et prix usine, catégories 1 à 5) */
   const PERF_SUBS = [{ id: 'moteur', label: 'Moteur' }, { id: 'freins', label: 'Freins' }, { id: 'transmission', label: 'Transmission' }, { id: 'suspension', label: 'Suspension' }, { id: 'turbo', label: 'Turbo' }];
   const PERFS = [
-    { id: 'prd_perf_moteur_modifie', name: 'Moteur Modifié', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [1200, 2300, 4000, 5400, 11400], costs: [1200, 2300, 4000, 5400, 11400] },
-    { id: 'prd_perf_moteur_tune', name: 'Moteur Tuné', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
-    { id: 'prd_perf_moteur_sport', name: 'Moteur Sport', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [3700, 7000, 12400, 16650, 35150], costs: [3700, 7000, 12400, 16650, 35150] },
-    { id: 'prd_perf_moteur_course', name: 'Moteur Course', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [5000, 9500, 16750, 22500, 47500], costs: [5000, 9500, 16750, 22500, 47500] },
-    { id: 'prd_perf_freins_tune', name: 'Freins Tuné', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [1000, 1900, 3350, 4500, 9500], costs: [1000, 1900, 3350, 4500, 9500] },
-    { id: 'prd_perf_freins_sport', name: 'Freins Sport', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [1800, 3400, 6000, 8100, 17100], costs: [1800, 3400, 6000, 8100, 17100] },
-    { id: 'prd_perf_freins_course', name: 'Freins Course', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
-    { id: 'prd_perf_transmi_tune', name: 'Transmission Tuné', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
-    { id: 'prd_perf_transmi_sport', name: 'Transmission Sport', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [2750, 5200, 9200, 12350, 26100], costs: [2750, 5200, 9200, 12350, 26100] },
-    { id: 'prd_perf_transmi_course', name: 'Transmission Course', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [4000, 7600, 13400, 18000, 38000], costs: [4000, 7600, 13400, 18000, 38000] },
-    { id: 'prd_perf_suspen_modifie', name: 'Suspension Modifiée', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1125, 750, 1350, 1800, 3800], costs: [400, 750, 1350, 1800, 3800] },
-    { id: 'prd_perf_suspen_tune', name: 'Suspension Tuné', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [800, 1500, 2700, 3600, 7600], costs: [800, 1500, 2700, 3600, 7600] },
-    { id: 'prd_perf_suspen_sport', name: 'Suspension Sport', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1200, 2250, 4000, 5400, 11400], costs: [1200, 2250, 4000, 5400, 11400] },
-    { id: 'prd_perf_suspen_course', name: 'Suspension Course', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
-    { id: 'prd_perf_turbo', name: 'Turbo', sub: 'turbo', icon: 'wind', image: 'img/products/turbo.png', prices: [8500, 16150, 28450, 38250, 80750], costs: [8500, 16150, 28450, 38250, 80750] }
+    { id: 'prd_perf_moteur_modifie', name: 'Moteur Modifié', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [1200, 2300, 4000, 5400, 11400], costs: [1000,  2000,  3500,  4500,  10000] },
+    { id: 'prd_perf_moteur_tune', name: 'Moteur Tuné', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2000,  4000,  7000,  9000,  20000] },
+    { id: 'prd_perf_moteur_sport', name: 'Moteur Sport', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [3700, 7000, 12400, 16650, 35150], costs: [3000,  6000,  10500,  13500,  30000] },
+    { id: 'prd_perf_moteur_course', name: 'Moteur Course', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [5000, 9500, 16750, 22500, 47500], costs: [4000,  8000,  14000,  18000,  40000] },
+    { id: 'prd_perf_freins_tune', name: 'Freins Tuné', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [1000, 1900, 3350, 4500, 9500], costs: [700,  1400,  2450,  3150,  7000] },
+    { id: 'prd_perf_freins_sport', name: 'Freins Sport', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [1800, 3400, 6000, 8100, 17100], costs: [1400,  2800,  4900,  6300,  14000] },
+    { id: 'prd_perf_freins_course', name: 'Freins Course', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2000,  4000,  7000,  9000,  20000] },
+    { id: 'prd_perf_transmi_tune', name: 'Transmission Tuné', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [1500, 2850, 5000, 6750, 14250], costs: [1000,  2000,  3500,  4500,  10000] },
+    { id: 'prd_perf_transmi_sport', name: 'Transmission Sport', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [2750, 5200, 9200, 12350, 26100], costs: [2000,  4000,  7000,  9000,  20000] },
+    { id: 'prd_perf_transmi_course', name: 'Transmission Course', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [4000, 7600, 13400, 18000, 38000], costs: [3000,  6000,  10500,  13500,  30000] },
+    { id: 'prd_perf_suspen_modifie', name: 'Suspension Modifiée', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1125, 750, 1350, 1800, 3800], costs: [800,  500,  875,  1125,  2500] },
+    { id: 'prd_perf_suspen_tune', name: 'Suspension Tuné', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [800, 1500, 2700, 3600, 7600], costs: [500,  1000,  1750,  2250,  5000] },
+    { id: 'prd_perf_suspen_sport', name: 'Suspension Sport', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1200, 2250, 4000, 5400, 11400], costs: [750,  1500,  2625,  3375,  7500] },
+    { id: 'prd_perf_suspen_course', name: 'Suspension Course', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1500, 2850, 5000, 6750, 14250], costs: [1000,  2000,  3500,  4500,  10000] },
+    { id: 'prd_perf_turbo', name: 'Turbo', sub: 'turbo', icon: 'wind', image: 'img/products/turbo.png', prices: [8500, 16150, 28450, 38250, 80750], costs: [6000,  12000,  21000,  27000,  60000] }
   ];
   function addPerfs(db) {
     const cat = (db.company.categories || []).find(c => c.id === 'performances');
@@ -135,7 +137,7 @@
   const VEHICLES_V = 2; // +1 à chaque ajout de véhicules à la liste
   const vehicleTable = () => { const t = {}; VEHICLES.split(',').forEach(x => { const [m, n] = x.split(':'); t[m] = +n; }); return t; };
   const CATALOG_VERSION = 3;
-  const imgPath = slug => 'img/products/' + slug + '.png';
+  const imgPath = slug => slug ? 'img/products/' + slug + '.png' : '';
 
   /* Base minimale : paramètres, grades, catalogue, inventaire (sans démo). */
   function base(S, opts) {
@@ -324,6 +326,24 @@
         db.products.push({ id: x[0], name: x[1], category: x[2], price: x[3], cost: x[4], icon: x[5], inventoryId: x[6], consume: x[7], description: '', image: imgPath(x[9]), visible: true, active: true, order: 200 + i, createdAt: iso(Date.now()) }));
       db.meta.perfV = 2; changed = true;
     }
+    /* tarifs v4 : moteur à l'unité, coût d'achat 300 $ (seulement s'il était encore à 0) */
+    if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) < 4) {
+      const n = db.products.find(x => x.id === 'prd_moteur'); if (n && !n.cost) n.cost = 300;
+      if ((db.meta.pricesV || 0) >= 3) { db.meta.pricesV = 4; changed = true; }
+    }
+    /* tarifs v3 : réparation complète sans coût (remplace la valeur provisoire de 90 $ si elle n'a pas été changée) */
+    if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) < 3) {
+      const n = db.products.find(x => x.id === 'prd_repa_complete'); if (n && n.cost === 90) n.cost = 0;
+      const mo = db.products.find(x => x.id === 'prd_moteur'); if (mo && !mo.cost) mo.cost = 300;
+      if ((db.meta.pricesV || 0) >= 2) { db.meta.pricesV = 4; changed = true; }
+    }
+    /* tarifs v2 : coût de l'effet de couleur (300 $) — seulement s'il n'a pas été saisi */
+    if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) === 1) {
+      const n = db.products.find(x => x.id === 'prd_nacrage'); if (n && !n.cost) n.cost = 300;
+      const rc = db.products.find(x => x.id === 'prd_repa_complete'); if (rc && rc.cost === 90) rc.cost = 0;
+      const mo = db.products.find(x => x.id === 'prd_moteur'); if (mo && !mo.cost) mo.cost = 300;
+      db.meta.pricesV = 4; changed = true;
+    }
     /* tarifs v1 (grille de la direction) ; services sans pièce : coût 0 (commission sur le prix complet, règle mairie) */
     if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) < 1) {
       const P = { prd_carrosserie: 50, prd_depannage: 50, prd_fourriere: 150, prd_fourriere_air: 300, prd_nettoyage: 50, prd_pneu: 100, prd_repa_complete: 250, prd_repa_moteur: 200,
@@ -331,6 +351,34 @@
       const free = ['prd_depannage', 'prd_fourriere', 'prd_fourriere_air', 'prd_nettoyage'];
       db.products.forEach(x => { if (x.id in P) x.price = P[x.id]; if (free.includes(x.id)) x.cost = 0; });
       db.meta.pricesV = 1; changed = true;
+      const n = db.products.find(x => x.id === 'prd_nacrage'); if (n && !n.cost) n.cost = 300;
+      const rc = db.products.find(x => x.id === 'prd_repa_complete'); if (rc && rc.cost === 90) rc.cost = 0;
+      const mo = db.products.find(x => x.id === 'prd_moteur'); if (mo && !mo.cost) mo.cost = 300;
+      db.meta.pricesV = 4;
+    }
+    /* tarifs v5 : grille complète de l'autre compta (prix de revente, coût de revient, type) */
+    if (db && db.meta && db.company && Array.isArray(db.products) && (db.meta.pricesV || 0) === 4) {
+      const cats = db.company.categories || (db.company.categories = []);
+      if (!cats.some(c => c.id === 'vente')) cats.splice(Math.max(0, cats.findIndex(c => c.id === 'reparations') + 1), 0, { id: 'vente', label: 'Vente', icon: 'shopping-bag', subs: [] });
+      const ITEMS = {"prd_depannage": [null, "services", 50, 0], "prd_fourriere": [null, "services", 150, 0], "prd_fourriere_air": [null, "services", 300, 0], "prd_nettoyage": [null, "services", 50, 0], "prd_carrosserie": [null, "reparations", 50, 0], "prd_repa_complete": [null, "reparations", 250, 0], "prd_repa_moteur": [null, "reparations", 200, 0], "prd_pneu": [null, "reparations", 100, 0], "prd_karcher": [null, "vente", 200, 100], "prd_kit_repa": [null, "vente", 200, 100], "prd_moteur": [null, "vente", 700, 300], "prd_peinture_primaire": [null, "peinture", 200, 75], "prd_peinture_secondaire": [null, "peinture", 200, 75], "prd_nacrage": [null, "peinture", 450, 300], "prd_couleur_roue": ["Couleur jantes", "peinture", 500, 400], "prd_couleur_interieur": [null, "peinture", 200, 125], "prd_couleur_tableau": [null, "peinture", 200, 125], "prd_couleur_phare": ["Couleur phares", "peinture", 400, 250], "prd_couleur_neon": [null, "peinture", 1500, 330], "prd_couleur_fumee": ["Couleur fumée pneus", "peinture", 450, 200], "prd_neons": [null, "custom", 2000, 1500], "prd_xenon": ["Phares xénon", "custom", 350, 250], "prd_roue_perso": ["Pneus custom", "custom", 400, 250], "prd_type_roue": ["Type de jantes", "custom", 800, 250], "prd_vitres": ["Fenêtres teintées", "custom", 350, 250], "prd_plaque": ["Modèle de plaque", "custom", 250, 150], "prd_klaxon": [null, "custom", 400, 250], "prd_extra": ["Accessoire (extra)", "custom", 350, 250]}, OLD = {"prd_couleur_roue": "Couleur roue", "prd_couleur_phare": "Couleur phare", "prd_couleur_fumee": "Couleur fumée pneu", "prd_xenon": "Phares au xénon", "prd_roue_perso": "Roue personnalisée", "prd_type_roue": "Type roue", "prd_vitres": "Teinte fenêtre", "prd_plaque": "Style de plaque", "prd_extra": "Extra"}, COSTS = {"moteur_modifie": [1000, 2000, 3500, 4500, 10000], "moteur_tune": [2000, 4000, 7000, 9000, 20000], "moteur_sport": [3000, 6000, 10500, 13500, 30000], "moteur_course": [4000, 8000, 14000, 18000, 40000], "freins_tune": [700, 1400, 2450, 3150, 7000], "freins_sport": [1400, 2800, 4900, 6300, 14000], "freins_course": [2000, 4000, 7000, 9000, 20000], "transmi_tune": [1000, 2000, 3500, 4500, 10000], "transmi_sport": [2000, 4000, 7000, 9000, 20000], "transmi_course": [3000, 6000, 10500, 13500, 30000], "suspen_modifie": [800, 500, 875, 1125, 2500], "suspen_tune": [500, 1000, 1750, 2250, 5000], "suspen_sport": [750, 1500, 2625, 3375, 7500], "suspen_course": [1000, 2000, 3500, 4500, 10000], "turbo": [6000, 12000, 21000, 27000, 60000]};
+      Object.keys(ITEMS).forEach(id => {
+        const p = db.products.find(x => x.id === id), [name, cat, price, cost] = ITEMS[id];
+        if (!p) return;
+        Object.assign(p, { price, cost });
+        if (cats.some(c => c.id === cat)) { if (p.category !== cat) p.sub = null; p.category = cat; }
+        if (name && (!OLD[id] || p.name === OLD[id])) p.name = name;
+      });
+      Object.keys(COSTS).forEach(k => {
+        const p = db.products.find(x => x.id === 'prd_perf_' + k), d = PERFS.find(x => x.id === 'prd_perf_' + k);
+        if (p && d) Object.assign(p, { classPrices: d.prices.slice(), classCosts: COSTS[k].slice(), price: d.prices[0], cost: COSTS[k][0] });
+      });
+      db.meta.pricesV = 5; changed = true;
+    }
+    /* tarifs v6 : Fumée pneus et Livery (grille de l'autre compta) */
+    if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) === 5) {
+      PRODUCTS.filter(x => ['prd_fumee_pneus', 'prd_livery'].includes(x[0]) && !db.products.some(p => p.id === x[0])).forEach((x, i) =>
+        db.products.push({ id: x[0], name: x[1], category: x[2], price: x[3], cost: x[4], icon: x[5], inventoryId: null, consume: 1, description: '', image: '', visible: true, active: true, order: 300 + i, createdAt: iso(Date.now()) }));
+      db.meta.pricesV = 6; changed = true;
     }
     /* paie v1 : % du bénéfice par grade, plus de paie à l'heure ni de primes automatiques ; impôt par tranches */
     if (S && db && db.meta && db.company && Array.isArray(db.roles) && (db.meta.payV || 0) < 1) {

@@ -107,7 +107,7 @@
     el.innerHTML = `<div class="page-head"><div><h1>Bilan</h1><div class="sub">Compte de résultat calculé à partir des ventes, charges, paies et achats.</div></div><div class="actions">${U.periodBar(bst)}</div></div>
       <div class="grid stats">
         ${U.stat({ label: "Chiffre d'affaires", value: money(z.revenue), trend: ST.trend(z.revenue, o.revenue), icon: 'dollar-sign' })}
-        ${U.stat({ label: 'Dépenses', value: money(z.expenses), trend: ST.trend(z.expenses, o.expenses), icon: 'arrow-up-right', tone: 'warn' })}
+        ${U.stat({ label: 'Dépenses', value: money(z.expenses), trend: ST.trend(z.expenses, o.expenses), inverse: true, sub: 'commissions, salaires, frais, achats', icon: 'arrow-up-right', tone: 'warn' })}
         ${U.stat({ label: 'Bénéfice', value: money(z.gross), sub: 'marge brute', icon: 'trending-up' })}
         ${U.stat({ label: 'Bénéfice net', value: money(z.net), valueCls: z.net < 0 ? 'danger-t' : 'ok-t', trend: ST.trend(z.net, o.net), icon: 'piggy-bank' })}
       </div>

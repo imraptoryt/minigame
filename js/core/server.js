@@ -100,6 +100,7 @@
       categories: [
         { id: 'services', label: 'Services', icon: 'truck' },
         { id: 'reparations', label: 'Réparations', icon: 'wrench' },
+        { id: 'vente', label: 'Vente', icon: 'shopping-bag' },
         { id: 'peinture', label: 'Peinture & couleurs', icon: 'palette' },
         { id: 'performances', label: 'Performances', icon: 'gauge', vehicleClass: true },
         { id: 'custom', label: 'Customisation', icon: 'sparkles' }
@@ -226,7 +227,7 @@
     rate = +rate || 0;
     /* la commission se calcule sur le bénéfice de la vente (prix − coût usine / kit), sauf réglage « CA » */
     const base = db.company.commissionBase === 'revenue' ? total : Math.max(0, total - factory);
-    return { items, missing, partner, subtotal, factory, discount, markup, total, commissionRate: rate, commission: r(base * rate / 100) };
+    return { items, missing, partner, subtotal, factory, discount, markup, total, commissionBase: r(base), commissionRate: rate, commission: r(base * rate / 100) };
   }
 
   /* ---------- contexte d'exécution d'une action ---------- */

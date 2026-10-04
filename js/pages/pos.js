@@ -351,9 +351,9 @@
     }).join('') : U.empty({ icon: 'shopping-basket', title: 'Panier vide', text: 'Cliquez sur un service pour l’ajouter.', hint: false });
     const rate = app().myRole().commission;
     root.querySelector('#cartSum').innerHTML = `<div class="sum">
-        <div class="sum-row"><span>Commission${rate ? ` (${rate}%)` : ''} :</span><b>${money(q.commission)}</b></div>
+        <div class="sum-row" title="Bénéfice de la vente (total − prix usine) : le % du grade se calcule dessus. Votre part (${rate}%) : ${money(q.commission)}"><span>Commission :</span><b>${money(q.commissionBase)}</b></div>
         <div class="sum-row"><span>Prix usine :</span><b>${money(q.factory)}</b></div>
-        <div class="sum-row"><span>Sous-total :</span><b>${money(q.subtotal)}</b></div>
+        ${q.discount || q.markup ? `<div class="sum-row"><span>Sous-total :</span><b>${money(q.subtotal)}</b></div>` : ''}
         <div class="sum-row click ${q.discount ? 'neg' : ''}" data-act="discount" title="Appliquer / modifier une réduction"><span>Réduction${P.discount ? ` (${P.discount.type === 'percent' ? P.discount.value + '%' : 'fixe'})` : ''} :</span><span><b>${q.discount ? '-' : ''}${money(q.discount)}</b><span class="edit">${icon('pencil', 'xs')}</span></span></div>
         <div class="sum-row click" data-act="markup" title="Appliquer / modifier une majoration"><span>Majoration${P.markup ? ` (${P.markup.type === 'percent' ? P.markup.value + '%' : 'fixe'})` : ''} :</span><span><b>${money(q.markup)}</b><span class="edit">${icon('pencil', 'xs')}</span></span></div>
       </div><div class="sum-total"><span>Total :</span><b>${money(q.total)}</b></div>`;
