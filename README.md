@@ -44,6 +44,13 @@ Facturation : uniquement les partenaires (pas de fiche client). Une vente faite 
 dans Factures, « Générer la facture » regroupe ses ventes et l'envoie sur le webhook Discord du partenaire, en mentionnant
 l'ID Discord et/ou l'ID de rôle renseignés dans sa fiche. Les factures personnalisées (lignes libres) restent possibles.
 
+Paie et impôts (règles de la mairie) : la commission de chaque grade est un % du bénéfice de la vente (prix − coût usine /
+kit), réglable en « % du CA » dans Paramètres → Comptabilité. Pas de paie à l'heure. Dans Salaires, le n° de compte, le montant
+et le motif « S40 Paye LS Customs » se copient d'un clic. Le Bilan calcule l'impôt par tranches (10 % / 20 % / 30 %) sur le
+résultat imposable (CA − charges déductibles) ; chaque type de frais peut être marqué non déductible.
+
+En ligne, définir `LSC_OWNER_CHARID` : seul ce Char ID peut devenir le premier PDG ; les autres inscriptions attendent sa validation.
+
 Thèmes : Sombre, Clair, Halloween et Noël (avec décorations animées). Le thème par défaut se règle dans Paramètres →
 Entreprise ; chacun peut choisir le sien et couper les décorations (menu du profil → Thème, gardé dans son navigateur).
 

@@ -59,19 +59,31 @@
     const L = [];
     S.sales.forEach(s => { if (s.status !== 'cancelled') L.push({ t: ts(s.createdAt), revenue: s.total, factory: s.factory, count: 1 }); });
     S.invoices.forEach(i => { if (i.status === 'paid' && !i.saleId) L.push({ t: ts(i.paidAt), revenue: i.total, count: 0 }); });
-    S.expenses.forEach(e => L.push({ t: ts(e.date), charges: e.amount, cat: e.category }));
+    const nd = new Set((S.company.expenseCategories || []).filter(c => c.deductible === false).map(c => c.id));
+    S.expenses.forEach(e => L.push({ t: ts(e.date), charges: e.amount, chargesND: nd.has(e.category) ? e.amount : 0, cat: e.category }));
     S.bills.forEach(b => { if (b.status === 'paid') L.push({ t: ts(b.paidAt), bills: b.amount }); });
     S.payrolls.forEach(p => { if (p.status === 'paid') L.push({ t: ts(p.paidAt), salaries: p.base + (p.bonus || 0) + (p.primesTotal || 0) - p.deduction }); });
     S.commissions.forEach(c => L.push({ t: ts(c.createdAt), commissions: c.amount }));
     S.bank.forEach(b => { if (b.type === 'out' && b.category === 'achat') L.push({ t: ts(b.at), purchases: b.amount }); });
     return L;
   }
-  const KEYS = ['revenue', 'count', 'factory', 'charges', 'bills', 'salaries', 'commissions', 'purchases'];
+  const KEYS = ['revenue', 'count', 'factory', 'charges', 'chargesND', 'bills', 'salaries', 'commissions', 'purchases'];
+  /* Impôt par tranches : chaque tranche n'est taxée que sur la part du résultat qui s'y trouve */
+  function tax(amount, brackets) {
+    let from = 0, total = 0;
+    const lines = (brackets || []).map(b => {
+      const to = b.upTo == null ? Infinity : +b.upTo, base = Math.max(0, Math.min(amount, to) - from), v = Math.round(base * b.rate) / 100;
+      const l = { from, to, rate: +b.rate, base, amount: v }; total += v; from = to; return l;
+    });
+    return { total: Math.round(total * 100) / 100, lines };
+  }
   function finish(z, S) {
     z.gross = z.revenue - z.factory;
     z.expenses = z.charges + z.bills + z.salaries + z.commissions + z.purchases;
     z.net = z.revenue - z.expenses;
-    z.tax = Math.max(0, z.net) * (+S.company.taxRate || 0) / 100;
+    z.taxable = z.revenue - (z.expenses - z.chargesND); // CA − charges déductibles
+    z.taxInfo = tax(z.taxable, S.company.taxBrackets);
+    z.tax = z.taxInfo.total;
     z.netAfterTax = z.net - z.tax;
     return z;
   }
@@ -133,5 +145,5 @@
   const billStatus = b => b.status === 'pending' && ts(b.due) < Date.now() ? 'overdue' : b.status;
 
   window.LSC = window.LSC || {};
-  window.LSC.stats = { range, prev, within, buckets, summary, series, trend, salesIn, byProduct, minutes, employee, bankBalance, invoiceStatus, billStatus, sod, DAY, weekNum, weekLabel, absencesIn, absentNow, prereq };
+  window.LSC.stats = { tax, range, prev, within, buckets, summary, series, trend, salesIn, byProduct, minutes, employee, bankBalance, invoiceStatus, billStatus, sod, DAY, weekNum, weekLabel, absencesIn, absentNow, prereq };
 })();

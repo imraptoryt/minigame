@@ -34,7 +34,7 @@
       </div>
       <div class="grid cols-3 mt">
         ${U.panel('Ma paie de la semaine', `<dl class="kv"><dt>Grade</dt><dd>${esc(role.name)}</dd><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd>
-          <dt>Heures (${U.fmtDur(z.minutes)} × ${money(role.hourly || 0)})</dt><dd>${money(p.hourly)}</dd><dt>Commissions</dt><dd>${money(p.com)}</dd>
+          ${role.hourly || p.hourly ? `<dt>Heures (${U.fmtDur(z.minutes)} × ${money(role.hourly || 0)})</dt><dd>${money(p.hourly)}</dd>` : ''}<dt>Commissions</dt><dd>${money(p.com)}</dd>
           ${p.primes.map(x => `<dt class="muted">Prime — ${esc(x.label)}</dt><dd class="ok-t">+${money(x.amount)}</dd>`).join('')}
           ${p.bonus ? `<dt>Bonus</dt><dd class="ok-t">+${money(p.bonus)}</dd>` : ''}${p.ded ? `<dt>Retenue</dt><dd class="danger-t">-${money(p.ded)}</dd>` : ''}
           <dt><b>Total</b></dt><dd class="ok-t"><b>${money(p.total)}</b></dd><dt>Statut</dt><dd>${payBadge}</dd></dl>

@@ -19,7 +19,7 @@
         <div class="actions"><button class="btn primary sm" data-new>${icon('plus')}Nouveau grade</button></div></div>
       <div class="grid cols-3">
         ${U.panel('Grades', `<div class="list">${list.map(x => `<div class="role-item ${x.id === rst.sel ? 'on' : ''}" data-role="${x.id}"><span class="li-ic ${x.perms.includes('*') ? 'ok' : ''}">${icon(x.perms.includes('*') ? 'crown' : 'shield')}</span>
-          <div style="min-width:0"><b>${esc(x.name)}</b><small>Rang ${x.rank} · ${x.commission}% · ${money(x.salary)} + ${money(x.hourly)}/h</small></div>
+          <div style="min-width:0"><b>${esc(x.name)}</b><small>Rang ${x.rank} · ${x.commission}% du bénéfice · fixe ${money(x.salary)}</small></div>
           <span class="badge" style="margin-left:auto">${s.employees.filter(e => !e.archived && e.roleId === x.id).length}</span></div>`).join('')}</div>`, { icon: 'shield-check', bodyCls: '' })}
         <section class="panel span-2">${r ? `<div class="panel-head"><h3>${icon('key-round')}${esc(r.name)}</h3><div class="row">${editable ? `<button class="btn sm" data-edit>${icon('pencil')}Commission & salaire</button><button class="btn sm danger" data-del>${icon('trash-2')}</button>` : ''}</div></div>
           <div class="panel-body">${r.perms.includes('*') ? `<div class="alert info">${icon('crown')}<span><b>Accès complet</b> — ce grade possède toutes les permissions.</span></div>` : ''}
@@ -36,9 +36,9 @@
   }
   function roleForm(id) {
     const r = id ? S().roles.find(x => x.id === id) : null;
-    U.form({ title: r ? 'Grade — ' + r.name : 'Nouveau grade', icon: 'shield', values: r || { rank: 15, commission: 5, salary: 800, hourly: 25 },
+    U.form({ title: r ? 'Grade — ' + r.name : 'Nouveau grade', icon: 'shield', values: r || { rank: 15, commission: 60, salary: 0, hourly: 0 },
       fields: [{ name: 'name', label: 'Nom', required: true, full: true }, { name: 'rank', label: 'Rang (hiérarchie)', type: 'number', min: 1, max: 99, hint: 'Plus le rang est élevé, plus le grade est haut.' },
-        { name: 'commission', label: 'Commission (%)', type: 'number', min: 0, max: 100, step: '0.5' }, { name: 'salary', label: 'Salaire fixe par paie', type: 'money' }, { name: 'hourly', label: 'Taux horaire', type: 'money' }],
+        { name: 'commission', label: 'Commission (% du bénéfice)', type: 'number', min: 0, max: 100, step: '0.5' }, { name: 'salary', label: 'Salaire fixe par paie', type: 'money' }],
       onSubmit: async v => { const res = await A().call('roles.save', Object.assign({ id, perms: r ? r.perms : ['pos.use', 'sales.view_own', 'stats.own', 'service.self'] }, v), r ? 'Grade modifié' : 'Grade créé'); if (res.ok && res.data) rst.sel = res.data.id; return res; } });
   }
 
@@ -307,9 +307,12 @@
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="co">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('calculator')}Comptabilité</h3></div><div class="panel-body"><form class="form" id="fAcc">
           ${U.field({ name: 'currency', label: 'Devise (symbole)' }, co.currency)}${U.field({ name: 'rounding', label: 'Arrondis', type: 'select', options: [{ value: 1, label: "À l'unité ($1)" }, { value: 0.01, label: 'Au centime ($0.01)' }] }, co.rounding)}
-          ${U.field({ name: 'taxRate', label: 'Taxe sur le bénéfice (%)', type: 'number', min: 0, max: 100 }, co.taxRate)}${U.field({ name: 'invoiceDays', label: 'Échéance factures (jours)', type: 'number', min: 1 }, co.invoiceDays)}
+          ${U.field({ name: 'commissionBase', label: 'Commission des employés', type: 'select', options: [{ value: 'margin', label: '% du bénéfice (prix − coût) — règle mairie' }, { value: 'revenue', label: '% du chiffre d’affaires' }] }, co.commissionBase || 'margin')}
+          ${U.field({ name: 'payReason', label: 'Motif du virement de paie', hint: 'Précédé du n° de semaine : « S40 Paye LS Customs ».' }, co.payReason || 'Paye LS Customs')}${U.field({ name: 'invoiceDays', label: 'Échéance factures (jours)', type: 'number', min: 1 }, co.invoiceDays)}
           ${U.field({ name: 'largeSale', label: 'Seuil « vente importante »', type: 'money' }, co.largeSale)}${U.field({ name: 'maxDiscountPct', label: 'Plafond réduction sans permission étendue (%)', type: 'number', min: 0, max: 100 }, co.maxDiscountPct)}</form>
           <p class="hint" style="margin:10px 0 0">Les taux de commission sont définis par grade dans « Gestion des rôles ».</p>
+          <div class="section-title">Impôt par tranches (barème mairie)</div>
+          <div class="form tax-form">${(co.taxBrackets || []).map((b, i, a) => `${i < a.length - 1 ? U.field({ name: 'tb' + i, label: `Tranche ${i + 1} : jusqu'à`, type: 'money' }, b.upTo) : `<div class="field"><span class="field-label">Tranche ${i + 1}</span><div class="input" style="display:flex;align-items:center;opacity:.7">au-delà</div></div>`}${U.field({ name: 'tr' + i, label: 'Taux (%)', type: 'number', min: 0, max: 100 }, b.rate)}`).join('')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="acc">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('shopping-cart')}Point de vente</h3></div><div class="panel-body">
           <div class="section-title">Catégories</div><div id="catRows">${co.categories.map(c => catRow(c)).join('')}</div><button class="btn sm" id="addCat">${icon('plus')}Ajouter une catégorie</button>
@@ -320,12 +323,12 @@
           <div class="form" style="margin-top:12px">${U.field({ name: 'discountReasons', label: 'Motifs de réduction (séparés par des virgules)', full: true }, co.discountReasons.join(', '))}${U.field({ name: 'markupReasons', label: 'Motifs de majoration', full: true }, co.markupReasons.join(', '))}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="pos">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('users')}Employés</h3></div><div class="panel-body">
-          <table class="tbl compact"><thead><tr><th>Grade</th><th class="right">Commission</th><th class="right">Salaire</th><th class="right">Horaire</th><th class="right">Effectif</th></tr></thead><tbody>
-          ${s.roles.slice().sort((a, b) => b.rank - a.rank).map(r => `<tr><td>${esc(r.name)}</td><td class="right">${r.commission}%</td><td class="right">${money(r.salary)}</td><td class="right">${money(r.hourly)}</td><td class="right">${s.employees.filter(e => !e.archived && e.roleId === r.id).length}</td></tr>`).join('')}</tbody></table>
+          <table class="tbl compact"><thead><tr><th>Grade</th><th class="right">Commission</th><th class="right">Salaire fixe</th><th class="right">Effectif</th></tr></thead><tbody>
+          ${s.roles.slice().sort((a, b) => b.rank - a.rank).map(r => `<tr><td>${esc(r.name)}</td><td class="right">${r.commission}%</td><td class="right">${money(r.salary)}</td><td class="right">${s.employees.filter(e => !e.archived && e.roleId === r.id).length}</td></tr>`).join('')}</tbody></table>
           ${A().allowed('roles') ? `<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn sm" data-go="roles">${icon('shield-check')}Grades, permissions et salaires</button></div>` : ''}</div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('shopping-bag')}Frais — types de commande</h3></div><div class="panel-body" id="fFees">
           <p class="muted" style="margin:0 0 10px">Les seuls frais de l'entreprise. Le prix unitaire pré-remplit chaque nouvelle commande.</p>
-          <div class="cfg-head fee"><span>Nom</span><span>Prix unitaire</span><span></span></div>
+          <div class="cfg-head fee"><span>Nom</span><span>Prix unitaire</span><span title="Déductible des impôts">Déd.</span><span></span></div>
           <div id="feeRows">${co.expenseCategories.map(feeRow).join('')}</div>
           <div class="row" style="margin-top:8px"><button class="btn sm" id="addFee">${icon('plus')}Ajouter un type</button><span class="grow"></span><button class="btn primary sm" data-save="fees">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('gift')}Primes automatiques</h3></div><div class="panel-body" id="fPrimes">
@@ -393,14 +396,19 @@
         el.querySelectorAll('#mcRows .cfg-row').forEach(r => { const m = r.querySelector('[data-k=model]').value.trim().toLowerCase(); if (m) modelClasses[m] = +r.querySelector('[data-k=cls]').value; });
         save({ modelClasses, gtaClasses: [...el.querySelectorAll('[data-gta]')].map(x => +x.value) }, 'Catégories de véhicules enregistrées');
       }
-      else if (k === 'acc') { const v = form('#fAcc'); ['rounding', 'taxRate', 'invoiceDays', 'largeSale', 'maxDiscountPct'].forEach(x => { v[x] = +v[x]; }); save(v); }
+      else if (k === 'acc') {
+        const v = form('#fAcc'); ['rounding', 'invoiceDays', 'largeSale', 'maxDiscountPct'].forEach(x => { v[x] = +v[x]; });
+        const tv = n => { const i = el.querySelector(`[name=${n}]`); return i ? i.value : null; }; // barème : hors du <form>
+        v.taxBrackets = (co.taxBrackets || []).map((b, i) => ({ upTo: tv('tb' + i) != null ? +tv('tb' + i) : null, rate: +tv('tr' + i) || 0 }));
+        save(v);
+      }
       else if (k === 'pos') {
         const categories = [...el.querySelectorAll('.cat-row')].map(r => ({ id: r.dataset.id || r.querySelector('[data-k=label]').value.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-'), label: r.querySelector('[data-k=label]').value, icon: r.querySelector('[data-k=icon]').value }));
         const split = n => el.querySelector(`[name=${n}]`).value.split(',').map(x => x.trim()).filter(Boolean);
         const fv = n => el.querySelector(`[name=${n}]`).value;
         save({ categories, directPayment: fv('directPayment'), vehicleClasses: [0, 1, 2, 3, 4].map(i => fv('vc' + i)), discountReasons: split('discountReasons'), markupReasons: split('markupReasons') });
       } else if (k === 'fees') {
-        const list = [...el.querySelectorAll('#feeRows .cfg-row')].map(r => ({ id: r.dataset.id, label: r.querySelector('[data-k=label]').value, price: +r.querySelector('[data-k=price]').value || 0 }));
+        const list = [...el.querySelectorAll('#feeRows .cfg-row')].map(r => ({ id: r.dataset.id, label: r.querySelector('[data-k=label]').value, price: +r.querySelector('[data-k=price]').value || 0, deductible: r.querySelector('[data-k=ded]').checked }));
         save({ expenseCategories: list }, 'Types de commande enregistrés');
       } else if (k === 'primes') {
         const list = [...el.querySelectorAll('#ruleRows .cfg-row')].map(r => ({ id: r.dataset.id, enabled: r.querySelector('[data-k=enabled]').checked, label: r.querySelector('[data-k=label]').value, type: r.querySelector('[data-k=type]').value, threshold: +r.querySelector('[data-k=threshold]').value || 0, amount: +r.querySelector('[data-k=amount]').value || 0 }));
@@ -494,7 +502,7 @@
     U.download(`ls-customs-archive-${month}.json`, JSON.stringify(out, null, 2));
     return n;
   }
-  const feeRow = f => `<div class="cfg-row fee" data-id="${esc(f.id || '')}"><input class="input sm" data-k="label" value="${esc(f.label)}" placeholder="Commande moteur"><input class="input sm" type="number" min="0" step="0.01" data-k="price" value="${f.price || 0}"><button class="icon-btn sm danger" data-rmrow title="Retirer">${icon('x', 'sm')}</button></div>`;
+  const feeRow = f => `<div class="cfg-row fee" data-id="${esc(f.id || '')}"><input class="input sm" data-k="label" value="${esc(f.label)}" placeholder="Commande moteur"><input class="input sm" type="number" min="0" step="0.01" data-k="price" value="${f.price || 0}"><label class="check" title="Déductible des impôts (achat fournisseur). Décochez pour un achat de véhicule, de local, une custom..."><input type="checkbox" data-k="ded" ${f.deductible === false ? '' : 'checked'}><span>Déd.</span></label><button class="icon-btn sm danger" data-rmrow title="Retirer">${icon('x', 'sm')}</button></div>`;
   const RULE_TYPES = [{ value: 'ca', label: 'CA de la période ≥ ($)' }, { value: 'hours', label: 'Heures de service ≥' }, { value: 'sales', label: 'Nombre de ventes ≥' }, { value: 'top', label: 'Meilleur vendeur (CA)' }];
   const ruleRow = r => `<div class="cfg-row rule" data-id="${esc(r.id || '')}"><label class="check"><input type="checkbox" data-k="enabled" ${r.enabled !== false ? 'checked' : ''} title="Active"></label><input class="input sm" data-k="label" value="${esc(r.label)}" placeholder="Nom de la prime"><select class="input sm" data-k="type">${U.opts(RULE_TYPES, r.type)}</select><input class="input sm" type="number" min="0" data-k="threshold" value="${r.threshold || 0}" title="Seuil (ignoré pour Meilleur vendeur)"><input class="input sm" type="number" min="0" step="0.01" data-k="amount" value="${r.amount || 0}" title="Montant de la prime ($)"><button class="icon-btn sm danger" data-rmrow title="Retirer">${icon('x', 'sm')}</button></div>`;
   const catRow = c => `<div class="cat-row" data-id="${esc(c.id)}"><input class="input sm" style="width:auto" data-k="label" value="${esc(c.label)}" placeholder="Nom"><input class="input sm" style="width:auto" data-k="icon" value="${esc(c.icon)}" placeholder="icône"><button class="icon-btn sm danger" data-rmcat title="Retirer">${icon('x', 'sm')}</button></div>`;

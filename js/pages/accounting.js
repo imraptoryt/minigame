@@ -6,6 +6,40 @@
   const A = () => LSC.app, S = () => LSC.app.state;
   const act = (name, label, ic, cls) => `<button class="icon-btn sm ${cls || ''}" data-a="${name}" title="${esc(label)}">${icon(ic, 'sm')}</button>`;
   const { onActs, idCell } = U;
+  const SLIDES = 'https://docs.google.com/presentation/d/143wqzgB963IFtGqS2dPSmZ0I5K1Tfmk2bAuyNJkry5I/edit';
+
+  /* =================== IMPÔTS (barème de la mairie) =================== */
+  const fmtTo = t => t === Infinity ? 'et plus' : money(t), neg = v => v ? '-' + money(v) : money(0);
+  function taxBlock(z) {
+    const ded = z.expenses - z.chargesND, t = z.taxInfo;
+    return `<div class="grid cols-2" style="gap:18px"><dl class="kv">
+        <dt>Chiffre d'affaires (imposable)</dt><dd class="ok-t">${money(z.revenue)}</dd>
+        <dt class="muted">Salaires et commissions</dt><dd>${neg(z.salaries + z.commissions)}</dd>
+        <dt class="muted">Achats fournisseurs (stock)</dt><dd>${neg(z.purchases)}</dd>
+        <dt class="muted">Frais déductibles</dt><dd>${neg(z.charges - z.chargesND + z.bills)}</dd>
+        ${z.chargesND ? `<dt class="muted">Frais non déductibles</dt><dd class="faint" title="Payés, mais pas retirés avant l'impôt">${money(z.chargesND)}</dd>` : ''}
+        <dt style="font-weight:700;color:var(--text)">Résultat imposable</dt><dd style="font-weight:700" class="${z.taxable < 0 ? 'danger-t' : ''}">${money(z.taxable)}</dd>
+      </dl><div>
+        <table class="tbl compact"><thead><tr><th>Tranche</th><th class="right">Taux</th><th class="right">Part</th><th class="right">Impôt</th></tr></thead><tbody>
+        ${t.lines.map(l => `<tr class="${l.base ? '' : 'faint'}"><td>${money(l.from)} → ${fmtTo(l.to)}</td><td class="right">${l.rate}%</td><td class="right">${money(l.base)}</td><td class="right">${money(l.amount)}</td></tr>`).join('')}
+        </tbody></table>
+        <div class="sum-total" style="padding:10px 0 0;margin-top:8px;border-top:1px solid var(--line)"><span>Impôt total dû</span><b>${money(z.tax)}</b></div>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted">Résultat net (imposable − impôt)</span><b class="${z.taxable - z.tax < 0 ? 'danger-t' : 'ok-t'}">${money(z.taxable - z.tax)}</b></div>
+        <p class="hint" style="margin:8px 0 0">Charges déductibles retirées : ${money(ded)}. Barème modifiable dans Paramètres → Comptabilité.</p>
+      </div></div>`;
+  }
+  function taxRules() {
+    const li = (b, t) => `<li><b>${b}</b> ${t}</li>`;
+    return `<ul class="rules">
+      ${li('CA :', "tout l'argent encaissé, hors TVA (la TVA n'est pas une charge, elle se reverse à la mairie).")}
+      ${li('Imposable :', "le CA et les produits d'autres activités. Les subventions de la mairie ne le sont pas.")}
+      ${li('Déductible :', 'salaires, achats fournisseurs (kits, stock), loyers.')}
+      ${li('Non déductible :', 'achat de locaux ou de véhicules, customs de véhicules, achats de confort (nourriture).')}
+      ${li('Salaires :', "un % du bénéfice de l'employé (prix − coût du kit), pas de son CA.")}
+      ${li('Impôt :', 'par tranches — 10 % jusqu’à 20 000 $, 20 % de 20 000 à 50 000 $, 30 % au-delà.')}
+      ${li('Après impôt :', 'dividendes (obligatoires), primes (facultatives), trésorerie à laisser en banque (obligatoire).')}
+    </ul><a class="btn sm ghost" href="${SLIDES}" target="_blank" rel="noopener" style="margin-top:8px">${icon('external-link')}Bases de la comptabilité (mairie)</a>`;
+  }
 
   /* =================== BILAN =================== */
   const bst = { period: 'week' };
@@ -20,7 +54,7 @@
     const rows = [
       ['Chiffre d\'affaires', z.revenue, 'ok'], ['Prix usine des ventes', -z.factory], ['Marge brute (bénéfice)', z.gross, 'b'],
       ['Achats de stock', -z.purchases], ['Frais (commandes)', -z.charges - z.bills], ['Salaires', -z.salaries], ['Commissions', -z.commissions],
-      ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'], ...(s.company.taxRate ? [[`Taxes (${s.company.taxRate}%)`, -z.tax], ['Bénéfice net après taxes', z.netAfterTax, 'b']] : [])
+      ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'], ['Impôt (barème)', -z.tax], ['Bénéfice net après impôt', z.netAfterTax, 'b']
     ];
     el.innerHTML = `<div class="page-head"><div><h1>Bilan</h1><div class="sub">Compte de résultat calculé à partir des ventes, charges, paies et achats.</div></div><div class="actions">${U.periodBar(bst)}</div></div>
       <div class="grid stats">
@@ -38,6 +72,10 @@
       <div class="grid cols-3 mt">
         ${U.panel('Chiffre d\'affaires et dépenses', U.chart({ labels: ser.map(x => x.label), series: [{ name: "Chiffre d'affaires", values: ser.map(x => x.revenue) }, { name: 'Dépenses', values: ser.map(x => x.expenses), color: 'var(--warn)' }], type: 'area', height: 262 }), { icon: 'chart-line', cls: 'span-2' })}
         ${U.panel('Compte de résultat', `<dl class="kv">${rows.map(x => `<dt class="${x[2] === 'b' ? '' : 'muted'}" style="${x[2] === 'b' ? 'font-weight:700;color:var(--text)' : ''}">${x[0]}</dt><dd class="${x[1] < 0 ? '' : 'ok-t'}" style="${x[2] === 'b' ? 'font-weight:700' : ''}">${money(x[1])}</dd>`).join('')}</dl>`, { icon: 'scale' })}
+      </div>
+      <div class="grid cols-3 mt">
+        ${U.panel('Impôt de la période', taxBlock(z), { icon: 'landmark', cls: 'span-2', right: '<span class="muted">sur la période affichée</span>' })}
+        ${U.panel('Règles de la mairie', taxRules(), { icon: 'book-open' })}
       </div>
       <div class="grid cols-3 mt">
         ${U.panel('Bénéfice net par période', U.chart({ labels: ser.map(x => x.label), series: [{ name: 'Bénéfice net', values: ser.map(x => x.net) }], type: 'bar', height: 220 }), { icon: 'chart-column', cls: 'span-2' })}
@@ -364,13 +402,16 @@
     const sum = (list, f) => list.reduce((a, p) => a + f(p), 0);
     const emp = p => s.employees.find(x => x.id === p.employeeId);
     const req = p => { const e = emp(p); return e ? ST.prereq(s, e, Date.parse(p.from), Date.parse(p.to)) : null; };
-    el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + heures × taux + commissions − retenues. Les primes sont comptées à part.</div></div>
+    const reason = `S${ST.weekNum(r.from)} ${s.company.payReason || 'Paye LS Customs'}`;
+    const cp = (txt, title) => `<button class="icon-btn sm" data-copy="${esc(txt)}" title="${esc(title)}">${icon('copy', 'sm')}</button>`;
+    el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + commissions (% du bénéfice) − retenues. Les primes sont comptées à part.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
           <button class="btn sm" id="pyGen">${icon('calculator')}${rows.length ? 'Recalculer' : 'Générer'} la paie de la semaine</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button></div></div>
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(rows, sal)), sub: rows.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Primes', value: money(sum(rows, prim)), sub: 'hors salaire', icon: 'gift' })}
         ${U.stat({ label: 'Reste à verser', value: money(sum(unpaid, p => p.total)), sub: unpaid.length + ' fiche(s)', icon: 'hourglass', tone: unpaid.length ? 'warn' : '' })}
         ${U.stat({ label: 'Déjà payé', value: money(sum(paid, p => p.total)), sub: paid.length + ' fiche(s)', icon: 'circle-check' })}</div>
+      <div class="alert info mt pay-reason">${icon('clipboard-copy')}<span>Motif du virement : <b>${esc(reason)}</b></span>${cp(reason, 'Copier le motif')}</div>
       <div class="panel mt"><div class="panel-body"><div class="filters">${U.tabs([{ id: 'week', label: 'Fiches de la semaine', count: rows.length }, { id: 'primes', label: 'Primes manuelles', count: (s.primes || []).filter(x => !x.payrollId).length }], pyst.tab)}
         <span class="grow"></span>${pyst.tab === 'week' && unpaid.length ? `<button class="btn sm primary" id="pyPayAll">${icon('check-check')}Tout marquer payé (${unpaid.length})</button>` : ''}</div><div id="pyTable"></div></div></div>`;
     if (pyst.tab === 'primes') U.table(el.querySelector('#pyTable'), {
@@ -387,16 +428,18 @@
       empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: 'Cliquez sur « Générer la paie de la semaine ».', hint: false },
       columns: [
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
-        { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
+        { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)} ${cp(e.bankAccount, 'Copier le n° de compte')}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
         { key: 'ca', label: 'CA', align: 'right', sortValue: p => (req(p) || {}).ca || 0, render: p => money((req(p) || {}).ca || 0) },
         { key: 'salary', label: 'Salaire', align: 'right', sortValue: sal, render: p => `${money(sal(p))}<br><small class="muted">${money(p.base)} + ${money(p.commissions)} com.${p.deduction ? ' − ' + money(p.deduction) : ''}</small>` },
         { key: 'primes', label: 'Primes', align: 'right', sortValue: prim, render: p => prim(p) ? `<span class="ok-t" title="${esc((p.primes || []).map(x => (x.auto ? '[auto] ' : '') + x.label + ' : ' + money(x.amount)).concat(p.bonus ? ['Bonus : ' + money(p.bonus)] : []).join(' | '))}">+${money(prim(p))}</span>` : '<span class="faint">$0</span>' },
-        { key: 'total', label: 'Salaire + primes', align: 'right', render: p => `<b class="big-qty">${money(p.total)}</b>` },
+        { key: 'total', label: 'Salaire + primes', align: 'right', render: p => `<span class="nowrap"><b class="big-qty">${money(p.total)}</b> ${cp(String(Math.round(p.total * 100) / 100), 'Copier le montant')}</span>` },
+        { key: 'motif', label: 'Motif', sortable: false, render: p => `<span class="nowrap">${esc(reason)} ${cp(reason, 'Copier le motif')}</span>` },
         { key: 'req', label: 'Objectifs', sortValue: p => (req(p) || {}).ok ? 1 : 0, render: p => { const q = req(p); return q ? idCell(p.id, `<button class="req-btn ${q.ok ? 'ok' : 'ko'}" data-a="req" title="${esc(q.checks.map(c => (c.ok ? '✔ ' : '✘ ') + c.label + ' : ' + c.detail).join(' | ') || 'Aucun prérequis configuré')}"><span class="req ${q.ok ? 'ok' : 'ko'}"></span>${q.ok ? 'Atteints' : 'Non atteints'}</button>`) : ''; } },
         { key: 'status', label: 'Paiement', render: p => p.status === 'paid' ? `${U.badge('Payé', 'ok')}<br><small class="muted">le ${U.fmtDate(p.paidAt).slice(0, 5)} · ${esc(p.paidBy || '')}</small>` : idCell(p.id, `<button class="btn sm primary" data-a="pay">${icon('check')}Marquer payé</button>`) },
         { key: 'a', label: '', sortable: false, align: 'right', render: p => p.status === 'paid' ? idCell(p.id, act('slip', 'Fiche de paie', 'file-text')) : idCell(p.id, act('slip', 'Fiche de paie', 'file-text') + act('prime', 'Ajouter une prime', 'gift') + act('edit', 'Retenue', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger')) }]
     });
     el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { pyst.tab = b.dataset.tab; payroll(el); });
+    el.addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if (b) { e.stopPropagation(); U.copy(b.dataset.copy); } });
     el.querySelectorAll('[data-wkn]').forEach(b => b.onclick = () => { pyst.wk = Math.min(0, pyst.wk + +b.dataset.wkn); if (!A().ensure(ST.range('week', '', '', pyst.wk).from)) payroll(el); });
     el.querySelector('#pyGen').onclick = async () => {
       const res = await A().call('payroll.generate', { from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
@@ -440,7 +483,7 @@
         ${q ? `<div class="req-box ${q.ok ? 'ok' : 'ko'}"><b><span class="req ${q.ok ? 'ok' : 'ko'}"></span>${q.ok ? 'Prérequis de la semaine atteints' : 'Prérequis non atteints'}</b>
           ${q.checks.map(c => `<div class="row"><span class="${c.ok ? 'ok-t' : 'danger-t'}">${icon(c.ok ? 'check' : 'x', 'xs')}</span><span>${esc(c.label)}</span><span class="grow"></span><span class="muted">${esc(c.detail)}</span></div>`).join('') || '<small class="muted">Aucun prérequis configuré (Paramètres).</small>'}
           ${q.absences.length ? `<div class="row"><span class="warn-t">${icon('calendar-off', 'xs')}</span><span>Absence(s)</span><span class="grow"></span><span class="muted">${q.absences.map(a => U.fmtDate(a.from).slice(0, 5) + '→' + U.fmtDate(a.to).slice(0, 5)).join(', ')}</span></div>` : ''}</div>` : ''}
-        <dl class="kv"><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd><dt>Heures (${U.fmtDur(p.minutes)} × ${money(p.hourly)})</dt><dd>${money(p.base - p.salary)}</dd>
+        <dl class="kv"><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd>${p.hourly ? `<dt>Heures (${U.fmtDur(p.minutes)} × ${money(p.hourly)})</dt><dd>${money(p.base - p.salary)}</dd>` : ''}
         <dt>Commissions (${p.commissionIds.length} ventes)</dt><dd>${money(p.commissions)}</dd>${(p.primes || []).map(x => `<dt>${x.auto ? 'Prime auto' : 'Prime'} — ${esc(x.label)}</dt><dd class="ok-t">+${money(x.amount)}</dd>`).join('')}${p.bonus ? `<dt>Bonus</dt><dd class="ok-t">+${money(p.bonus)}</dd>` : ''}<dt>Retenue</dt><dd class="danger-t">-${money(p.deduction)}</dd></dl>
         <div class="sum-total" style="padding:12px 0 0;margin-top:12px;border-top:1px solid var(--line)"><span>Salaire + primes</span><b>${money(p.total)}</b></div>
         <p class="muted" style="margin:10px 0 0">${p.status === 'paid' ? U.badge('Payé', 'ok') : U.badge('À payer', 'warn')} ${p.validatedBy ? ` validée par ${esc(p.validatedBy)}` : ''}${p.paidAt ? ` · versée le ${U.fmtDT(p.paidAt)}` : ''}${p.note ? '<br>' + esc(p.note) : ''}</p>`,

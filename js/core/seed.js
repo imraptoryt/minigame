@@ -22,14 +22,14 @@
   const P_MANAGER = P_CHEF.concat(['pos.discount.unlimited', 'sales.cancel', 'accounting.view', 'invoices.manage', 'expenses.manage',
     'payroll.manage', 'bank.view', 'staff.manage', 'staff.resetpwd', 'products.manage', 'inventory.manage', 'partners.manage', 'audit.view']);
   const ROLES = [
-    { id: 'apprenti', name: 'Apprenti', rank: 10, commission: 2, salary: 600, hourly: 20, perms: P_APPRENTI },
-    { id: 'employe', name: 'CDD', rank: 20, commission: 5, salary: 900, hourly: 25, perms: P_EMPLOYE },
-    { id: 'mecanicien', name: 'CDI', rank: 40, commission: 7, salary: 1200, hourly: 30, perms: P_CDI },
-    { id: 'recruteur', name: 'Recruteur', rank: 45, commission: 7, salary: 1400, hourly: 32, perms: P_RECRUTEUR },
-    { id: 'chef', name: "Chef d'équipe", rank: 50, commission: 10, salary: 1600, hourly: 35, perms: P_CHEF },
-    { id: 'drh', name: 'DRH', rank: 70, commission: 8, salary: 2000, hourly: 38, perms: P_DRH },
-    { id: 'manager', name: 'Co-PDG', rank: 90, commission: 8, salary: 2500, hourly: 40, perms: P_MANAGER },
-    { id: 'patron', name: 'PDG', rank: 100, commission: 0, salary: 4000, hourly: 0, perms: ['*'] }
+    { id: 'apprenti', name: 'Apprenti', rank: 10, commission: 60, salary: 600, hourly: 0, perms: P_APPRENTI },
+    { id: 'employe', name: 'CDD', rank: 20, commission: 60, salary: 900, hourly: 0, perms: P_EMPLOYE },
+    { id: 'mecanicien', name: 'CDI', rank: 40, commission: 75, salary: 1200, hourly: 0, perms: P_CDI },
+    { id: 'recruteur', name: 'Recruteur', rank: 45, commission: 75, salary: 1400, hourly: 0, perms: P_RECRUTEUR },
+    { id: 'chef', name: "Chef d'équipe", rank: 50, commission: 80, salary: 1600, hourly: 0, perms: P_CHEF },
+    { id: 'drh', name: 'DRH', rank: 70, commission: 85, salary: 2000, hourly: 0, perms: P_DRH },
+    { id: 'manager', name: 'Co-PDG', rank: 90, commission: 90, salary: 2500, hourly: 0, perms: P_MANAGER },
+    { id: 'patron', name: 'PDG', rank: 100, commission: 90, salary: 4000, hourly: 0, perms: ['*'] }
   ];
   /* Version 4 : nouveaux grades ; plus de clients ; factures = partenaires uniquement ;
    * stock, historique de stock et partenaires vidés. Appliquée une seule fois. */
@@ -276,6 +276,13 @@
       (db.sales || []).forEach(x => { const v = x.vehicle; if (v && v.model && v.class && x.status !== 'cancelled') mc[v.model] = v.class; });
       Object.assign(db.company, { modelClasses: Object.assign(mc, db.company.modelClasses || {}), gtaClasses: d.gtaClasses, glifeCompanyId: d.glifeCompanyId });
       changed = true;
+    }
+    /* paie v1 : % du bénéfice par grade, plus de paie à l'heure ni de primes automatiques ; impôt par tranches */
+    if (S && db && db.meta && db.company && Array.isArray(db.roles) && (db.meta.payV || 0) < 1) {
+      db.roles.forEach(r => { const d = ROLES.find(x => x.id === r.id); if (d) r.commission = d.commission; r.hourly = 0; });
+      const d = S.defaultCompany();
+      Object.assign(db.company, { primeRules: [], taxBrackets: db.company.taxBrackets || d.taxBrackets, commissionBase: db.company.commissionBase || d.commissionBase, payReason: db.company.payReason || d.payReason });
+      db.meta.payV = 1; changed = true;
     }
     /* étapes du licenciement : Company, Discord, Compta (remplace l'ancienne liste par défaut) */
     if (S && db && db.company && (db.company.dismissChecklist || []).some(x => x.id === 'dc_job')) { db.company.dismissChecklist = S.defaultCompany().dismissChecklist; changed = true; }

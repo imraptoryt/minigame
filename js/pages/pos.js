@@ -419,63 +419,25 @@
     if (rm) rm.onclick = () => { P[kind] = null; persist(); drawCart(); m.close(); U.toast(isD ? 'Réduction retirée' : 'Majoration retirée'); };
   }
 
-  function checkout() {
+  /* Enregistrer : la vente part directement (pas de fenêtre de confirmation ni de reçu) */
+  let saving = false;
+  async function checkout() {
+    if (saving) return;
     const q = quote();
     if (!q.items.length) return U.toast('Le panier est vide', 'warn');
-    const n = P.cart.reduce((a, l) => a + l.qty, 0), pa = partner();
-    const needVehicle = cartNeedsVehicle() && !P.vehicle.cls;
-    if (needVehicle) { U.toast('Choisissez la catégorie du véhicule (1 à 5) dans le panier', 'error'); drawCart(); return; }
+    const pa = partner();
+    if (cartNeedsVehicle() && !P.vehicle.cls) { U.toast('Choisissez la catégorie du véhicule (1 à 5) dans le panier', 'error'); drawCart(); return; }
     const veh = cartNeedsVehicle() || P.vehicle.plate ? P.vehicle : null;
-    /* même règle que le serveur : partenaire -> à facturer, sinon paiement direct */
-    const mode = LSCServer.saleMode(S(), pa);
-    const modeText = mode.reason === 'partner' ? `Paiement : <b>À facturer à ${esc(pa.name)}</b> — ajoutée à sa prochaine facture (page Factures).`
-      : `Paiement : <b>Direct (${esc(app().payLabel(mode.payment))})</b> — payée immédiatement.`;
-    const m = U.modal({
-      title: 'Nouvelle vente', icon: 'receipt',
-      body: `<dl class="kv">
-          ${veh ? `<dt>Véhicule</dt><dd>${vehSel(veh) ? esc(vehSel(veh).name || vehSel(veh).model) + ' · ' : ''}${esc(veh.plate || 'Plaque non renseignée')}${veh.cls ? ` · Catégorie ${veh.cls}` : ''}</dd>` : ''}
-          ${pa ? `<dt>Partenaire</dt><dd>${esc(pa.name)}</dd>` : ''}
-          <dt>Articles</dt><dd>${n}</dd>
-          <dt>Sous-total</dt><dd>${money(q.subtotal)}</dd>
-          <dt>Réduction</dt><dd class="${q.discount ? 'warn-t' : ''}">${q.discount ? '-' : ''}${money(q.discount)}${P.discount ? ` <small class="muted">(${esc(P.discount.reason)})</small>` : ''}</dd>
-          <dt>Majoration</dt><dd>${money(q.markup)}${P.markup ? ` <small class="muted">(${esc(P.markup.reason)})</small>` : ''}</dd>
-          <dt>Votre commission</dt><dd class="muted">${money(q.commission)}</dd>
-        </dl>
-        <div class="sum-total" style="padding:12px 0 4px;border-top:1px solid var(--line);margin-top:12px"><span>Total</span><b>${money(q.total)}</b></div>
-        ${veh && veh.unlisted && !veh.unlisted.none ? `<div class="alert warn" style="margin-top:12px">${icon('triangle-alert')}<span>Véhicule non recensé : la catégorie ${veh.cls || '?'} a-t-elle bien été vérifiée en jeu ?</span></div>` : ''}
-        <div class="alert ${mode.payment === 'invoice' ? 'warn' : 'info'}" style="margin-top:12px">${icon(mode.payment === 'invoice' ? 'file-text' : 'credit-card')}<span>${modeText}</span></div>
-        <div class="section-title">Note (facultatif)</div>
-        <textarea class="input" id="saleNote" rows="2" placeholder="Immatriculation, détail de l'intervention..."></textarea>`,
-      foot: `<span class="muted" style="font-size:11.5px">Ctrl + Entrée pour confirmer</span><span class="grow"></span><button class="btn ghost" data-close>Annuler</button><button class="btn primary" data-confirm>${icon('check')}Confirmer la vente</button>`
-    });
-    const btn = m.el.querySelector('[data-confirm]');
-    m.submit = async () => {
-      if (btn.disabled) return;
-      btn.disabled = true;
-      const r = await app().call('pos.createSale', { items: P.cart, partnerId: P.partnerId || null, payment: mode.payment, discount: P.discount, markup: P.markup, note: m.el.querySelector('#saleNote').value,
-        vehicle: veh ? { plate: veh.plate, class: veh.cls, source: veh.source === 'manual' ? 'manual' : 'auto', model: (vehSel(veh) || {}).model || veh.model, name: (vehSel(veh) || {}).name } : null });
-      if (!r.ok) { btn.disabled = false; return; }
-      m.close(); reset(); app().render();
-      U.toast('Vente enregistrée');
-      receipt(r.data.sale);
-    };
-    btn.onclick = m.submit;
-  }
-
-  function receipt(s) {
-    const st = { paid: 'Payée', pending: 'À facturer au partenaire' }[s.status] || s.status;
-    const m = U.modal({
-      title: 'Vente enregistrée', icon: 'circle-check', size: 'sm',
-      body: `<div class="receipt"><div class="ok-ring">${icon('check')}</div><h2>VENTE #${esc(s.ref)}</h2>
-        <dl class="kv"><dt>Employé</dt><dd>${esc(s.employeeName)}</dd>${s.partnerName ? `<dt>Partenaire</dt><dd>${esc(s.partnerName)}</dd>` : ''}
-        ${s.vehicle ? `<dt>Véhicule</dt><dd>${s.vehicle.name ? esc(s.vehicle.name) + ' · ' : ''}${esc(s.vehicle.plate || '—')}${s.vehicle.class ? ' · Cat. ' + s.vehicle.class : ''}</dd>` : ''}
-        <dt>Montant</dt><dd class="ok-t"><b>${money(s.total)}</b></dd><dt>Paiement</dt><dd>${esc(app().payLabel(s.payment))}</dd>
-        <dt>Date</dt><dd>${U.fmtDT(s.createdAt)}</dd><dt>Statut</dt><dd>${U.status('sale', s.status).replace(/>[^<]+</, '>' + esc(st) + '<')}</dd>
-        ${s.commission ? `<dt>Commission</dt><dd>${money(s.commission)}</dd>` : ''}</dl></div>`,
-      foot: `<button class="btn ghost" data-detail>${icon('file-text')}Détail</button><span class="grow"></span><button class="btn primary" data-close autofocus>${icon('plus')}Nouvelle vente</button>`
-    });
-    m.submit = () => m.close();
-    m.el.querySelector('[data-detail]').onclick = () => { m.close(); LSC.open.sale(s.id); };
+    const mode = LSCServer.saleMode(S(), pa); // même règle que le serveur : partenaire -> à facturer, sinon paiement direct
+    const btn = root.querySelector('[data-act="checkout"]');
+    saving = true; if (btn) btn.disabled = true;
+    const r = await app().call('pos.createSale', { items: P.cart, partnerId: P.partnerId || null, payment: mode.payment, discount: P.discount, markup: P.markup, note: '',
+      vehicle: veh ? { plate: veh.plate, class: veh.cls, source: veh.source === 'manual' ? 'manual' : 'auto', model: (vehSel(veh) || {}).model || veh.model, name: (vehSel(veh) || {}).name } : null });
+    saving = false;
+    if (!r.ok) { if (btn) btn.disabled = false; return; }
+    const sale = r.data.sale;
+    reset(); app().render();
+    U.toast(`Vente #${sale.ref} enregistrée · ${money(sale.total)}${sale.status === 'pending' ? ' · à facturer à ' + (sale.partnerName || 'partenaire') : ''}`);
   }
 
   /* ---------- événements ---------- */

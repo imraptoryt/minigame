@@ -542,7 +542,7 @@ select option { background: var(--panel-solid); }
 .cfg-row, .cfg-head { display: grid; gap: 8px; align-items: center; margin-bottom: 6px; }
 .cfg-head { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .cfg-row .input.sm { width: 100%; min-width: 0; }
-.cfg-row.fee, .cfg-head.fee { grid-template-columns: minmax(0, 1fr) 120px 28px; }
+.cfg-row.fee, .cfg-head.fee { grid-template-columns: minmax(0, 1fr) 110px auto 28px; }
 .cfg-row.rule, .cfg-head.rule { grid-template-columns: 22px minmax(0, 1.2fr) minmax(0, 1.3fr) 80px 90px 28px; }
 
 /* véhicule : plaque + catégories 1 à 5 */
@@ -848,3 +848,9 @@ html[data-theme="noel"] body { background: radial-gradient(1100px 560px at 80% -
 @keyframes d-twinkle { 50% { filter: brightness(1.7) saturate(1.3); } }
 @media (prefers-reduced-motion: reduce) { #deco span { animation: none !important; } .d-bat, .d-snow { display: none; } }
 @media (max-width: 760px) { .d-web, .d-ghost { display: none; } }
+/* impôts, motif de paie */
+.rules { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text-2); }
+.rules b { color: var(--text); }
+.tax-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pay-reason { display: flex; align-items: center; gap: 8px; }
+.pay-reason > span { flex: 1; }

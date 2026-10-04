@@ -22,6 +22,7 @@ const Seed = require('../js/core/seed.js');
 const env = process.env;
 const hash = s => crypto.createHash('sha256').update('lsc:' + s).digest('hex');
 Server.config.hash = hash;
+Server.config.ownerCharId = env.LSC_OWNER_CHARID || ''; // seul ce Char ID peut devenir le premier PDG
 
 async function sb(path, opts) {
   const r = await fetch(env.SUPABASE_URL + '/rest/v1/' + path, Object.assign({ signal: AbortSignal.timeout(9000) }, opts, {

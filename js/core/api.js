@@ -4,7 +4,9 @@
   'use strict';
   const cfg = Object.assign({ mode: 'auto', apiUrl: '/api/rpc', storageKey: 'lsc_db_v1' }, window.LSC_CONFIG || {});
   const isNui = typeof window.GetParentResourceName === 'function';
-  const mode = cfg.mode === 'auto' ? (isNui ? 'nui' : 'local') : cfg.mode;
+  /* auto : FiveM -> nui ; fichier ouvert en local ou localhost -> démo locale ; site en ligne -> API serveur */
+  const isLocal = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  const mode = cfg.mode === 'auto' ? (isNui ? 'nui' : isLocal ? 'local' : 'http') : cfg.mode;
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { console.warn('[LSC] stockage local indisponible', e); } },

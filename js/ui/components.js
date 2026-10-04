@@ -383,5 +383,11 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  LSC.ui = { $, esc, money, short, fmtDate, fmtTime, fmtDT, fmtDur, toInputDate, ago, icon, paint, avatar, badge, dot, status, opts, toast, modal, confirm: confirmBox, form, field, table, stat, panel, empty, skeleton, pageSkeleton, tabs, periodBar, bindPeriod, chart, hbars, popover, closePopover, download, onActs, idCell };
+  /* copie (presse-papiers ; repli execCommand pour la NUI) */
+  function copy(text) {
+    const done = () => toast('Copié : ' + text);
+    const old = () => { const t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Copie impossible', 'error'); } t.remove(); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, old); else old();
+  }
+  LSC.ui = { copy, $, esc, money, short, fmtDate, fmtTime, fmtDT, fmtDur, toInputDate, ago, icon, paint, avatar, badge, dot, status, opts, toast, modal, confirm: confirmBox, form, field, table, stat, panel, empty, skeleton, pageSkeleton, tabs, periodBar, bindPeriod, chart, hbars, popover, closePopover, download, onActs, idCell };
 })();

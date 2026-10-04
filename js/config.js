@@ -1,6 +1,6 @@
 /* Configuration du transport des données.
  * mode :
- *   'auto'  -> 'nui' dans FiveM, sinon 'local'
+ *   'auto'  -> 'nui' dans FiveM, 'local' en local (fichier / localhost), sinon 'http' (site en ligne)
  *   'local' -> démo : logique serveur exécutée dans le navigateur, données en localStorage
  *   'http'  -> production : API Vercel (api/rpc.js) + Supabase
  *   'nui'   -> FiveM : NUI -> client.lua -> server.lua -> API

@@ -71,7 +71,7 @@ begin
     update lsc_state set data = p_core, version = version + 1, updated_at = now() where id = 1 and version = p_version returning version into v;
   end if;
   if v is null then return -1; end if;
-  if p_reset then delete from lsc_rows; end if;
+  if p_reset then delete from lsc_rows where true; end if; -- « where true » : Supabase refuse un DELETE sans WHERE
   insert into lsc_rows (kind, id, at, ref, open, data)
     select r->>'kind', r->>'id', (r->>'at')::timestamptz, r->>'ref', coalesce((r->>'open')::boolean, false), r->'data'
     from jsonb_array_elements(coalesce(p_up, '[]'::jsonb)) r

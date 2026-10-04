@@ -140,12 +140,13 @@
         { id: 'kit_carro', label: 'Commande kit carrosserie', price: 150 },
         { id: 'karcher', label: 'Commande Kärcher', price: 350 }
       ],
-      /* Primes automatiques, calculées à chaque génération de paie */
-      primeRules: [
-        { id: 'pr_ca', label: 'Objectif de chiffre d’affaires', type: 'ca', threshold: 5000, amount: 250, enabled: true },
-        { id: 'pr_hours', label: 'Assiduité (heures de service)', type: 'hours', threshold: 15, amount: 150, enabled: true },
-        { id: 'pr_top', label: 'Meilleur vendeur de la période', type: 'top', threshold: 0, amount: 300, enabled: true }
-      ],
+      /* Primes automatiques, calculées à chaque génération de paie (aucune par défaut) */
+      primeRules: [],
+      /* Paie : commission = % du bénéfice de la vente (prix − coût), ou du CA ; motif du virement « S40 Paye LS Customs » */
+      commissionBase: 'margin',
+      payReason: 'Paye LS Customs',
+      /* Impôt par tranches (barème de la mairie) sur le résultat imposable */
+      taxBrackets: [{ upTo: 20000, rate: 10 }, { upTo: 50000, rate: 20 }, { upTo: null, rate: 30 }],
       notify: { lowStock: true, overdue: true, signup: true, largeSale: true, service: true, payment: true }
     };
   }
@@ -217,7 +218,9 @@
     const markup = r(adjAmount(input.markup, subtotal));
     const total = r(Math.max(0, subtotal - discount + markup));
     rate = +rate || 0;
-    return { items, missing, partner, subtotal, factory, discount, markup, total, commissionRate: rate, commission: r(total * rate / 100) };
+    /* la commission se calcule sur le bénéfice de la vente (prix − coût usine / kit), sauf réglage « CA » */
+    const base = db.company.commissionBase === 'revenue' ? total : Math.max(0, total - factory);
+    return { items, missing, partner, subtotal, factory, discount, markup, total, commissionRate: rate, commission: r(base * rate / 100) };
   }
 
   /* ---------- contexte d'exécution d'une action ---------- */
@@ -1270,7 +1273,8 @@
       const pwd = String(p.password || '');
       if (pwd.length < PWD_MIN) fail(`Le mot de passe doit faire au moins ${PWD_MIN} caractères`);
       db.signups = db.signups || [];
-      if (!db.employees.some(x => !x.archived)) {
+      /* base vide : le premier compte devient PDG (seulement le Char ID du propriétaire s'il est configuré) */
+      if (!db.employees.some(x => !x.archived) && (!config.ownerCharId || data.charId === String(config.ownerCharId))) {
         const top = db.roles.slice().sort((a, b) => b.rank - a.rank)[0];
         db.employees.push(Object.assign({ id: uid('emp'), name: data.firstName + ' ' + data.lastName, pinHash: config.hash(pwd), roleId: top.id, status: 'off', archived: false, hiredAt: iso, promotions: [], lastLogin: null }, data));
         db.meta.version++;
@@ -1383,6 +1387,13 @@
     if (s.maxDiscountPct != null) co.maxDiscountPct = num(s.maxDiscountPct, 0, 100);
     if (s.largeSale != null) co.largeSale = num(s.largeSale, 0, 1e9);
     if (s.theme != null && ['dark', 'light', 'halloween', 'noel'].includes(s.theme)) co.theme = s.theme;
+    if (s.commissionBase != null) co.commissionBase = s.commissionBase === 'revenue' ? 'revenue' : 'margin';
+    if (s.payReason != null) co.payReason = str(s.payReason, 60);
+    if (Array.isArray(s.taxBrackets)) {
+      const b = s.taxBrackets.slice(0, 3).map((x, i, a) => ({ upTo: i === a.length - 1 ? null : c.r(num(x.upTo, 0, 1e9)), rate: num(x.rate, 0, 100) }));
+      if (b.some((x, i) => i && b[i - 1].upTo != null && x.upTo != null && x.upTo <= b[i - 1].upTo)) fail('Les seuils des tranches doivent être croissants');
+      if (b.length) co.taxBrackets = b;
+    }
     if (s.invoiceDays != null) co.invoiceDays = Math.round(num(s.invoiceDays, 1, 90));
     /* webhooks Discord : vide = inchangé, « - » = retirer */
     ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook'].forEach(k => {
@@ -1431,7 +1442,7 @@
     }
     if (Array.isArray(s.expenseCategories)) {
       const seen = new Set();
-      const list = s.expenseCategories.map(x => ({ id: str(x.id, 30) || uid('fee'), label: str(x.label, 50), price: c.r(num(x.price, 0, 1e7)) })).filter(x => x.label && !seen.has(x.id) && seen.add(x.id));
+      const list = s.expenseCategories.map(x => ({ id: str(x.id, 30) || uid('fee'), label: str(x.label, 50), price: c.r(num(x.price, 0, 1e7)), deductible: x.deductible !== false })).filter(x => x.label && !seen.has(x.id) && seen.add(x.id));
       if (!list.length) fail('Au moins un type de commande est requis');
       co.expenseCategories = list;
     }
