@@ -429,14 +429,15 @@
     if (cartNeedsVehicle() && !P.vehicle.cls) { U.toast('Choisissez la catégorie du véhicule (1 à 5) dans le panier', 'error'); drawCart(); return; }
     const veh = cartNeedsVehicle() || P.vehicle.plate ? P.vehicle : null;
     const mode = LSCServer.saleMode(S(), pa); // même règle que le serveur : partenaire -> à facturer, sinon paiement direct
-    const btn = root.querySelector('[data-act="checkout"]');
-    saving = true; if (btn) btn.disabled = true;
-    const r = await app().call('pos.createSale', { items: P.cart, partnerId: P.partnerId || null, payment: mode.payment, discount: P.discount, markup: P.markup, note: '',
-      vehicle: veh ? { plate: veh.plate, class: veh.cls, source: veh.source === 'manual' ? 'manual' : 'auto', model: (vehSel(veh) || {}).model || veh.model, name: (vehSel(veh) || {}).name } : null });
+    const payload = { items: P.cart, partnerId: P.partnerId || null, payment: mode.payment, discount: P.discount, markup: P.markup, note: '',
+      vehicle: veh ? { plate: veh.plate, class: veh.cls, source: veh.source === 'manual' ? 'manual' : 'auto', model: (vehSel(veh) || {}).model || veh.model, name: (vehSel(veh) || {}).name } : null };
+    /* le panier se vide tout de suite ; il revient tel quel si le serveur refuse la vente */
+    const snap = JSON.parse(JSON.stringify({ cart: P.cart, discount: P.discount, markup: P.markup, partnerId: P.partnerId, vehicle: P.vehicle }));
+    saving = true; reset(); drawCart(); drawGrid();
+    const r = await app().call('pos.createSale', payload);
     saving = false;
-    if (!r.ok) { if (btn) btn.disabled = false; return; }
+    if (!r.ok) { Object.assign(P, snap); persist(); drawCart(); drawGrid(); return; }
     const sale = r.data.sale;
-    reset(); app().render();
     U.toast(`Vente #${sale.ref} enregistrée · ${money(sale.total)}${sale.status === 'pending' ? ' · à facturer à ' + (sale.partnerName || 'partenaire') : ''}`);
   }
 

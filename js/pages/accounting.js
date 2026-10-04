@@ -41,6 +41,54 @@
     </ul><a class="btn sm ghost" href="${SLIDES}" target="_blank" rel="noopener" style="margin-top:8px">${icon('external-link')}Bases de la comptabilité (mairie)</a>`;
   }
 
+  /* =================== DÉCLARATION (semaine) =================== */
+  const dst = { wk: 0 };
+  function declaration(el) {
+    const s = S(), co = s.company, r = ST.range('week', '', '', dst.wk), z = ST.summary(s, r), po = co.payout || { primes: 10, dividends: 40, treasury: 50 };
+    const sales = s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt));
+    const clients = sales.filter(x => !x.partnerId).reduce((a, x) => a + x.total, 0), partners = sales.filter(x => x.partnerId).reduce((a, x) => a + x.total, 0);
+    const other = z.revenue - clients - partners; // factures personnalisées payées
+    const cats = {}, label = id => (co.expenseCategories.find(c => c.id === id) || {}).label || ((s.expenses.find(e => e.category === id) || {}).categoryLabel) || id;
+    const nd = new Set(co.expenseCategories.filter(c => c.deductible === false).map(c => c.id));
+    s.expenses.filter(e => ST.within(r, e.date)).forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
+    const dedList = Object.keys(cats).filter(k => !nd.has(k)).map(k => [label(k), cats[k]]).concat(z.purchases ? [['Achats de stock', z.purchases]] : [], z.bills ? [['Factures fournisseurs', z.bills]] : []);
+    const ndList = Object.keys(cats).filter(k => nd.has(k)).map(k => [label(k), cats[k]]);
+    const ded = dedList.reduce((a, x) => a + x[1], 0), salaries = z.salaries + z.commissions, net = z.taxable - z.tax;
+    const part = k => Math.round(Math.max(0, net) * (+po[k] || 0) / 100);
+    const v = (n, cls) => `<button class="d-val ${cls || ''}" data-copy="${Math.round(n)}" title="Cliquer pour copier">${money(n)}</button>`;
+    const row = (l, n, o) => `<div class="d-row ${o && o.sub ? 'sub' : ''} ${o && o.b ? 'b' : ''}"><span>${esc(l)}</span>${v(n, o && o.cls)}</div>`;
+    const grp = rows => `<div class="d-grp">${rows.join('')}</div>`;
+    const col = (title, total, ic, body) => `<section class="d-col"><div class="d-head">${icon(ic)}<span>${title}</span>${v(total)}</div>${body}</section>`;
+    const wn = ST.weekNum(r.from);
+    el.innerHTML = `<div class="page-head"><div><h1>Déclaration</h1><div class="sub">Résultat de la semaine à déclarer : chiffre d'affaires, charges, impôt et répartition. Cliquez un montant pour le copier.</div></div>
+        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-dw="-1" title="Semaine précédente">${icon('chevron-left')}</button><span class="d-wk">S<input class="input sm" id="dWeek" type="number" min="1" max="53" value="${wn}"></span><span class="muted">${esc(ST.weekLabel(r).split(' · ')[1] || '')}</span><button class="icon-btn sm" data-dw="1" title="Semaine suivante" ${dst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
+        <button class="btn sm" id="dCopy">${icon('clipboard-copy')}Copier le résumé</button></div></div>
+      <div class="decl">
+        ${col("Chiffre d'affaires", z.revenue, 'dollar-sign',
+          grp([row('Salaires et commissions', salaries, { b: true }), row('Salaires fixes et primes', z.salaries, { sub: true }), row('Commissions', z.commissions, { sub: true })]) +
+          grp([row('Charges déductibles', ded, { b: true })]) +
+          grp([row('Bénéfice brut imposable', z.taxable, { b: true, cls: z.taxable < 0 ? 'danger-t' : '' }), row('Impôts', z.tax, { sub: true })]) +
+          grp([row('Bénéfice net', net, { b: true, cls: net < 0 ? 'danger-t' : 'ok-t' }), row(`Primes (${po.primes || 0} %)`, part('primes'), { sub: true }), row(`Dividendes (${po.dividends || 0} %)`, part('dividends'), { sub: true }), row(`Trésorerie (${po.treasury || 0} %)`, part('treasury'), { sub: true })]))}
+        ${col('Charges', ded + z.chargesND, 'wallet',
+          grp([row('Charges non déductibles', z.chargesND, { b: true })].concat(ndList.map(x => row(x[0], x[1], { sub: true })))) +
+          grp([row('Charges déductibles', ded, { b: true })].concat(dedList.map(x => row(x[0], x[1], { sub: true })))) +
+          grp([row('Salaires et commissions', salaries, { b: true })]))}
+        ${col('Ventes', z.revenue, 'receipt',
+          grp([row('Ventes aux clients', clients, { b: true })]) +
+          grp([row('Ventes aux partenaires', partners, { b: true })]) +
+          (other ? grp([row('Factures personnalisées', other, { b: true })]) : '') +
+          grp([row('Coût de revient des ventes', z.factory, { b: true }), row('Nombre de ventes', 0, { sub: true }).replace(/<button[^>]*>[^<]*<\/button>/, `<span class="d-val">${z.count}</span>`)]))}
+      </div>
+      <p class="hint" style="margin-top:12px">Barème d'impôt, répartition (primes / dividendes / trésorerie) et frais non déductibles : Paramètres → Comptabilité.</p>`;
+    const go = wk => { dst.wk = Math.min(0, wk); if (!A().ensure(ST.range('week', '', '', dst.wk).from)) declaration(el); };
+    el.querySelectorAll('[data-dw]').forEach(b => b.onclick = () => go(dst.wk + +b.dataset.dw));
+    el.querySelector('#dWeek').onchange = e => { const n = Math.round(+e.target.value); if (n >= 1 && n <= 53) go(dst.wk + n - wn); };
+    el.querySelector('.decl').onclick = e => { const b = e.target.closest('[data-copy]'); if (b) U.copy(b.dataset.copy); };
+    el.querySelector('#dCopy').onclick = () => U.copy([`Déclaration S${wn} — ${co.name}`, `Chiffre d'affaires : ${money(z.revenue)}`, `Ventes clients : ${money(clients)} · partenaires : ${money(partners)}`,
+      `Salaires et commissions : ${money(salaries)}`, `Charges déductibles : ${money(ded)}`, `Charges non déductibles : ${money(z.chargesND)}`, `Bénéfice brut imposable : ${money(z.taxable)}`,
+      `Impôts : ${money(z.tax)}`, `Bénéfice net : ${money(net)}`, `Primes : ${money(part('primes'))} · Dividendes : ${money(part('dividends'))} · Trésorerie : ${money(part('treasury'))}`].join('\n'));
+  }
+
   /* =================== BILAN =================== */
   const bst = { period: 'week' };
   function bilan(el) {
@@ -403,14 +451,21 @@
     const emp = p => s.employees.find(x => x.id === p.employeeId);
     const req = p => { const e = emp(p); return e ? ST.prereq(s, e, Date.parse(p.from), Date.parse(p.to)) : null; };
     const reason = `S${ST.weekNum(r.from)} ${s.company.payReason || 'Paye LS Customs'}`;
+    /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
+    const late = s.payrolls.filter(p => p.status !== 'paid' && Date.parse(p.to) < ST.range('week').from);
+    if (pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
+      pyst.autoAt = Date.now();
+      A().call('payroll.generate', { auto: true, from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
+    }
     const cp = (txt, title) => `<button class="icon-btn sm" data-copy="${esc(txt)}" title="${esc(title)}">${icon('copy', 'sm')}</button>`;
     el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + commissions (% du bénéfice) − retenues. Les primes sont comptées à part.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
-          <button class="btn sm" id="pyGen">${icon('calculator')}${rows.length ? 'Recalculer' : 'Générer'} la paie de la semaine</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button></div></div>
+          <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button></div></div>
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(rows, sal)), sub: rows.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Primes', value: money(sum(rows, prim)), sub: 'hors salaire', icon: 'gift' })}
         ${U.stat({ label: 'Reste à verser', value: money(sum(unpaid, p => p.total)), sub: unpaid.length + ' fiche(s)', icon: 'hourglass', tone: unpaid.length ? 'warn' : '' })}
         ${U.stat({ label: 'Déjà payé', value: money(sum(paid, p => p.total)), sub: paid.length + ' fiche(s)', icon: 'circle-check' })}</div>
+      ${late.length && pyst.wk === 0 ? `<div class="alert warn mt">${icon('triangle-alert')}<span>${late.length} salaire(s) de la semaine passée pas encore payé(s) : réglez-les d'abord (semaine précédente), la paie de cette semaine se calculera ensuite toute seule.</span><button class="btn sm" data-wkn="-1">${icon('chevron-left')}Semaine passée</button></div>` : ''}
       <div class="alert info mt pay-reason">${icon('clipboard-copy')}<span>Motif du virement : <b>${esc(reason)}</b></span>${cp(reason, 'Copier le motif')}</div>
       <div class="panel mt"><div class="panel-body"><div class="filters">${U.tabs([{ id: 'week', label: 'Fiches de la semaine', count: rows.length }, { id: 'primes', label: 'Primes manuelles', count: (s.primes || []).filter(x => !x.payrollId).length }], pyst.tab)}
         <span class="grow"></span>${pyst.tab === 'week' && unpaid.length ? `<button class="btn sm primary" id="pyPayAll">${icon('check-check')}Tout marquer payé (${unpaid.length})</button>` : ''}</div><div id="pyTable"></div></div></div>`;
@@ -425,7 +480,7 @@
     });
     else U.table(el.querySelector('#pyTable'), {
       id: 'payroll-week', rows, sort: 'employeeName', dir: 1, resetPage: true,
-      empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: 'Cliquez sur « Générer la paie de la semaine ».', hint: false },
+      empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: pyst.wk === 0 ? 'Les fiches apparaissent automatiquement dès qu’il y a un salaire ou une commission.' : 'Cliquez sur « Recalculer » pour calculer cette semaine.', hint: false },
       columns: [
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
         { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)} ${cp(e.bankAccount, 'Copier le n° de compte')}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
@@ -535,7 +590,7 @@
   }
 
   Object.assign(LSC.pages, {
-    bilan: { render: bilan }, sales: { render: el => salesPage(el, false) }, mysales: { render: el => salesPage(el, true) },
+    bilan: { render: bilan }, declaration: { render: declaration }, sales: { render: el => salesPage(el, false) }, mysales: { render: el => salesPage(el, true) },
     byproduct: { render: byProduct }, invoices: { render: invoices }, bills: { render: bills }, payroll: { render: payroll }, expenses: { render: expenses }
   });
 })();

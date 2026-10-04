@@ -323,6 +323,8 @@
           <p class="hint" style="margin:10px 0 0">Les taux de commission sont définis par grade dans « Gestion des rôles ».</p>
           <div class="section-title">Impôt par tranches (barème mairie)</div>
           <div class="form tax-form">${(co.taxBrackets || []).map((b, i, a) => `${i < a.length - 1 ? U.field({ name: 'tb' + i, label: `Tranche ${i + 1} : jusqu'à`, type: 'money' }, b.upTo) : `<div class="field"><span class="field-label">Tranche ${i + 1}</span><div class="input" style="display:flex;align-items:center;opacity:.7">au-delà</div></div>`}${U.field({ name: 'tr' + i, label: 'Taux (%)', type: 'number', min: 0, max: 100 }, b.rate)}`).join('')}</div>
+          <div class="section-title">Répartition du bénéfice net (après impôt)</div>
+          <div class="form tax-form" style="grid-template-columns:repeat(3,minmax(0,1fr))">${[['po_primes', 'Primes (%)', 'primes'], ['po_dividends', 'Dividendes (%)', 'dividends'], ['po_treasury', 'Trésorerie (%)', 'treasury']].map(f => U.field({ name: f[0], label: f[1], type: 'number', min: 0, max: 100 }, (co.payout || {})[f[2]])).join('')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="acc">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('shopping-cart')}Point de vente</h3></div><div class="panel-body">
           <div class="section-title">Catégories</div><div id="catRows">${co.categories.map(c => catRow(c)).join('')}</div><button class="btn sm" id="addCat">${icon('plus')}Ajouter une catégorie</button>
@@ -332,10 +334,12 @@
           <div class="form">${[0, 1, 2, 3, 4].map(i => U.field({ name: 'vc' + i, label: 'Catégorie ' + (i + 1) }, (co.vehicleClasses || [])[i] || '')).join('')}</div>
           <div class="form" style="margin-top:12px">${U.field({ name: 'discountReasons', label: 'Motifs de réduction (séparés par des virgules)', full: true }, co.discountReasons.join(', '))}${U.field({ name: 'markupReasons', label: 'Motifs de majoration', full: true }, co.markupReasons.join(', '))}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="pos">${icon('save')}Enregistrer</button></div></div></section>
-        <section class="panel"><div class="panel-head"><h3>${icon('users')}Employés</h3></div><div class="panel-body">
-          <table class="tbl compact"><thead><tr><th>Grade</th><th class="right">Commission</th><th class="right">Salaire fixe</th><th class="right">Effectif</th></tr></thead><tbody>
-          ${s.roles.slice().sort((a, b) => b.rank - a.rank).map(r => `<tr><td>${esc(r.name)}</td><td class="right">${r.commission}%</td><td class="right">${money(r.salary)}</td><td class="right">${s.employees.filter(e => !e.archived && e.roleId === r.id).length}</td></tr>`).join('')}</tbody></table>
-          ${A().allowed('roles') ? `<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn sm" data-go="roles">${icon('shield-check')}Grades, permissions et salaires</button></div>` : ''}</div></section>
+        <section class="panel"><div class="panel-head"><h3>${icon('users')}Salaires par grade</h3></div><div class="panel-body">
+          <p class="muted" style="margin:0 0 10px">Commission = % du bénéfice de chaque vente. Salaire fixe = versé à chaque paie (0 = aucun).</p>
+          <table class="tbl compact rates"><thead><tr><th>Grade</th><th class="right">Commission (%)</th><th class="right">Salaire fixe ($)</th><th class="right">Effectif</th></tr></thead><tbody>
+          ${s.roles.slice().sort((a, b) => b.rank - a.rank).map(r => { const lock = !A().can('roles.manage') || (!A().can('*') && r.rank >= A().myRole().rank);
+            return `<tr data-rate="${r.id}"><td>${esc(r.name)}</td><td class="right"><input class="input sm" type="number" min="0" max="100" step="0.5" data-k="com" value="${r.commission}" ${lock ? 'disabled' : ''}></td><td class="right"><input class="input sm" type="number" min="0" step="1" data-k="sal" value="${r.salary || 0}" ${lock ? 'disabled' : ''}></td><td class="right">${s.employees.filter(e => !e.archived && e.roleId === r.id).length}</td></tr>`; }).join('')}</tbody></table>
+          <div class="row" style="margin-top:12px">${A().allowed('roles') ? `<button class="btn sm ghost" data-go="roles">${icon('shield-check')}Permissions</button>` : ''}<span class="grow"></span>${A().can('roles.manage') ? `<button class="btn primary sm" data-save="rates">${icon('save')}Enregistrer</button>` : ''}</div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('shopping-bag')}Frais — types de commande</h3></div><div class="panel-body" id="fFees">
           <p class="muted" style="margin:0 0 10px">Les seuls frais de l'entreprise. Le prix unitaire pré-remplit chaque nouvelle commande.</p>
           <div class="cfg-head fee"><span>Nom</span><span>Prix unitaire</span><span title="Déductible des impôts">Déd.</span><span></span></div>
@@ -400,6 +404,7 @@
       const k = b.dataset.save;
       if (k === 'co') save(form('#fCo'));
       else if (k === 'disc') { const v = {}; el.querySelectorAll('#fDisc input').forEach(i => { v[i.name] = i.value.trim(); }); v.largeSale = +v.largeSale || 0; v.glifeCompanyId = +v.glifeCompanyId || 0; save(v, 'Réglages Discord enregistrés'); }
+      else if (k === 'rates') A().call('roles.rates', { rates: [...el.querySelectorAll('[data-rate]')].filter(r => !r.querySelector('input').disabled).map(r => ({ id: r.dataset.rate, commission: +r.querySelector('[data-k=com]').value || 0, salary: +r.querySelector('[data-k=sal]').value || 0 })) }, 'Salaires par grade enregistrés');
       else if (k === 'dc') save({ dismissChecklist: [...el.querySelectorAll('#dcRows .cfg-row')].map(r => ({ id: r.dataset.id, label: r.querySelector('input').value.trim() })) }, 'Étapes du licenciement enregistrées');
       else if (k === 'veh') {
         const modelClasses = {};
@@ -410,6 +415,7 @@
         const v = form('#fAcc'); ['rounding', 'invoiceDays', 'largeSale', 'maxDiscountPct'].forEach(x => { v[x] = +v[x]; });
         const tv = n => { const i = el.querySelector(`[name=${n}]`); return i ? i.value : null; }; // barème : hors du <form>
         v.taxBrackets = (co.taxBrackets || []).map((b, i) => ({ upTo: tv('tb' + i) != null ? +tv('tb' + i) : null, rate: +tv('tr' + i) || 0 }));
+        v.payout = { primes: +tv('po_primes') || 0, dividends: +tv('po_dividends') || 0, treasury: +tv('po_treasury') || 0 };
         save(v);
       }
       else if (k === 'pos') {

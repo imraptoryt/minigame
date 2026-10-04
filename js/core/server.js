@@ -147,6 +147,8 @@
       payReason: 'Paye LS Customs',
       /* Impôt par tranches (barème de la mairie) sur le résultat imposable */
       taxBrackets: [{ upTo: 20000, rate: 10 }, { upTo: 50000, rate: 20 }, { upTo: null, rate: 30 }],
+      /* Répartition du bénéfice net (après impôt), en % : primes, dividendes, trésorerie */
+      payout: { primes: 10, dividends: 40, treasury: 50 },
       notify: { lowStock: true, overdue: true, signup: true, largeSale: true, service: true, payment: true }
     };
   }
@@ -947,7 +949,7 @@
       if (!existing) db.payrolls.push(rec);
       n++;
     });
-    c.audit('payroll.generate', `a généré la paie du ${fmtD(from)} au ${fmtD(to)} (${n} fiches)`);
+    if (!p.auto) c.audit('payroll.generate', `a généré la paie du ${fmtD(from)} au ${fmtD(to)} (${n} fiches)`);
     return { count: n };
   };
   A['payroll.update'] = (c, p) => {
@@ -1366,6 +1368,19 @@
     c.audit('role.create', `a créé le grade ${r.name}`);
     return { id: r.id };
   };
+  /* Taux rapides (Paramètres) : commission % et salaire fixe de chaque grade */
+  A['roles.rates'] = (c, p) => {
+    c.need('roles.manage');
+    let n = 0;
+    (Array.isArray(p.rates) ? p.rates : []).forEach(x => {
+      const r = c.db.roles.find(k => k.id === x.id);
+      if (!r || (!c.can('*') && r.rank >= c.role.rank)) return;
+      const com = num(x.commission, 0, 100), sal = c.r(num(x.salary));
+      if (r.commission !== com || r.salary !== sal) { Object.assign(r, { commission: com, salary: sal }); n++; }
+    });
+    if (n) c.audit('role.update', `a modifié les taux de ${n} grade(s)`);
+    return { count: n };
+  };
   A['roles.delete'] = (c, p) => {
     c.need('roles.manage');
     const r = find(c.db.roles, p.id, 'Grade');
@@ -1394,7 +1409,12 @@
     if (s.rounding != null) co.rounding = +s.rounding === 0.01 ? 0.01 : 1;
     if (s.maxDiscountPct != null) co.maxDiscountPct = num(s.maxDiscountPct, 0, 100);
     if (s.largeSale != null) co.largeSale = num(s.largeSale, 0, 1e9);
-    if (s.theme != null && ['dark', 'light', 'halloween', 'noel'].includes(s.theme)) co.theme = s.theme;
+    if (s.theme != null && ['dark', 'light', 'halloween', 'noel', 'rose', 'rouge', 'bleu', 'violet', 'or'].includes(s.theme)) co.theme = s.theme;
+    if (s.payout && typeof s.payout === 'object') {
+      const o = { primes: num(s.payout.primes, 0, 100), dividends: num(s.payout.dividends, 0, 100), treasury: num(s.payout.treasury, 0, 100) };
+      if (o.primes + o.dividends + o.treasury > 100.001) fail('La répartition dépasse 100 %');
+      co.payout = o;
+    }
     if (s.commissionBase != null) co.commissionBase = s.commissionBase === 'revenue' ? 'revenue' : 'margin';
     if (s.payReason != null) co.payReason = str(s.payReason, 60);
     if (Array.isArray(s.taxBrackets)) {
@@ -1658,16 +1678,12 @@
   }
 
   /* Exécute les effets externes (webhooks Discord). Appelé par l'hôte APRÈS l'enregistrement. */
+  /* Webhooks Discord : envoyés en parallèle, 4 s maximum chacun */
   async function runEffects(list) {
-    const out = [];
-    for (const e of list || []) {
-      if (e.type !== 'discord') continue;
-      try {
-        const r = await fetch(e.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(e.body) });
-        out.push({ ok: r.ok, status: r.status });
-      } catch (err) { out.push({ ok: false, status: 0 }); }
-    }
-    return out;
+    const tmo = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined);
+    return Promise.all((list || []).filter(e => e.type === 'discord').map(e =>
+      fetch(e.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(e.body), signal: tmo() })
+        .then(r => ({ ok: r.ok, status: r.status }), () => ({ ok: false, status: 0 }))));
   }
 
   return {

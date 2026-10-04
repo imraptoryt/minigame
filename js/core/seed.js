@@ -87,7 +87,11 @@
     ['prd_plaque', 'Style de plaque', 'custom', 0, 0, 'rectangle-horizontal', null, 1, 0, 'style-de-plaque'],
     ['prd_klaxon', 'Klaxon', 'custom', 0, 0, 'megaphone', null, 1, 0, 'klaxon'],
     ['prd_extra', 'Extra', 'custom', 0, 0, 'plus', null, 1, 0, 'extra'],
-    ['prd_custom_speciale', 'Custom Spéciale', 'custom', 0, 0, 'star', null, 1, 0, 'custom-speciale']
+    ['prd_custom_speciale', 'Custom Spéciale', 'custom', 0, 0, 'star', null, 1, 0, 'custom-speciale'],
+    ['prd_nitro', 'Nitro', 'custom', 0, 0, 'flame', null, 1, 0, 'nitro'],
+    ['prd_drift', 'Drift', 'custom', 0, 0, 'wind', null, 1, 0, 'drift'],
+    ['prd_coffre', 'Coffre agrandi', 'custom', 0, 0, 'package-open', null, 1, 0, 'coffre-agrandi'],
+    ['prd_cachette', 'Cachette secrète', 'custom', 0, 0, 'lock', null, 1, 0, 'cachette-secrete']
   ];
   /* Performances : tarif fixe par catégorie de véhicule (prix de vente et prix usine, catégories 1 à 5) */
   const PERF_SUBS = [{ id: 'moteur', label: 'Moteur' }, { id: 'freins', label: 'Freins' }, { id: 'transmission', label: 'Transmission' }, { id: 'suspension', label: 'Suspension' }, { id: 'turbo', label: 'Turbo' }];
@@ -96,17 +100,17 @@
     { id: 'prd_perf_moteur_tune', name: 'Moteur Tuné', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
     { id: 'prd_perf_moteur_sport', name: 'Moteur Sport', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [3700, 7000, 12400, 16650, 35150], costs: [3700, 7000, 12400, 16650, 35150] },
     { id: 'prd_perf_moteur_course', name: 'Moteur Course', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [5000, 9500, 16750, 22500, 47500], costs: [5000, 9500, 16750, 22500, 47500] },
-    { id: 'prd_perf_freins_tune', name: 'Freins Tuné', sub: 'freins', icon: 'disc', image: '', prices: [1000, 1900, 3350, 4500, 9500], costs: [1000, 1900, 3350, 4500, 9500] },
-    { id: 'prd_perf_freins_sport', name: 'Freins Sport', sub: 'freins', icon: 'disc', image: '', prices: [1800, 3400, 6000, 8100, 17100], costs: [1800, 3400, 6000, 8100, 17100] },
-    { id: 'prd_perf_freins_course', name: 'Freins Course', sub: 'freins', icon: 'disc', image: '', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
-    { id: 'prd_perf_transmi_tune', name: 'Transmission Tuné', sub: 'transmission', icon: 'settings-2', image: '', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
-    { id: 'prd_perf_transmi_sport', name: 'Transmission Sport', sub: 'transmission', icon: 'settings-2', image: '', prices: [2750, 5200, 9200, 12350, 26100], costs: [2750, 5200, 9200, 12350, 26100] },
-    { id: 'prd_perf_transmi_course', name: 'Transmission Course', sub: 'transmission', icon: 'settings-2', image: '', prices: [4000, 7600, 13400, 18000, 38000], costs: [4000, 7600, 13400, 18000, 38000] },
-    { id: 'prd_perf_suspen_modifie', name: 'Suspension Modifiée', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [1125, 750, 1350, 1800, 3800], costs: [400, 750, 1350, 1800, 3800] },
-    { id: 'prd_perf_suspen_tune', name: 'Suspension Tuné', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [800, 1500, 2700, 3600, 7600], costs: [800, 1500, 2700, 3600, 7600] },
-    { id: 'prd_perf_suspen_sport', name: 'Suspension Sport', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [1200, 2250, 4000, 5400, 11400], costs: [1200, 2250, 4000, 5400, 11400] },
-    { id: 'prd_perf_suspen_course', name: 'Suspension Course', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
-    { id: 'prd_perf_turbo', name: 'Turbo', sub: 'turbo', icon: 'wind', image: '', prices: [8500, 16150, 28450, 38250, 80750], costs: [8500, 16150, 28450, 38250, 80750] }
+    { id: 'prd_perf_freins_tune', name: 'Freins Tuné', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [1000, 1900, 3350, 4500, 9500], costs: [1000, 1900, 3350, 4500, 9500] },
+    { id: 'prd_perf_freins_sport', name: 'Freins Sport', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [1800, 3400, 6000, 8100, 17100], costs: [1800, 3400, 6000, 8100, 17100] },
+    { id: 'prd_perf_freins_course', name: 'Freins Course', sub: 'freins', icon: 'disc', image: 'img/products/freins.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
+    { id: 'prd_perf_transmi_tune', name: 'Transmission Tuné', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
+    { id: 'prd_perf_transmi_sport', name: 'Transmission Sport', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [2750, 5200, 9200, 12350, 26100], costs: [2750, 5200, 9200, 12350, 26100] },
+    { id: 'prd_perf_transmi_course', name: 'Transmission Course', sub: 'transmission', icon: 'settings-2', image: 'img/products/transmissions.png', prices: [4000, 7600, 13400, 18000, 38000], costs: [4000, 7600, 13400, 18000, 38000] },
+    { id: 'prd_perf_suspen_modifie', name: 'Suspension Modifiée', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1125, 750, 1350, 1800, 3800], costs: [400, 750, 1350, 1800, 3800] },
+    { id: 'prd_perf_suspen_tune', name: 'Suspension Tuné', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [800, 1500, 2700, 3600, 7600], costs: [800, 1500, 2700, 3600, 7600] },
+    { id: 'prd_perf_suspen_sport', name: 'Suspension Sport', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1200, 2250, 4000, 5400, 11400], costs: [1200, 2250, 4000, 5400, 11400] },
+    { id: 'prd_perf_suspen_course', name: 'Suspension Course', sub: 'suspension', icon: 'arrow-down-up', image: 'img/products/suspensions.png', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
+    { id: 'prd_perf_turbo', name: 'Turbo', sub: 'turbo', icon: 'wind', image: 'img/products/turbo.png', prices: [8500, 16150, 28450, 38250, 80750], costs: [8500, 16150, 28450, 38250, 80750] }
   ];
   function addPerfs(db) {
     const cat = (db.company.categories || []).find(c => c.id === 'performances');
@@ -310,8 +314,16 @@
       Object.assign(db.company, { modelClasses: Object.assign(mc, db.company.modelClasses || {}), gtaClasses: d.gtaClasses, glifeCompanyId: d.glifeCompanyId });
       changed = true;
     }
+    if (S && db && db.company && !db.company.payout) { db.company.payout = S.defaultCompany().payout; changed = true; }
     /* performances v1 : 15 pièces à tarif par catégorie de véhicule */
     if (db && db.meta && db.company && Array.isArray(db.products) && (db.meta.perfV || 0) < 1) { addPerfs(db); db.meta.perfV = 1; changed = true; }
+    /* images v2 : photos des performances + Nitro, Drift, Coffre agrandi, Cachette secrète */
+    if (db && db.meta && Array.isArray(db.products) && (db.meta.perfV || 0) < 2) {
+      PERFS.forEach(x => { const p = db.products.find(y => y.id === x.id); if (p && !p.image && x.image) p.image = x.image; });
+      PRODUCTS.filter(x => ['prd_nitro', 'prd_drift', 'prd_coffre', 'prd_cachette'].includes(x[0]) && !db.products.some(p => p.id === x[0])).forEach((x, i) =>
+        db.products.push({ id: x[0], name: x[1], category: x[2], price: x[3], cost: x[4], icon: x[5], inventoryId: x[6], consume: x[7], description: '', image: imgPath(x[9]), visible: true, active: true, order: 200 + i, createdAt: iso(Date.now()) }));
+      db.meta.perfV = 2; changed = true;
+    }
     /* tarifs v1 (grille de la direction) ; services sans pièce : coût 0 (commission sur le prix complet, règle mairie) */
     if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) < 1) {
       const P = { prd_carrosserie: 50, prd_depannage: 50, prd_fourriere: 150, prd_fourriere_air: 300, prd_nettoyage: 50, prd_pneu: 100, prd_repa_complete: 250, prd_repa_moteur: 200,

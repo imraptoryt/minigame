@@ -199,15 +199,29 @@
   /* Fenêtre de licenciement : cocher chaque étape ; confirmation possible quand tout est fait */
   function dismissSteps(id) {
     const s = S(), e = s.employees.find(x => x.id === id), d = e.dismissal || {}, steps = s.company.dismissChecklist || [];
-    const m = U.modal({ title: 'Licencier ' + e.name, icon: 'user-x',
-      body: `<p class="lead" style="margin-bottom:12px">Cochez chaque étape une fois faite. À la confirmation, un message part sur Discord et son compte est supprimé de la compta (historique conservé dans les archives).</p>
-        <label class="field"><span class="field-label">Motif</span><input class="input" id="dsReason" maxlength="200" placeholder="ex. Absences répétées, faute grave..." value="${esc(d.reason || '')}"></label>
-        <div class="section-title">Étapes</div><div class="list" id="dsChecks">${steps.map(x => `<label class="check li" style="padding:8px 4px"><input type="checkbox" value="${esc(x.id)}" ${(d.checks || []).includes(x.id) ? 'checked' : ''}><span>${esc(x.label)}</span></label>`).join('') || '<p class="muted">Aucune étape définie (Paramètres → Licenciement).</p>'}</div>
-        <p class="hint" style="margin:10px 0 0">${icon('banknote', 'xs')} ${salaryInfo(s, e)}</p>`,
-      foot: `<span class="muted nowrap" id="dsCount" style="font-size:12px"></span><span class="grow"></span><button class="btn ghost" data-close>Fermer</button><button class="btn" data-save>${icon('save')}Enregistrer</button><button class="btn danger" data-confirm>${icon('user-x')}Confirmer le licenciement</button>` });
+    const role = s.roles.find(x => x.id === e.roleId) || { name: '—' }, days = Math.max(0, Math.floor((Date.now() - Date.parse(e.hiredAt)) / ST.DAY));
+    const stepIc = l => /company|entreprise|job/i.test(l) ? 'building-2' : /discord/i.test(l) ? 'message-circle' : /compta|salaire|paie/i.test(l) ? 'banknote' : 'square-check';
+    const REASONS = ['Absences répétées', 'Inactivité', 'Comportement', 'Faute grave', 'Fin de période d’essai', 'Démission'];
+    const m = U.modal({ title: 'Licencier ' + e.name, icon: 'user-x', size: 'lg',
+      body: `<div class="ds-card">${U.avatar(e.name, 'lg')}<div class="ds-who"><b>${esc(e.name)}</b><span>${esc(role.name)} · Char ID ${esc(e.charId || '—')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}</span>
+          <span>Arrivé le ${U.fmtDate(e.hiredAt)} · ${days} jour(s)</span></div><div class="ds-pay">${icon('banknote', 'sm')}<span>${salaryInfo(s, e)}</span></div></div>
+        <div class="ds-progress"><div class="ds-bar"><i id="dsBar"></i></div><b id="dsCount"></b></div>
+        <div class="ds-steps" id="dsChecks">${steps.map((x, i) => { const [t, ...rest] = x.label.split(' : ');
+          return `<label class="ds-step"><input type="checkbox" value="${esc(x.id)}" ${(d.checks || []).includes(x.id) ? 'checked' : ''}><span class="ds-num"><em>${i + 1}</em>${icon('check', 'sm')}</span>
+            <span class="ds-txt"><b>${esc(t)}</b>${rest.length ? `<small>${esc(rest.join(' : '))}</small>` : ''}</span>${icon(stepIc(x.label))}</label>`; }).join('') || '<p class="muted">Aucune étape définie (Paramètres → Licenciement).</p>'}</div>
+        <label class="field" style="margin-top:14px"><span class="field-label">Motif</span><input class="input" id="dsReason" maxlength="200" placeholder="Choisissez ou écrivez un motif" value="${esc(d.reason || '')}"></label>
+        <div class="chips" style="margin-top:8px">${REASONS.map(x => `<button type="button" class="chip" data-reason="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+        <div class="alert danger" style="margin-top:14px">${icon('triangle-alert')}<span>À la confirmation : message dans le salon Discord des licenciements, et compte supprimé de la compta (plus d'accès ; historique gardé dans les archives).</span></div>`,
+      foot: `<button class="btn ghost" data-close>Fermer</button><span class="grow"></span><button class="btn" data-save>${icon('save')}Enregistrer l'avancement</button><button class="btn danger" data-confirm>${icon('user-x')}Confirmer le licenciement</button>` });
     const boxes = () => [...m.el.querySelectorAll('#dsChecks input')], checked = () => boxes().filter(b => b.checked).map(b => b.value);
-    const sync = () => { const n = checked().length; m.el.querySelector('#dsCount').textContent = `${n}/${steps.length} étape(s) faite(s)`; m.el.querySelector('[data-confirm]').disabled = n !== steps.length; };
+    const sync = () => {
+      const n = checked().length, pct = steps.length ? n / steps.length * 100 : 0;
+      m.el.querySelector('#dsCount').textContent = `${n}/${steps.length}`;
+      m.el.querySelector('#dsBar').style.width = pct + '%';
+      m.el.querySelector('[data-confirm]').disabled = n !== steps.length;
+    };
     m.el.querySelector('#dsChecks').addEventListener('change', sync); sync();
+    m.el.querySelectorAll('[data-reason]').forEach(b => b.onclick = () => { m.el.querySelector('#dsReason').value = b.dataset.reason; });
     const send = async confirm => {
       const r = await A().call('staff.dismiss', { id, checks: checked(), reason: m.el.querySelector('#dsReason').value, confirm }, confirm ? `${e.name} licencié : compte supprimé de la compta` : 'Avancement enregistré');
       if (r.ok) m.close();
@@ -218,7 +232,7 @@
   /* état du dernier salaire (aide pour l'étape « Compta ») */
   function salaryInfo(s, e) {
     const r = ST.range('week'), p = s.payrolls.filter(x => x.employeeId === e.id && Date.parse(x.to) > r.from - 7 * ST.DAY).pop();
-    if (!p) return 'Salaire de la semaine : pas encore calculé (Salaires & frais → Recalculer la paie).';
+    if (!p) return 'Salaire de la semaine : pas encore calculé (il se calcule en ouvrant Salaires & frais).';
     return p.status === 'paid' ? `Dernier salaire : ${money(p.total)} payé le ${U.fmtDate(p.paidAt)}.` : `Dernier salaire : ${money(p.total)} à payer (Salaires & frais → Marquer payé).`;
   }
 

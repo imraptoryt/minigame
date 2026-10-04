@@ -11,6 +11,7 @@
     { id: 'mysales', label: 'Mes ventes', icon: 'chart-line', perm: 'sales.view_own' },
     { id: 'empstats', label: 'Bilan employé', icon: 'chart-column', perm: ['stats.own', 'stats.all'] },
     { id: 'bilan', label: 'Bilan', icon: 'chart-pie', perm: 'accounting.view' },
+    { id: 'declaration', label: 'Déclaration', icon: 'file-spreadsheet', perm: 'accounting.view' },
     { id: 'sales', label: 'Toutes les ventes', icon: 'dollar-sign', perm: ['sales.view_all', 'accounting.view'] },
     { id: 'byproduct', label: 'Par produit', icon: 'chart-bar', perm: ['sales.view_all', 'accounting.view'] },
     { id: 'invoices', label: 'Factures partenaires', icon: 'receipt', perm: 'invoices.manage', badge: 'overdueInvoices' },
@@ -38,7 +39,7 @@
       { label: 'Accueil', icon: 'house', routes: ['home'] },
       { label: 'Mon activité', icon: 'chart-line', routes: ['mysales', 'empstats'] }] },
     { title: 'Comptabilité', items: [
-      { label: 'Bilan', icon: 'chart-pie', routes: ['bilan'] },
+      { label: 'Bilan', icon: 'chart-pie', routes: ['bilan', 'declaration'] },
       { label: 'Ventes', icon: 'dollar-sign', routes: ['sales', 'byproduct'] },
       { label: 'Factures', icon: 'receipt', routes: ['invoices'] },
       { label: 'Salaires & frais', icon: 'banknote', routes: ['payroll', 'expenses'] },
@@ -123,7 +124,12 @@
     { id: 'dark', name: 'Sombre', c: '#1fd1a5', b: '#0c1215' },
     { id: 'light', name: 'Clair', c: '#0d9e7c', b: '#eef2f4' },
     { id: 'halloween', name: 'Halloween', c: '#ff8a1f', b: '#120d17' },
-    { id: 'noel', name: 'Noël', c: '#e6404c', b: '#0a1714' }
+    { id: 'noel', name: 'Noël', c: '#e6404c', b: '#0a1714' },
+    { id: 'rose', name: 'Rose', c: '#ff5fa2', b: '#150d12' },
+    { id: 'rouge', name: 'Rouge', c: '#ff4d5a', b: '#150c0c' },
+    { id: 'bleu', name: 'Bleu', c: '#4ba3ff', b: '#0b1018' },
+    { id: 'violet', name: 'Violet', c: '#a77bff', b: '#110d18' },
+    { id: 'or', name: 'Doré', c: '#f2c14e', b: '#14110a' }
   ];
   const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
   const DECO = {
