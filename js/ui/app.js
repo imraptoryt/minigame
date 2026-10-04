@@ -118,6 +118,38 @@
     }
   };
 
+  /* ---------- thèmes : choix perso (gardé dans le navigateur), sinon thème par défaut de l'entreprise ---------- */
+  const THEMES = [
+    { id: 'dark', name: 'Sombre', c: '#1fd1a5', b: '#0c1215' },
+    { id: 'light', name: 'Clair', c: '#0d9e7c', b: '#eef2f4' },
+    { id: 'halloween', name: 'Halloween', c: '#ff8a1f', b: '#120d17' },
+    { id: 'noel', name: 'Noël', c: '#e6404c', b: '#0a1714' }
+  ];
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+  const DECO = {
+    halloween: () => '<span class="d-web" style="left:calc(var(--sb) - 10px);top:calc(var(--top) - 10px)">🕸️</span><span class="d-web" style="right:-10px;bottom:-12px;transform:scaleX(-1)">🕸️</span>'
+      + [[24, 70], [47, 44], [71, 92]].map(([x, l], i) => `<span class="d-spider" style="left:${x}%;--len:${l}px;top:calc(var(--top) + ${l}px);animation-delay:-${i * 1.7}s">🕷️</span>`).join('')
+      + [0, 8, 15].map((d, i) => `<span class="d-bat" style="top:${16 + i * 11}%;animation-delay:${d}s">🦇</span>`).join('')
+      + '<span class="d-badge">🎃</span><span class="d-ghost">👻</span>',
+    noel: () => '<span class="d-garland"></span>'
+      + Array.from({ length: 16 }, (_, i) => `<span class="d-snow" style="left:${(i * 6.3 + 3) % 100}%;font-size:${9 + (i * 7) % 9}px;animation-duration:${11 + (i * 5) % 9}s;animation-delay:-${(i * 2.3) % 14}s;--dx:${(i % 2 ? 1 : -1) * (20 + i * 3)}px">❄</span>`).join('')
+      + '<span class="d-badge">🎄</span>'
+  };
+  const Theme = LSC.theme = {
+    list: THEMES,
+    pref: () => store('lsc_theme') || 'auto',
+    deco: () => store('lsc_deco') !== '0',
+    company: () => (App.state && App.state.company.theme) || store('lsc_theme_co') || 'dark',
+    current() { const p = Theme.pref(), co = Theme.company(); return THEMES.some(t => t.id === p) ? p : THEMES.some(t => t.id === co) ? co : 'dark'; },
+    apply() {
+      const id = Theme.current(), el = document.getElementById('deco');
+      document.documentElement.dataset.theme = id;
+      if (el) el.innerHTML = Theme.deco() && DECO[id] ? DECO[id]() : '';
+    },
+    set(p) { store('lsc_theme', p); Theme.apply(); },
+    toggleDeco() { store('lsc_deco', Theme.deco() ? '0' : '1'); Theme.apply(); }
+  };
+
   /* Réponse serveur : état complet (démarrage, mode local) ou fusion (le serveur n'envoie que
    * le document principal + les lignes modifiées / la période demandée). */
   const ROWS = LSCServer.ROWS;
@@ -133,6 +165,9 @@
       });
       App.state = next;
     } else { App.state = r.state; App.loadedFrom = r.from || 0; App.auditFrom = r.auditFrom || App.loadedFrom; App.oldest = r.oldest || 0; }
+    const th = App.state.company.theme || 'dark';
+    if (th !== store('lsc_theme_co')) store('lsc_theme_co', th);
+    if (document.documentElement.dataset.theme !== Theme.current()) Theme.apply();
     App.me = r.me; App.perms = r.me.perms; App.permissions = r.permissions || App.permissions;
   }
 
@@ -309,6 +344,7 @@
     const p = U.popover($('#userBtn'), `<div class="pop-head"><span>${esc(me.name)}</span>${U.status('staff', me.status)}</div>
       ${App.can('service.self') ? `<button class="pop-item" data-act="service">${icon('timer')}<span><b>Services</b><small>Prendre / terminer son service</small></span></button>` : ''}
       <button class="pop-item" data-act="account">${icon('circle-user-round')}<span><b>Mon compte</b><small>Photo, identifiants, compte bancaire</small></span></button>
+      <button class="pop-item" data-act="theme">${icon('palette')}<span><b>Thème</b><small>${esc(THEMES.find(t => t.id === Theme.current()).name)}${Theme.pref() === 'auto' ? ' (entreprise)' : ''}</small></span></button>
       ${App.can(['stats.own', 'stats.all']) ? `<button class="pop-item" data-act="stats">${icon('chart-column')}<span><b>Mon bilan</b><small>Ventes, commissions, heures</small></span></button>` : ''}
       ${LSC.api.mode !== 'nui' ? `<button class="pop-item" data-act="logout">${icon('log-out')}<span><b>Déconnexion</b></span></button>` : ''}
       ${LSC.api.mode === 'nui' ? `<button class="pop-item" data-act="close">${icon('x')}<span><b>Fermer la tablette</b></span></button>` : ''}`, 'narrow');
@@ -320,10 +356,21 @@
         if (a === 'service') App.go('service');
         else if (a === 'stats') App.go('empstats');
         else if (a === 'account') App.go('account');
+        else if (a === 'theme') setTimeout(openTheme, 0);
         else if (a === 'logout') LSC.api.logout();
         else if (a === 'close') LSC.api.close();
       }
     });
+  }
+
+  function openTheme() {
+    const pref = Theme.pref(), co = THEMES.find(t => t.id === Theme.company()) || THEMES[0];
+    const opt = (id, name, t) => `<button class="theme-opt ${id === 'auto' ? 'auto' : ''} ${pref === id ? 'on' : ''}" data-th="${id}"><i style="background:linear-gradient(135deg, ${t.b} 50%, ${t.c} 50%)"></i><span>${esc(name)}</span></button>`;
+    const p = U.popover($('#userBtn'), `<div class="pop-head"><span>Thème</span></div>
+      <div class="theme-list">${opt('auto', 'Auto — ' + co.name + ' (thème de l\'entreprise)', co)}${THEMES.map(t => opt(t.id, t.name, t)).join('')}</div>
+      <label class="check" style="padding:2px 12px 12px"><input type="checkbox" data-deco ${Theme.deco() ? 'checked' : ''}><span>Décorations (Halloween, Noël)</span></label>`, 'narrow');
+    p.addEventListener('click', e => { const b = e.target.closest('[data-th]'); if (!b) return; Theme.set(b.dataset.th); p.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
+    p.addEventListener('change', e => { if (e.target.matches('[data-deco]')) Theme.toggleDeco(); });
   }
 
   /* ---------- recherche globale (Ctrl+K) ---------- */
@@ -458,6 +505,8 @@
     App.render();
     $('#main').classList.add('enter');
   }
+
+  Theme.apply();
 
   /* ---------- événements globaux ---------- */
   document.addEventListener('click', e => {

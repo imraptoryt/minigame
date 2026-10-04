@@ -1382,6 +1382,7 @@
     if (s.rounding != null) co.rounding = +s.rounding === 0.01 ? 0.01 : 1;
     if (s.maxDiscountPct != null) co.maxDiscountPct = num(s.maxDiscountPct, 0, 100);
     if (s.largeSale != null) co.largeSale = num(s.largeSale, 0, 1e9);
+    if (s.theme != null && ['dark', 'light', 'halloween', 'noel'].includes(s.theme)) co.theme = s.theme;
     if (s.invoiceDays != null) co.invoiceDays = Math.round(num(s.invoiceDays, 1, 90));
     /* webhooks Discord : vide = inchangé, « - » = retirer */
     ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook'].forEach(k => {

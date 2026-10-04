@@ -1,0 +1,4 @@
+logo items/
+node_modules/
+.env*
+.vercel

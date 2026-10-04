@@ -44,6 +44,9 @@ Facturation : uniquement les partenaires (pas de fiche client). Une vente faite 
 dans Factures, « Générer la facture » regroupe ses ventes et l'envoie sur le webhook Discord du partenaire, en mentionnant
 l'ID Discord et/ou l'ID de rôle renseignés dans sa fiche. Les factures personnalisées (lignes libres) restent possibles.
 
+Thèmes : Sombre, Clair, Halloween et Noël (avec décorations animées). Le thème par défaut se règle dans Paramètres →
+Entreprise ; chacun peut choisir le sien et couper les décorations (menu du profil → Thème, gardé dans son navigateur).
+
 ## Architecture
 
 ```

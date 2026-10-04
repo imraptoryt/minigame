@@ -302,6 +302,7 @@
       <div class="settings-grid">
         <section class="panel"><div class="panel-head"><h3>${icon('building-2')}Entreprise</h3></div><div class="panel-body"><form class="form" id="fCo">
           ${[['name', 'Nom'], ['subtitle', 'Sous-titre'], ['address', 'Adresse'], ['phone', 'Téléphone']].map(f => U.field({ name: f[0], label: f[1] }, co[f[0]])).join('')}
+          ${U.field({ name: 'theme', label: 'Thème par défaut', type: 'select', options: LSC.theme.list.map(t => ({ value: t.id, label: t.name })), hint: 'Pour tout le monde ; chacun peut choisir le sien (menu du profil → Thème).' }, co.theme || 'dark')}
           ${U.field({ name: 'logo', label: 'Logo (URL)', full: true, placeholder: 'https://...' }, co.logo)}${U.field({ name: 'description', label: 'Description', type: 'textarea', full: true, rows: 2 }, co.description)}</form>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="co">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('calculator')}Comptabilité</h3></div><div class="panel-body"><form class="form" id="fAcc">
