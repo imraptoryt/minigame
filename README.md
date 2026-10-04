@@ -49,6 +49,9 @@ kit), réglable en « % du CA » dans Paramètres → Comptabilité. Pas de paie
 et le motif « S40 Paye LS Customs » se copient d'un clic. Le Bilan calcule l'impôt par tranches (10 % / 20 % / 30 %) sur le
 résultat imposable (CA − charges déductibles) ; chaque type de frais peut être marqué non déductible.
 
+Performances : 15 pièces (Moteur, Freins, Transmission, Suspension, Turbo) avec un tarif fixe par catégorie de véhicule
+(5 prix de vente + 5 prix usine dans la fiche de l'article). Le prix suit la catégorie choisie dans le panier.
+
 En ligne, définir `LSC_OWNER_CHARID` : seul ce Char ID peut devenir le premier PDG ; les autres inscriptions attendent sa validation.
 
 Thèmes : Sombre, Clair, Halloween et Noël (avec décorations animées). Le thème par défaut se règle dans Paramètres →

@@ -182,7 +182,11 @@
   }
 
   /* ---------- tarification (partagée UI / serveur) ---------- */
-  function unitPrice(product, partner) {
+  /* Performances : tarif fixe par catégorie de véhicule (1 à 5), sans remise partenaire */
+  const byClass = (list, cls) => Array.isArray(list) && cls >= 1 && cls <= 5 && list[cls - 1] != null ? +list[cls - 1] : null;
+  function unitPrice(product, partner, cls) {
+    const fixed = byClass(product.classPrices, cls);
+    if (fixed != null) return fixed;
     if (partner && partner.prices && partner.prices[product.id] != null) return +partner.prices[product.id];
     if (partner && partner.rate) return product.price * (1 - partner.rate / 100);
     return product.price;
@@ -209,8 +213,8 @@
     qty.forEach((q, id) => {
       const p = db.products.find(x => x.id === id);
       if (!p) { missing.push(id); return; }
-      const price = r(unitPrice(p, partner));
-      items.push({ productId: id, name: p.name, category: p.category, price, cost: +p.cost || 0, qty: q, total: r(price * q) });
+      const cls = Math.floor(+input.vehicleClass), price = r(unitPrice(p, partner, cls)), cc = byClass(p.classCosts, cls);
+      items.push({ productId: id, name: p.name, category: p.category, price, cost: cc != null ? cc : +p.cost || 0, qty: q, total: r(price * q) });
     });
     const subtotal = r(items.reduce((s, i) => s + i.total, 0));
     const factory = r(items.reduce((s, i) => s + i.cost * i.qty, 0));
@@ -317,7 +321,7 @@
     c.need('pos.use');
     const db = c.db;
     const partner = p.partnerId ? find(db.partners, p.partnerId, 'Partenaire') : null;
-    const q = quote(db, { items: p.items, partnerId: partner && partner.id, discount: p.discount, markup: p.markup }, c.role.commission);
+    const q = quote(db, { items: p.items, partnerId: partner && partner.id, discount: p.discount, markup: p.markup, vehicleClass: (p.vehicle || {}).class }, c.role.commission);
     if (q.missing.length) fail("Un article du panier n'existe plus");
     if (!q.items.length) fail('Le panier est vide');
     /* Mode de paiement décidé par le serveur : partenaire -> à facturer, sinon paiement direct */
@@ -489,6 +493,10 @@
       consume: num(p.consume, 1, 1000) || 1, visible: p.visible !== false, active: p.active !== false,
       classes: [...new Set((Array.isArray(p.classes) ? p.classes : []).map(Number).filter(n => n >= 1 && n <= 5))].sort()
     };
+    /* tarif par catégorie de véhicule (5 prix de vente + 5 prix usine) ; vide = prix unique */
+    const five = a => Array.isArray(a) && a.some(x => x !== '' && x != null) ? [0, 1, 2, 3, 4].map(i => c.r(num(a[i]))) : null;
+    data.classPrices = five(p.classPrices); data.classCosts = data.classPrices ? five(p.classCosts) : null;
+    if (data.classPrices) { data.price = data.classPrices[0]; data.cost = data.classCosts ? data.classCosts[0] : data.cost; }
     if (!data.name) fail('Nom obligatoire');
     const cat = db.company.categories.find(x => x.id === data.category);
     data.sub = cat && (cat.subs || []).some(s => s.id === p.sub) ? p.sub : null;

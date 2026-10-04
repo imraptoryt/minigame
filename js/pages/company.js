@@ -148,11 +148,17 @@
     const catOf = cid => s.company.categories.find(c => c.id === cid) || {};
     const subOpts = cid => [{ value: '', label: '— Aucune —' }].concat((catOf(cid).subs || []).map(x => ({ value: x.id, label: x.label })));
     const classes = (p && p.classes) || [];
+    const cp = (p && p.classPrices) || [], cc = (p && p.classCosts) || [];
+    const tierHtml = `<div id="pfTiers" class="tier-grid"><span></span>${[1, 2, 3, 4, 5].map(n => `<b>Cat. ${n}</b>`).join('')}
+      <span>Vente</span>${[0, 1, 2, 3, 4].map(i => `<input class="input sm" type="number" min="0" data-tp="${i}" value="${cp[i] != null ? cp[i] : ''}">`).join('')}
+      <span>Usine</span>${[0, 1, 2, 3, 4].map(i => `<input class="input sm" type="number" min="0" data-tc="${i}" value="${cc[i] != null ? cc[i] : ''}">`).join('')}
+      <small class="hint" style="grid-column:1/-1">Rempli = le prix suit la catégorie du véhicule choisie au point de vente (tarif fixe, sans remise partenaire). Vide = prix unique ci-dessous.</small></div>`;
     const classHtml = `<div id="pfClasses" class="row" style="gap:14px;flex-wrap:wrap">${[1, 2, 3, 4, 5].map(n => `<label class="check"><input type="checkbox" data-vc="${n}" ${classes.includes(n) ? 'checked' : ''}><span>Cat. ${n}</span></label>`).join('')}<small class="hint">Aucune case = disponible pour toutes les catégories.</small></div>`;
     U.form({ title: p ? 'Modifier — ' + p.name : 'Nouveau produit', icon: 'tag', size: 'lg', values: vals,
       fields: [{ name: 'name', label: 'Nom', required: true }, { name: 'category', label: 'Catégorie', type: 'select', options: s.company.categories.map(c => ({ value: c.id, label: c.label })) },
         { name: 'sub', label: 'Sous-catégorie', type: 'select', options: subOpts(vals.category) },
         { name: 'classes', label: 'Catégories de véhicule concernées', type: 'html', html: classHtml },
+        { name: 'tiers', label: 'Tarif par catégorie de véhicule', type: 'html', html: tierHtml, full: true },
         { name: 'description', label: 'Description', type: 'textarea', full: true, rows: 2 },
         { name: 'image', label: 'Image', placeholder: 'img/products/... ou https://...', hint: 'Choisir dans la liste, coller une URL, ou laisser vide pour l’icône.', attrs: 'list="imgList"' }, { name: 'icon', label: 'Icône (Lucide)', placeholder: 'wrench, car, cog...' },
         { name: 'cost', label: "Prix d'achat / usine", type: 'money' }, { name: 'price', label: 'Prix de vente', type: 'money', required: true },
@@ -165,15 +171,19 @@
         if (e.target.name === 'category') {
           fe.elements.sub.innerHTML = U.opts(subOpts(v.category), '');
           fe.querySelector('#pfClasses').closest('.field').hidden = !catOf(v.category).vehicleClass;
+          fe.querySelector('#pfTiers').closest('.field').hidden = !catOf(v.category).vehicleClass;
         }
         if (e.target.name === 'margin' && v.cost != null && v.margin != null && v.margin < 100) fe.elements.price.value = Math.round(v.cost / (1 - v.margin / 100));
         else if ((e.target.name === 'price' || e.target.name === 'cost') && v.price) fe.elements.margin.value = Math.round((v.price - (v.cost || 0)) / v.price * 100);
       },
       onMount: m => {
         m.el.querySelector('#pfClasses').closest('.field').hidden = !catOf(vals.category).vehicleClass;
+        m.el.querySelector('#pfTiers').closest('.field').hidden = !catOf(vals.category).vehicleClass;
         m.el.querySelector('form').insertAdjacentHTML('beforeend', `<datalist id="imgList">${[...new Set(s.products.map(x => x.image).filter(Boolean))].sort().map(x => `<option value="${esc(x)}">`).join('')}</datalist>`);
         const d = m.el.querySelector('[data-delprod]'); if (d) d.onclick = async () => { if (await U.confirm(`Supprimer ${p.name} ?`, { danger: true, ok: 'Supprimer' })) { const r = await A().call('products.delete', { id }, 'Produit supprimé'); if (r.ok) m.close(); } }; },
-      onSubmit: (v, m) => { delete v.margin; v.classes = [...m.el.querySelectorAll('[data-vc]:checked')].map(i => +i.dataset.vc); return A().call('products.save', Object.assign({ id }, v), p ? 'Produit modifié' : 'Produit ajouté'); } });
+      onSubmit: (v, m) => { delete v.margin; v.classes = [...m.el.querySelectorAll('[data-vc]:checked')].map(i => +i.dataset.vc);
+        const tier = k => [...m.el.querySelectorAll(`[data-${k}]`)].map(i => i.value);
+        if (catOf(v.category).vehicleClass) { v.classPrices = tier('tp'); v.classCosts = tier('tc'); } else { v.classPrices = null; v.classCosts = null; } return A().call('products.save', Object.assign({ id }, v), p ? 'Produit modifié' : 'Produit ajouté'); } });
   };
 
   /* =================== PARTENAIRES =================== */

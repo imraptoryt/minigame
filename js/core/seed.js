@@ -59,26 +59,26 @@
    * Les prix à 0 sont à définir depuis l'édition des produits.
    * [id, nom, catégorie, prix, coût, icône, article stock, conso, poids démo, image] */
   const PRODUCTS = [
-    ['prd_depannage', 'Dépannage (/km)', 'services', 50, 10, 'truck', null, 1, 6, 'depannage-km'],
-    ['prd_fourriere', 'Fourrière', 'services', 150, 30, 'circle-parking', null, 1, 4, 'fourriere'],
-    ['prd_fourriere_air', 'Fourrière bateau / avion / hélico', 'services', 300, 60, 'ship', null, 1, 1, 'fourriere-bateau-avion-heli'],
-    ['prd_nettoyage', 'Nettoyage', 'services', 50, 10, 'sparkles', null, 1, 6, 'nettoyage'],
-    ['prd_karcher', 'Kärcher', 'services', 0, 0, 'droplets', null, 1, 0, 'karcher'],
+    ['prd_depannage', 'Dépannage (/km)', 'services', 50, 0, 'truck', null, 1, 6, 'depannage-km'],
+    ['prd_fourriere', 'Fourrière', 'services', 150, 0, 'circle-parking', null, 1, 4, 'fourriere'],
+    ['prd_fourriere_air', 'Fourrière bateau / avion / hélico', 'services', 300, 0, 'ship', null, 1, 1, 'fourriere-bateau-avion-heli'],
+    ['prd_nettoyage', 'Nettoyage', 'services', 50, 0, 'sparkles', null, 1, 6, 'nettoyage'],
+    ['prd_karcher', 'Kärcher', 'services', 200, 0, 'droplets', null, 1, 0, 'karcher'],
     ['prd_carrosserie', 'Carrosserie', 'reparations', 50, 15, 'car-front', null, 1, 8, 'carrosserie'],
     ['prd_repa_complete', 'Réparation complète', 'reparations', 250, 90, 'wrench', 'stk_repa', 1, 6, 'reparation-complete'],
     ['prd_repa_moteur', 'Réparation moteur', 'reparations', 200, 90, 'cog', 'stk_moteur', 1, 5, 'reparation-moteur'],
     ['prd_pneu', 'Pneu', 'reparations', 100, 45, 'circle-dot', 'stk_pneu', 1, 6, 'pneu'],
-    ['prd_kit_repa', 'Kit de réparation', 'reparations', 120, 60, 'package', 'stk_repa', 1, 3, 'kit-de-reparation'],
-    ['prd_peinture_primaire', 'Peinture primaire', 'peinture', 0, 0, 'paintbrush', null, 1, 0, 'peinture-primaire'],
-    ['prd_peinture_secondaire', 'Peinture secondaire', 'peinture', 0, 0, 'paintbrush', null, 1, 0, 'peinture-secondaire'],
-    ['prd_nacrage', 'Effet de couleur - Nacrage', 'peinture', 0, 0, 'sparkle', null, 1, 0, 'effet-de-couleur-nacrage'],
+    ['prd_kit_repa', 'Kit de réparation', 'reparations', 200, 60, 'package', 'stk_repa', 1, 3, 'kit-de-reparation'],
+    ['prd_peinture_primaire', 'Peinture primaire', 'peinture', 200, 0, 'paintbrush', null, 1, 0, 'peinture-primaire'],
+    ['prd_peinture_secondaire', 'Peinture secondaire', 'peinture', 200, 0, 'paintbrush', null, 1, 0, 'peinture-secondaire'],
+    ['prd_nacrage', 'Effet de couleur - Nacrage', 'peinture', 450, 0, 'sparkle', null, 1, 0, 'effet-de-couleur-nacrage'],
     ['prd_couleur_roue', 'Couleur roue', 'peinture', 0, 0, 'circle-dot', null, 1, 0, 'couleur-roue'],
     ['prd_couleur_interieur', 'Couleur intérieur', 'peinture', 0, 0, 'armchair', null, 1, 0, 'couleur-interieur'],
     ['prd_couleur_tableau', 'Couleur tableau de bord', 'peinture', 0, 0, 'gauge', null, 1, 0, 'couleur-tableau-de-bord'],
     ['prd_couleur_phare', 'Couleur phare', 'peinture', 0, 0, 'lightbulb', null, 1, 0, 'couleur-phare'],
     ['prd_couleur_neon', 'Couleur néon', 'peinture', 0, 0, 'lightbulb', null, 1, 0, 'couleur-neon'],
     ['prd_couleur_fumee', 'Couleur fumée pneu', 'peinture', 0, 0, 'cloud', null, 1, 0, 'couleur-fumee-pneu'],
-    ['prd_moteur', 'Moteur', 'performances', 0, 0, 'cog', null, 1, 0, 'moteur'],
+    ['prd_moteur', 'Moteur', 'reparations', 700, 0, 'cog', null, 1, 0, 'moteur'],
     ['prd_neons', 'Néon', 'custom', 0, 0, 'lightbulb', 'stk_neon', 1, 0, 'neon'],
     ['prd_xenon', 'Phares au xénon', 'custom', 0, 0, 'sun', null, 1, 0, 'phares-au-xenon'],
     ['prd_roue_perso', 'Roue personnalisée', 'custom', 0, 0, 'disc', null, 1, 0, 'roue-personnalisee'],
@@ -89,6 +89,39 @@
     ['prd_extra', 'Extra', 'custom', 0, 0, 'plus', null, 1, 0, 'extra'],
     ['prd_custom_speciale', 'Custom Spéciale', 'custom', 0, 0, 'star', null, 1, 0, 'custom-speciale']
   ];
+  /* Performances : tarif fixe par catégorie de véhicule (prix de vente et prix usine, catégories 1 à 5) */
+  const PERF_SUBS = [{ id: 'moteur', label: 'Moteur' }, { id: 'freins', label: 'Freins' }, { id: 'transmission', label: 'Transmission' }, { id: 'suspension', label: 'Suspension' }, { id: 'turbo', label: 'Turbo' }];
+  const PERFS = [
+    { id: 'prd_perf_moteur_modifie', name: 'Moteur Modifié', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [1200, 2300, 4000, 5400, 11400], costs: [1200, 2300, 4000, 5400, 11400] },
+    { id: 'prd_perf_moteur_tune', name: 'Moteur Tuné', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
+    { id: 'prd_perf_moteur_sport', name: 'Moteur Sport', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [3700, 7000, 12400, 16650, 35150], costs: [3700, 7000, 12400, 16650, 35150] },
+    { id: 'prd_perf_moteur_course', name: 'Moteur Course', sub: 'moteur', icon: 'cog', image: 'img/products/moteur.png', prices: [5000, 9500, 16750, 22500, 47500], costs: [5000, 9500, 16750, 22500, 47500] },
+    { id: 'prd_perf_freins_tune', name: 'Freins Tuné', sub: 'freins', icon: 'disc', image: '', prices: [1000, 1900, 3350, 4500, 9500], costs: [1000, 1900, 3350, 4500, 9500] },
+    { id: 'prd_perf_freins_sport', name: 'Freins Sport', sub: 'freins', icon: 'disc', image: '', prices: [1800, 3400, 6000, 8100, 17100], costs: [1800, 3400, 6000, 8100, 17100] },
+    { id: 'prd_perf_freins_course', name: 'Freins Course', sub: 'freins', icon: 'disc', image: '', prices: [2500, 4750, 8400, 11250, 23750], costs: [2500, 4750, 8400, 11250, 23750] },
+    { id: 'prd_perf_transmi_tune', name: 'Transmission Tuné', sub: 'transmission', icon: 'settings-2', image: '', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
+    { id: 'prd_perf_transmi_sport', name: 'Transmission Sport', sub: 'transmission', icon: 'settings-2', image: '', prices: [2750, 5200, 9200, 12350, 26100], costs: [2750, 5200, 9200, 12350, 26100] },
+    { id: 'prd_perf_transmi_course', name: 'Transmission Course', sub: 'transmission', icon: 'settings-2', image: '', prices: [4000, 7600, 13400, 18000, 38000], costs: [4000, 7600, 13400, 18000, 38000] },
+    { id: 'prd_perf_suspen_modifie', name: 'Suspension Modifiée', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [1125, 750, 1350, 1800, 3800], costs: [400, 750, 1350, 1800, 3800] },
+    { id: 'prd_perf_suspen_tune', name: 'Suspension Tuné', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [800, 1500, 2700, 3600, 7600], costs: [800, 1500, 2700, 3600, 7600] },
+    { id: 'prd_perf_suspen_sport', name: 'Suspension Sport', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [1200, 2250, 4000, 5400, 11400], costs: [1200, 2250, 4000, 5400, 11400] },
+    { id: 'prd_perf_suspen_course', name: 'Suspension Course', sub: 'suspension', icon: 'arrow-down-up', image: '', prices: [1500, 2850, 5000, 6750, 14250], costs: [1500, 2850, 5000, 6750, 14250] },
+    { id: 'prd_perf_turbo', name: 'Turbo', sub: 'turbo', icon: 'wind', image: '', prices: [8500, 16150, 28450, 38250, 80750], costs: [8500, 16150, 28450, 38250, 80750] }
+  ];
+  function addPerfs(db) {
+    const cat = (db.company.categories || []).find(c => c.id === 'performances');
+    if (!cat) return;
+    cat.vehicleClass = true;
+    cat.subs = PERF_SUBS.concat((cat.subs || []).filter(s => !PERF_SUBS.some(x => x.id === s.id)));
+    PERFS.forEach((x, i) => {
+      if (db.products.some(p => p.id === x.id)) return;
+      db.products.push({ id: x.id, name: x.name, category: 'performances', sub: x.sub, price: x.prices[0], cost: x.costs[0], classPrices: x.prices.slice(), classCosts: x.costs.slice(),
+        icon: x.icon, image: x.image, inventoryId: null, consume: 1, description: '', visible: true, active: true, classes: [], order: 100 + i, createdAt: iso(Date.now()) });
+    });
+    /* « Moteur » (pièce à 700 $) n'est pas une performance : rangé avec les réparations */
+    const m = db.products.find(p => p.id === 'prd_moteur');
+    if (m && m.category === 'performances') m.category = 'reparations';
+  }
   /* Mot de passe des comptes de DÉMONSTRATION (mode local uniquement). À changer dans Mon compte. */
   const DEMO_PASSWORD = 'lscustoms';
   const DEMO_IDS = ['emp_michael', 'emp_thomas', 'emp_lucas', 'emp_sergio', 'emp_jessy', 'emp_kenny', 'emp_dylan'];
@@ -276,6 +309,16 @@
       (db.sales || []).forEach(x => { const v = x.vehicle; if (v && v.model && v.class && x.status !== 'cancelled') mc[v.model] = v.class; });
       Object.assign(db.company, { modelClasses: Object.assign(mc, db.company.modelClasses || {}), gtaClasses: d.gtaClasses, glifeCompanyId: d.glifeCompanyId });
       changed = true;
+    }
+    /* performances v1 : 15 pièces à tarif par catégorie de véhicule */
+    if (db && db.meta && db.company && Array.isArray(db.products) && (db.meta.perfV || 0) < 1) { addPerfs(db); db.meta.perfV = 1; changed = true; }
+    /* tarifs v1 (grille de la direction) ; services sans pièce : coût 0 (commission sur le prix complet, règle mairie) */
+    if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) < 1) {
+      const P = { prd_carrosserie: 50, prd_depannage: 50, prd_fourriere: 150, prd_fourriere_air: 300, prd_nettoyage: 50, prd_pneu: 100, prd_repa_complete: 250, prd_repa_moteur: 200,
+        prd_karcher: 200, prd_kit_repa: 200, prd_moteur: 700, prd_nacrage: 450, prd_peinture_primaire: 200, prd_peinture_secondaire: 200 };
+      const free = ['prd_depannage', 'prd_fourriere', 'prd_fourriere_air', 'prd_nettoyage'];
+      db.products.forEach(x => { if (x.id in P) x.price = P[x.id]; if (free.includes(x.id)) x.cost = 0; });
+      db.meta.pricesV = 1; changed = true;
     }
     /* paie v1 : % du bénéfice par grade, plus de paie à l'heure ni de primes automatiques ; impôt par tranches */
     if (S && db && db.meta && db.company && Array.isArray(db.roles) && (db.meta.payV || 0) < 1) {

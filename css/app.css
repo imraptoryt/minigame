@@ -854,3 +854,8 @@ html[data-theme="noel"] body { background: radial-gradient(1100px 560px at 80% -
 .tax-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pay-reason { display: flex; align-items: center; gap: 8px; }
 .pay-reason > span { flex: 1; }
+/* performances : tarif par catégorie de véhicule */
+.perf-note { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+.tier-grid { display: grid; grid-template-columns: 52px repeat(5, minmax(0, 1fr)); gap: 6px; align-items: center; }
+.tier-grid > b { font-size: 11px; text-align: center; color: var(--muted); }
+.tier-grid > span { font-size: 11.5px; color: var(--muted); }

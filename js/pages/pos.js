@@ -18,7 +18,7 @@
     P.cart = P.cart.filter(l => app().product(l.productId));
     if (P.partnerId && !S().partners.some(p => p.id === P.partnerId)) P.partnerId = '';
   }
-  const quote = () => LSCServer.quote(S(), { items: P.cart, partnerId: P.partnerId, discount: P.discount, markup: P.markup }, app().myRole().commission);
+  const quote = () => LSCServer.quote(S(), { items: P.cart, partnerId: P.partnerId, discount: P.discount, markup: P.markup, vehicleClass: P.vehicle.cls }, app().myRole().commission);
   const partner = () => P.partnerId ? S().partners.find(p => p.id === P.partnerId) : null;
   const available = p => LSCServer.stockOf(S(), p);
   const inCart = id => (P.cart.find(l => l.productId === id) || {}).qty || 0;
@@ -83,7 +83,7 @@
     root.querySelector('#posSubs').innerHTML = subs.length ? [{ id: 'all', label: 'Toutes' }].concat(subs).map(s => `<button class="chip ${P.sub === s.id ? 'on' : ''}" data-subtab="${s.id}">${esc(s.label)}<span>${sc(s.id)}</span></button>`).join('') : '';
   }
   function card(p) {
-    const pa = partner(), price = LSCServer.roundTo(LSCServer.unitPrice(p, pa), S().company.rounding), st = available(p), q = inCart(p.id);
+    const pa = partner(), rnd = n => LSCServer.roundTo(n, S().company.rounding), price = rnd(LSCServer.unitPrice(p, pa, P.vehicle.cls)), list = rnd(LSCServer.unitPrice(p, null, P.vehicle.cls)), st = available(p), q = inCart(p.id);
     const item = p.inventoryId ? S().inventory.find(i => i.id === p.inventoryId) : null;
     const tone = st == null ? '' : st <= 0 ? 'danger' : item && item.qty <= item.min ? 'warn' : '';
     const off = !p.active || !p.visible;
@@ -93,7 +93,7 @@
       ${off ? `<span class="prod-flag">${p.active ? 'Masqué' : 'Inactif'}</span>` : canEdit() && !P.edit ? `<span class="icon-btn sm prod-edit" data-edit="${p.id}" title="Modifier">${icon('pencil', 'xs')}</span>` : ''}
       ${P.edit && isVehicleCat(p.category) ? `<span class="prod-classes">${(p.classes || []).length ? 'Cat. ' + p.classes.join(' · ') : 'Toutes cat.'}</span>` : ''}
       <div class="prod-body"><div class="prod-name">${esc(p.name)}</div><div class="prod-cat">${esc(app().catLabel(p.category))}</div>
-        <div class="prod-price">${p.price ? money(price) + (price !== p.price ? `<s>${money(p.price)}</s>` : '') : '<span class="warn-t">Prix à définir</span>'}</div>
+        <div class="prod-price">${list ? money(price) + (price !== list ? `<s>${money(list)}</s>` : '') + (p.classPrices && P.vehicle.cls ? ` <small class="muted">cat. ${P.vehicle.cls}</small>` : '') : '<span class="warn-t">Prix à définir</span>'}</div>
         <div class="prod-stock ${tone}">${U.dot(tone || 'ok')}${st == null ? 'Disponible' : st <= 0 ? 'Rupture de stock' : 'Stock : ' + st}</div></div></button>`;
   }
   /* Grille rangée par catégorie (sections), dans l'ordre choisi */
@@ -106,7 +106,7 @@
       const total = items.length;
       if (!items.length && !P.edit) return '';
       const head = `<div class="cat-sec-head">${icon(c.icon || 'package')}<h3>${esc(c.label)}</h3><span class="tab-count">${total}</span>
-        ${c.vehicleClass ? `<span class="badge info">${icon('car', 'xs')}Selon la catégorie du véhicule</span>` : ''}
+        ${c.vehicleClass ? `<span class="badge info">${icon('car', 'xs')}Selon la catégorie du véhicule</span><span class="perf-note">${icon('zap', 'xs')}Véhicules électriques : les performances sont inutiles</span>` : ''}
         ${P.edit ? `<span class="grow"></span><button class="btn sm ghost" data-subnew="${c.id}">${icon('folder-plus', 'xs')}Sous-catégorie</button><button class="icon-btn sm" data-catedit="${c.id}" title="Renommer / icône / option véhicule">${icon('pencil', 'xs')}</button><button class="icon-btn sm danger" data-catdel="${c.id}" title="Supprimer la catégorie">${icon('trash-2', 'xs')}</button>` : ''}</div>`;
       /* Performances : rien n'est proposé tant que la catégorie du véhicule n'est pas choisie */
       if (c.vehicleClass && !P.edit) {
