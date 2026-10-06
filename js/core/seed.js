@@ -318,6 +318,7 @@
     }
     if (S && db && db.company && !db.company.payout) { db.company.payout = S.defaultCompany().payout; changed = true; }
     /* CA automatique (factures en jeu) : désactivé par défaut, catégories proposées : services, réparations, vente */
+    if (db && db.company && !db.company.glifeMode) { db.company.glifeMode = db.company.glifeAuto ? 'auto' : 'off'; changed = true; }
     if (S && db && db.company && !Array.isArray(db.company.glifeAutoCats)) { Object.assign(db.company, { glifeAuto: !!db.company.glifeAuto, glifeAutoCats: S.defaultCompany().glifeAutoCats }); changed = true; }
     /* performances v1 : 15 pièces à tarif par catégorie de véhicule */
     if (db && db.meta && db.company && Array.isArray(db.products) && (db.meta.perfV || 0) < 1) { addPerfs(db); db.meta.perfV = 1; changed = true; }

@@ -151,7 +151,7 @@
       /* Répartition du bénéfice net (après impôt), en % : primes, dividendes, trésorerie */
       payout: { primes: 10, dividends: 40, treasury: 50 },
       /* CA automatique : factures en jeu (API GLife) comptées par employé ; ces catégories ne passent plus par le point de vente */
-      glifeAuto: false, glifeAutoFrom: null, glifeAutoCats: ['services', 'reparations', 'vente'],
+      glifeMode: 'off', glifeAuto: false, glifeAutoFrom: null, glifeAutoCats: ['services', 'reparations', 'vente'],
       notify: { lowStock: true, overdue: true, signup: true, largeSale: true, service: true, payment: true }
     };
   }
@@ -1420,13 +1420,14 @@
       if (o.primes + o.dividends + o.treasury > 100.001) fail('La répartition dépasse 100 %');
       co.payout = o;
     }
-    if (s.glifeAuto != null) {
-      const on = !!s.glifeAuto;
-      if (on && !co.glifeCompanyId) fail("Renseignez d'abord l'ID de l'entreprise GLife");
-      if (on && !co.glifeAuto) co.glifeAutoFrom = c.iso; // rien n'est repris avant l'activation (pas de double comptage)
-      co.glifeAuto = on;
+    /* factures en jeu : off | auto (comptées automatiquement) | check (saisies au point de vente, contrôlées par l'API) */
+    if (s.glifeMode != null || s.glifeAuto != null) {
+      const mode = s.glifeMode != null ? (['off', 'auto', 'check'].includes(s.glifeMode) ? s.glifeMode : 'off') : s.glifeAuto ? 'auto' : 'off';
+      if (mode !== 'off' && !co.glifeCompanyId) fail("Renseignez d'abord l'ID de l'entreprise GLife");
+      if (mode === 'auto' && !co.glifeAuto) co.glifeAutoFrom = c.iso; // rien n'est repris avant l'activation (pas de double comptage)
+      co.glifeMode = mode; co.glifeAuto = mode === 'auto';
     }
-    if (Array.isArray(s.glifeAutoCats)) co.glifeAutoCats = s.glifeAutoCats.filter(id => co.categories.some(k => k.id === id));
+    if (Array.isArray(s.glifeAutoCats)) co.glifeAutoCats = s.glifeAutoCats.filter(id => co.categories.some(k => k.id === id) && !['custom', 'performances'].includes(id));
     if (s.commissionBase != null) co.commissionBase = s.commissionBase === 'revenue' ? 'revenue' : 'margin';
     if (s.payReason != null) co.payReason = str(s.payReason, 60);
     if (Array.isArray(s.taxBrackets)) {

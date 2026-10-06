@@ -388,10 +388,13 @@
           ${U.field({ name: 'glifeCompanyId', label: 'ID de l’entreprise GLife', type: 'number', min: 1 }, co.glifeCompanyId || 139)}
           ${U.field({ name: 'unlistedWebhook', label: 'Véhicules non recensés', full: true, placeholder: co.hasUnlistedWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'Un message par modèle absent de la liste (signalé à la première recherche).' }, '')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="disc">${icon('save')}Enregistrer</button></div></div></section>
-        <section class="panel"><div class="panel-head"><h3>${icon('refresh-cw')}CA automatique (factures en jeu)</h3>${co.glifeAuto ? U.badge('Actif', 'ok') : ''}</div><div class="panel-body" id="fAuto">
-          <label class="check" style="align-items:flex-start"><input type="checkbox" id="gaOn" ${co.glifeAuto ? 'checked' : ''}><span><b>Automatiser le CA</b> — les factures faites en jeu (API GLife, entreprise ${esc(co.glifeCompanyId || '—')}) sont comptées pour chaque employé, sans passer par le point de vente.</span></label>
-          <div class="section-title">Catégories facturées en jeu <small class="muted" style="text-transform:none;letter-spacing:0">(retirées du point de vente)</small></div>
-          <div class="chips">${co.categories.map(k => `<label class="check" style="margin-right:12px"><input type="checkbox" data-gc="${k.id}" ${(co.glifeAutoCats || []).includes(k.id) ? 'checked' : ''}><span>${esc(k.label)}</span></label>`).join('')}</div>
+        <section class="panel"><div class="panel-head"><h3>${icon('refresh-cw')}Factures en jeu (API GLife)</h3>${co.glifeMode === 'auto' ? U.badge('CA automatique', 'ok') : co.glifeMode === 'check' ? U.badge('Vérification', 'info') : ''}</div><div class="panel-body" id="fAuto">
+          <div class="list">${[['off', 'Désactivé', 'Tout est saisi au point de vente, sans contrôle.'],
+            ['auto', 'CA automatique', `Les factures faites en jeu (entreprise ${esc(co.glifeCompanyId || '—')}) sont comptées pour chaque employé ; les catégories cochées sont retirées du point de vente.`],
+            ['check', 'Vérification anti-fraude', 'Les employés saisissent tout au point de vente ; l’API compare ce qu’ils déclarent avec leurs factures en jeu (✓ / ✗ dans Salaires).']]
+            .map(m => `<label class="check li" style="align-items:flex-start;padding:7px 2px"><input type="radio" name="gaMode" value="${m[0]}" ${(co.glifeMode || 'off') === m[0] ? 'checked' : ''}><span><b>${m[1]}</b><br><small class="muted">${m[2]}</small></span></label>`).join('')}</div>
+          <div class="section-title">Catégories facturées en jeu <small class="muted" style="text-transform:none;letter-spacing:0">(comptées ou contrôlées par l'API — les customs ne le sont pas)</small></div>
+          <div class="chips">${co.categories.map(k => { const cu = ['custom', 'performances'].includes(k.id); return `<label class="check" style="margin-right:12px" ${cu ? 'title="Customs : jamais comptées ni contrôlées par l’API"' : ''}><input type="checkbox" data-gc="${k.id}" ${!cu && (co.glifeAutoCats || []).includes(k.id) ? 'checked' : ''} ${cu ? 'disabled' : ''}><span class="${cu ? 'faint' : ''}">${esc(k.label)}</span></label>`; }).join('')}</div>
           <p class="hint" style="margin:10px 0 0">Les customs (cases non cochées) restent au point de vente. Chaque employé est reconnu par son Char ID ; sa commission = % de son grade sur le montant facturé.
             ${co.glifeAuto ? `<br>Actif depuis le ${U.fmtDT(co.glifeAutoFrom)} · dernière synchro : ${(S().meta || {}).glifeSyncAt ? U.ago(S().meta.glifeSyncAt) : 'jamais'} (automatique toutes les 5 min environ).` : ''}</p>
           <div class="row" style="margin-top:12px">${co.glifeAuto ? `<button class="btn sm" id="gaSync">${icon('refresh-cw')}Synchroniser maintenant</button>` : ''}<span class="grow"></span><button class="btn primary sm" data-save="auto">${icon('save')}Enregistrer</button></div></div></section>
@@ -412,8 +415,8 @@
       if (k === 'co') save(form('#fCo'));
       else if (k === 'disc') { const v = {}; el.querySelectorAll('#fDisc input').forEach(i => { v[i.name] = i.value.trim(); }); v.largeSale = +v.largeSale || 0; v.glifeCompanyId = +v.glifeCompanyId || 0; save(v, 'Réglages Discord enregistrés'); }
       else if (k === 'auto') {
-        const on = el.querySelector('#gaOn').checked;
-        save({ glifeAuto: on, glifeAutoCats: [...el.querySelectorAll('[data-gc]:checked')].map(i => i.dataset.gc) }, on ? 'CA automatique activé' : 'CA automatique désactivé').then(r => { if (r && r.ok && on) A().glifeSync(true); });
+        const mode = (el.querySelector('[name=gaMode]:checked') || {}).value || 'off', on = mode === 'auto';
+        save({ glifeMode: mode, glifeAutoCats: [...el.querySelectorAll('[data-gc]:checked:not(:disabled)')].map(i => i.dataset.gc) }, { off: 'Factures en jeu : désactivé', auto: 'CA automatique activé', check: 'Vérification anti-fraude activée' }[mode]).then(r => { if (r && r.ok && on) A().glifeSync(true); });
       }
       else if (k === 'rates') A().call('roles.rates', { rates: [...el.querySelectorAll('[data-rate]')].filter(r => !r.querySelector('input').disabled).map(r => ({ id: r.dataset.rate, commission: +r.querySelector('[data-k=com]').value || 0, salary: +r.querySelector('[data-k=sal]').value || 0 })) }, 'Salaires par grade enregistrés');
       else if (k === 'dc') save({ dismissChecklist: [...el.querySelectorAll('#dcRows .cfg-row')].map(r => ({ id: r.dataset.id, label: r.querySelector('input').value.trim() })) }, 'Étapes du licenciement enregistrées');

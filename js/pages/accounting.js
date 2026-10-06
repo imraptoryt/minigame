@@ -5,7 +5,7 @@
   const LSC = window.LSC, U = LSC.ui, ST = LSC.stats, { esc, icon, money } = U;
   const A = () => LSC.app, S = () => LSC.app.state;
   const act = (name, label, ic, cls) => `<button class="icon-btn sm ${cls || ''}" data-a="${name}" title="${esc(label)}">${icon(ic, 'sm')}</button>`;
-  const { onActs, idCell } = U;
+  const { onActs, idCell, paint } = U;
   const SLIDES = 'https://docs.google.com/presentation/d/143wqzgB963IFtGqS2dPSmZ0I5K1Tfmk2bAuyNJkry5I/edit';
 
   /* =================== IMPÔTS (barème de la mairie) =================== */
@@ -87,6 +87,55 @@
     el.querySelector('#dCopy').onclick = () => U.copy([`Déclaration S${wn} — ${co.name}`, `Chiffre d'affaires : ${money(z.revenue)}`, `Ventes clients : ${money(clients)} · partenaires : ${money(partners)}`,
       `Salaires et commissions : ${money(salaries)}`, `Charges déductibles : ${money(ded)}`, `Charges non déductibles : ${money(z.chargesND)}`, `Bénéfice brut imposable : ${money(z.taxable)}`,
       `Impôts : ${money(z.tax)}`, `Bénéfice net : ${money(net)}`, `Primes : ${money(part('primes'))} · Dividendes : ${money(part('dividends'))} · Trésorerie : ${money(part('treasury'))}`].join('\n'));
+  }
+
+  /* =================== CONTRÔLE ANTI-FRAUDE (factures en jeu) ===================
+   * Ce que l'employé déclare au point de vente dans les catégories facturées en jeu (hors customs et ventes partenaires)
+   * est comparé au total de ses factures en jeu (API GLife) sur la même période. Lecture seule. */
+  const gcache = {};
+  function glifeRows(from, to, done) {
+    const co = S().company, k = co.glifeCompanyId + ':' + from, c = gcache[k]; // une lecture par semaine (relue toutes les 5 min)
+    if (c && (c.wait || Date.now() - c.at < 5 * 6e4)) return c;
+    const e = gcache[k] = { wait: true, at: Date.now() };
+    LSCServer.glifeInvoices(co.glifeCompanyId, from, to).then(rows => { e.rows = rows; }, () => { e.err = true; }).finally(() => { e.wait = false; e.at = Date.now(); if (done) done(); });
+    return e;
+  }
+  const CUSTOMS = ['custom', 'performances']; // jamais contrôlées : les customs n'apparaissent pas dans l'API
+  const checkCats = co => (co.glifeAutoCats || []).filter(id => !CUSTOMS.includes(id));
+  function declared(s, empId, from, to) {
+    const cats = checkCats(s.company), list = [];
+    s.sales.forEach(x => {
+      const at = Date.parse(x.createdAt);
+      if (x.employeeId !== empId || x.status === 'cancelled' || x.source === 'glife' || x.partnerId || at < from || at > to) return;
+      const sub = x.items.reduce((a, i) => a + i.total, 0), part = x.items.filter(i => cats.includes(i.category)).reduce((a, i) => a + i.total, 0);
+      if (part) list.push({ sale: x, amount: Math.round((sub ? x.total * part / sub : part) * 100) / 100, items: x.items.filter(i => cats.includes(i.category)) });
+    });
+    return { total: Math.round(list.reduce((a, l) => a + l.amount, 0) * 100) / 100, list };
+  }
+  const tol = v => v * 0.05; // marge tolérée : 5 %
+  const verdict = (decl, inv) => Math.abs(decl - inv) <= tol(Math.max(decl, inv)) ? 'ok' : decl > inv ? 'over' : 'under';
+  const VERDICT = { ok: ['circle-check', 'Conforme'], over: ['circle-x', 'Déclaré plus que facturé en jeu'], under: ['circle-alert', 'Déclaré moins que facturé en jeu'] };
+  /* détail jour par jour */
+  async function checkDetail(e, from, to) {
+    const s = S(), co = s.company, d = declared(s, e.id, from, to), days = [];
+    for (let t = ST.sod(from); t <= to; t = ST.sod(t + ST.DAY * 1.5)) days.push({ from: Math.max(t, from), to: Math.min(ST.sod(t + ST.DAY * 1.5) - 1, to) });
+    const m = U.modal({ title: 'Contrôle — ' + e.name, icon: 'shield-check', size: 'lg', body: U.skeleton('table') });
+    let rows;
+    try { rows = await Promise.all(days.map(x => LSCServer.glifeInvoices(co.glifeCompanyId, x.from, x.to).then(r => r.find(y => y.charId === String(e.charId)) || { revenue: 0, count: 0 }))); }
+    catch (err) { m.el.querySelector('.modal-body').innerHTML = U.empty({ icon: 'wifi-off', title: 'API GLife injoignable', text: 'Réessayez dans un instant.', hint: false }); paint(); return; }
+    const inv = rows.reduce((a, r) => a + r.revenue, 0), n = rows.reduce((a, r) => a + r.count, 0), v = verdict(d.total, inv);
+    const dayDecl = x => d.list.filter(l => { const at = Date.parse(l.sale.createdAt); return at >= x.from && at <= x.to; }).reduce((a, l) => a + l.amount, 0);
+    m.el.querySelector('.modal-body').innerHTML = `
+      <div class="alert ${v === 'ok' ? 'ok' : v === 'over' ? 'danger' : 'warn'}">${icon(VERDICT[v][0])}<span><b>${VERDICT[v][1]}</b> — déclaré ${money(d.total)} au point de vente, ${money(inv)} facturés en jeu (${n} facture${n > 1 ? 's' : ''}). Écart : <b>${d.total - inv > 0 ? '+' : ''}${money(d.total - inv)}</b>.</span></div>
+      <div class="section-title">Jour par jour</div>
+      <table class="tbl compact"><thead><tr><th>Jour</th><th class="right">Saisi en compta</th><th class="right">Factures en jeu</th><th class="right">Écart</th></tr></thead><tbody>
+      ${days.map((x, i) => { const a = dayDecl(x), b = rows[i].revenue, dv = verdict(a, b); return `<tr><td>${U.fmtDate(new Date(x.from).toISOString())}</td><td class="right">${money(a)}</td><td class="right">${money(b)} <small class="muted">(${rows[i].count})</small></td><td class="right ${dv === 'ok' ? 'ok-t' : dv === 'over' ? 'danger-t' : 'warn-t'}">${a - b > 0 ? '+' : ''}${money(a - b)}</td></tr>`; }).join('')}
+      </tbody></table>
+      <div class="section-title">Ventes saisies contrôlées (${d.list.length})</div>
+      ${d.list.length ? `<table class="tbl compact"><thead><tr><th>Vente</th><th>Date</th><th>Articles</th><th class="right">Montant</th></tr></thead><tbody>${d.list.map(l => `<tr class="clickable" data-sale="${l.sale.id}"><td>#${esc(l.sale.ref)}</td><td class="nowrap">${U.fmtDT(l.sale.createdAt)}</td><td class="muted">${esc(l.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', '))}</td><td class="right">${money(l.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">Aucune vente saisie dans les catégories contrôlées.</p>'}
+      <p class="hint" style="margin-top:10px">Contrôlé : ${esc(co.categories.filter(k => checkCats(co).includes(k.id)).map(k => k.label).join(', ') || '—')}. Ignoré : customs (Customisation, Performances) et ventes partenaires. Marge tolérée : 5 %.</p>`;
+    m.el.querySelectorAll('[data-sale]').forEach(r => r.onclick = () => LSC.open.sale(r.dataset.sale));
+    paint();
   }
 
   /* =================== BILAN =================== */
@@ -456,6 +505,9 @@
         const sale = s.sales.find(x => x.id === c.saleId); t += sale ? (sale.status === 'cancelled' ? 0 : sale.total) : (c.rate ? c.amount * 100 / c.rate : 0); });
       return Math.round(t * 100) / 100; };
     const reason = `S${ST.weekNum(r.from)} ${s.company.payReason || 'Paye LS Customs'}`;
+    /* vérification anti-fraude : une lecture de l'API pour la semaine affichée */
+    const chk = s.company.glifeMode === 'check' && s.company.glifeCompanyId, cf = r.from, ct = Math.min(r.to, Date.now());
+    const g = chk ? glifeRows(cf, ct, () => { if (A().route === 'payroll') A().render(); }) : null;
     /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
     const late = s.payrolls.filter(p => p.status !== 'paid' && Date.parse(p.to) < ST.range('week').from);
     if (pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
@@ -490,6 +542,14 @@
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
         { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)} ${cp(e.bankAccount, 'Copier le n° de compte')}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
         { key: 'ca', label: 'CA', align: 'right', sortValue: ficheCA, render: p => `<span title="Ventes comprises dans cette fiche">${money(ficheCA(p))}</span>` },
+        ...(chk ? [{ key: 'chk', label: 'Contrôle', align: 'center', sortable: false, render: p => {
+          const e = emp(p);
+          if (!e) return '';
+          if (g.wait) return '<span class="faint">…</span>';
+          if (g.err) return `<span class="warn-t" title="API GLife injoignable">${icon('wifi-off', 'sm')}</span>`;
+          const inv = (g.rows.find(x => x.charId === String(e.charId)) || {}).revenue || 0, d = declared(s, e.id, cf, ct), v = verdict(d.total, inv);
+          return idCell(p.id, `<button class="chk-btn ${v}" data-a="chk" title="${esc(VERDICT[v][1])} — saisi ${money(d.total)} · factures en jeu ${money(inv)}">${icon(VERDICT[v][0])}</button>`);
+        } }] : []),
         { key: 'salary', label: 'Salaire', align: 'right', sortValue: sal, render: p => `${money(sal(p))}<br><small class="muted">${money(p.base)} + ${money(p.commissions)} com.${p.deduction ? ' − ' + money(p.deduction) : ''}</small>` },
         { key: 'primes', label: 'Primes', align: 'right', sortValue: prim, render: p => prim(p) ? `<span class="ok-t" title="${esc((p.primes || []).map(x => (x.auto ? '[auto] ' : '') + x.label + ' : ' + money(x.amount)).concat(p.bonus ? ['Bonus : ' + money(p.bonus)] : []).join(' | '))}">+${money(prim(p))}</span>` : '<span class="faint">$0</span>' },
         { key: 'total', label: 'Salaire + primes', align: 'right', render: p => `<span class="nowrap"><b class="big-qty">${money(p.total)}</b> ${cp(String(Math.round(p.total * 100) / 100), 'Copier le montant')}</span>` },
@@ -515,6 +575,7 @@
     onActs(el, {
       pay: async id => { const p = s.payrolls.find(x => x.id === id), e = emp(p); if (await U.confirm(`Marquer comme payé : ${money(p.total)} à ${p.employeeName}${e && e.bankAccount ? ' (compte ' + e.bankAccount + ')' : ''} ?`, { ok: 'Marquer payé' })) A().call('payroll.pay', { id }, 'Salaire marqué comme payé'); },
       req: id => payslip(id), slip: id => payslip(id), edit: id => payEdit(id),
+      chk: id => { const e = emp(s.payrolls.find(x => x.id === id)); if (e) checkDetail(e, cf, ct); },
       prime: id => primeForm(s.payrolls.find(x => x.id === id).employeeId),
       delprime: async id => { if (await U.confirm('Retirer cette prime ?', { danger: true, ok: 'Retirer' })) A().call('primes.delete', { id }, 'Prime retirée'); },
       del: async id => { if (await U.confirm('Supprimer cette fiche de paie ?', { danger: true, ok: 'Supprimer' })) A().call('payroll.delete', { id }, 'Fiche supprimée'); }

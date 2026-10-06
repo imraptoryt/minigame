@@ -1034,3 +1034,9 @@ button.d-val:hover { background: var(--accent-soft); color: var(--accent); }
   .tier-grid .input { font-size: 14px; padding: 0 3px; text-align: center; }
   .week-nav { flex-wrap: nowrap; }
 }
+
+/* contrôle anti-fraude (Salaires) */
+.chk-btn { width: 28px; height: 28px; border-radius: 50%; border: 0; display: inline-grid; place-items: center; background: none; }
+.chk-btn .ic { width: 20px; height: 20px; }
+.chk-btn.ok { color: var(--ok); } .chk-btn.over { color: var(--danger); } .chk-btn.under { color: var(--warn); }
+.chk-btn:hover { background: rgba(var(--fg), .06); }
