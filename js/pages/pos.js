@@ -15,7 +15,7 @@
 
   function persist() { try { localStorage.setItem('lsc_cart', JSON.stringify({ cart: P.cart, customerId: P.customerId, partnerId: P.partnerId, discount: P.discount, markup: P.markup, vehicle: P.vehicle })); } catch (e) { /* facultatif */ } }
   function sanitize() {
-    P.cart = P.cart.filter(l => app().product(l.productId));
+    P.cart = P.cart.filter(l => { const p = app().product(l.productId); return p && !autoCats().includes(p.category); }); // CA automatique : retirés du panier
     if (P.partnerId && !S().partners.some(p => p.id === P.partnerId)) P.partnerId = '';
   }
   const quote = () => LSCServer.quote(S(), { items: P.cart, partnerId: P.partnerId, discount: P.discount, markup: P.markup, vehicleClass: P.vehicle.cls }, app().myRole().commission);
@@ -24,7 +24,9 @@
   const inCart = id => (P.cart.find(l => l.productId === id) || {}).qty || 0;
   const thumb = (p, cls) => `<div class="${cls} ${p && p.image ? 'has-img' : ''}">${icon((p && p.icon) || 'wrench')}${p && p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('has-img');this.remove()">` : ''}</div>`;
   const canEdit = () => app().can('products.manage');
-  const cats = () => S().company.categories;
+  /* CA automatique : ces catégories sont comptées depuis les factures en jeu, plus au point de vente */
+  const autoCats = () => S().company.glifeAuto ? S().company.glifeAutoCats || [] : [];
+  const cats = () => S().company.categories.filter(c => !autoCats().includes(c.id));
   const catOf = id => cats().find(c => c.id === id);
   const subsOf = id => (catOf(id) || {}).subs || [];
   const isVehicleCat = id => !!(catOf(id) || {}).vehicleClass;
@@ -49,6 +51,7 @@
           <div class="actions">${canEdit() ? `${P.edit ? `<button class="btn sm" data-act="newCat">${icon('folder-plus')}Nouvelle catégorie</button>` : ''}<button class="btn sm" data-act="newProduct">${icon('plus')}Nouveau produit</button>
             <button class="btn sm ${P.edit ? 'primary' : ''}" data-act="edit">${icon(P.edit ? 'check' : 'layout-grid')}${P.edit ? 'Terminer' : 'Modifier / ranger'}</button>` : ''}</div></div>
         ${P.edit ? `<div class="alert info edit-hint">${icon('move')}<span><b>Mode édition</b> — glissez une carte pour la ranger (sur une carte, une sous-catégorie ou un onglet), glissez les onglets et les sous-catégories pour les réordonner. Cliquez sur une carte pour modifier son prix, son image...</span></div>` : ''}
+        ${autoCats().length ? `<div class="alert info" style="margin-bottom:10px">${icon('refresh-cw')}<span><b>CA automatique</b> : ${esc(S().company.categories.filter(c => autoCats().includes(c.id)).map(c => c.label).join(', '))} sont comptés depuis les factures en jeu. Ici : uniquement les customs.</span></div>` : ''}
         <div class="cat-tabs" id="posCats"></div>
         <div class="sub-tabs" id="posSubs"></div>
         <div class="panel"><div class="prod-scroll" id="posGrid"></div></div>
@@ -70,7 +73,7 @@
   /* produits affichables (hors filtre de catégorie) : en mode édition, tout est montré */
   function filtered() {
     const q = P.q.trim().toLowerCase();
-    return sorted().filter(p => (P.edit || (p.active && p.visible)) &&
+    return sorted().filter(p => !autoCats().includes(p.category) && (P.edit || (p.active && p.visible)) &&
       (!q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || app().catLabel(p.category).toLowerCase().includes(q)));
   }
   function drawTabs(list) {

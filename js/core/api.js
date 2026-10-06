@@ -66,6 +66,10 @@
       LSCServer.glifeRecap(db).then(g => { if (g) { save(); LSCServer.runEffects(g.effects); } }).catch(() => {});
       return LSCServer.view(db, actor());
     }
+    if (action === 'glife.sync') {
+      if (!db.company.glifeAuto || !db.company.glifeCompanyId) return { ok: false, error: 'CA automatique désactivé' };
+      try { payload = { __server: await LSCServer.glifeFetch(db, Date.now()) }; } catch (e) { return { ok: false, error: 'API GLife injoignable' }; }
+    } else if (payload && payload.__server) payload = Object.assign({}, payload, { __server: undefined });
     const work = JSON.parse(JSON.stringify(db)); // transaction : rien n'est écrit si l'action échoue
     const res = LSCServer.handle(work, actor(), action, payload);
     if (!res.ok) return res;

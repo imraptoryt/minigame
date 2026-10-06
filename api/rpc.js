@@ -163,7 +163,8 @@ module.exports = async (req, res) => {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.LSC_SECRET) return res.status(500).json({ ok: false, error: 'Serveur non configuré (variables Supabase / LSC_SECRET manquantes)' });
   let body = req.body || {};
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
-  const action = String(body.action || ''), payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
+  const action = String(body.action || '');
+  let payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
   try {
     for (let attempt = 0; attempt < 3; attempt++) {
       const { core, version } = await loadCore();
@@ -226,6 +227,15 @@ module.exports = async (req, res) => {
         continue;
       }
 
+      /* CA automatique : les montants viennent de l'API GLife, lus ici (jamais fournis par le navigateur) */
+      if (action === 'glife.sync') {
+        const co = core.company || {};
+        if (!co.glifeAuto || !co.glifeCompanyId) return res.json({ ok: false, error: 'CA automatique désactivé' });
+        if (now - (Date.parse((core.meta || {}).glifeSyncAt || '') || 0) < 3 * 6e4) return res.json({ ok: true, readonly: true, data: { skipped: true } });
+        let data;
+        try { data = await Server.glifeFetch(core, now); } catch (e) { return res.json({ ok: false, error: 'API GLife injoignable' }); }
+        payload = { __server: data };
+      } else if (payload && payload.__server) payload = Object.assign({}, payload, { __server: undefined });
       const maps = await loadRows(Server.needs(action, payload, core, now));
       const before = snapshot(maps), db = assemble(core, maps);
       const r = Server.handle(db, actorId, action, payload, now);

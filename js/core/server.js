@@ -150,6 +150,8 @@
       taxBrackets: [{ upTo: 20000, rate: 10 }, { upTo: 50000, rate: 20 }, { upTo: null, rate: 30 }],
       /* Répartition du bénéfice net (après impôt), en % : primes, dividendes, trésorerie */
       payout: { primes: 10, dividends: 40, treasury: 50 },
+      /* CA automatique : factures en jeu (API GLife) comptées par employé ; ces catégories ne passent plus par le point de vente */
+      glifeAuto: false, glifeAutoFrom: null, glifeAutoCats: ['services', 'reparations', 'vente'],
       notify: { lowStock: true, overdue: true, signup: true, largeSale: true, service: true, payment: true }
     };
   }
@@ -332,9 +334,11 @@
     const method = (db.company.paymentMethods || []).find(m => m.id === mode.payment);
     if (!method) fail('Mode de paiement invalide');
     const need = {};
+    const auto = db.company.glifeAuto ? db.company.glifeAutoCats || [] : [];
     q.items.forEach(i => {
       const pr = db.products.find(x => x.id === i.productId);
       if (!pr.active) fail(pr.name + ' est désactivé');
+      if (auto.includes(pr.category)) fail(pr.name + ' est compté automatiquement via les factures en jeu (CA automatique)');
       if (pr.inventoryId && db.inventory.some(x => x.id === pr.inventoryId)) need[pr.inventoryId] = (need[pr.inventoryId] || 0) + i.qty * (pr.consume || 1);
     });
     Object.keys(need).forEach(id => {
@@ -1416,6 +1420,13 @@
       if (o.primes + o.dividends + o.treasury > 100.001) fail('La répartition dépasse 100 %');
       co.payout = o;
     }
+    if (s.glifeAuto != null) {
+      const on = !!s.glifeAuto;
+      if (on && !co.glifeCompanyId) fail("Renseignez d'abord l'ID de l'entreprise GLife");
+      if (on && !co.glifeAuto) co.glifeAutoFrom = c.iso; // rien n'est repris avant l'activation (pas de double comptage)
+      co.glifeAuto = on;
+    }
+    if (Array.isArray(s.glifeAutoCats)) co.glifeAutoCats = s.glifeAutoCats.filter(id => co.categories.some(k => k.id === id));
     if (s.commissionBase != null) co.commissionBase = s.commissionBase === 'revenue' ? 'revenue' : 'margin';
     if (s.payReason != null) co.payReason = str(s.payReason, 60);
     if (Array.isArray(s.taxBrackets)) {
@@ -1567,6 +1578,53 @@
     const d = await r.json();
     return (Array.isArray(d) ? d : []).map(x => ({ charId: String(x.id), name: String(x.name || ''), count: +x.total || 0, revenue: +x.revenue || 0 })).sort((a, b) => b.revenue - a.revenue);
   }
+  /* ---------- CA automatique : une vente « Factures en jeu » par employé et par jour (heure de Paris) ---------- */
+  const parisOff = t => { const d = new Date(t); return Date.parse(d.toLocaleString('en-US', { timeZone: 'Europe/Paris' })) - Date.parse(d.toLocaleString('en-US', { timeZone: 'UTC' })); };
+  const parisDay = t => { const o = parisOff(t); return Math.floor((t + o) / DAY) * DAY - o; };
+  const dayKey = t => new Date(parisDay(t) + parisOff(t)).toISOString().slice(0, 10);
+  const glifeId = (charId, key) => `gls_${String(charId).replace(/\W/g, '')}_${key.replace(/-/g, '')}`;
+  /* jours à relire : depuis l'activation, au plus 8 jours, sans les jours déjà clos */
+  async function glifeFetch(db, now) {
+    const co = db.company, start = Math.max(Date.parse(co.glifeAutoFrom || '') || now, now - 8 * DAY), days = [];
+    for (let d = parisDay(start); d <= now; d = parisDay(d + DAY * 1.5)) {
+      const key = dayKey(d + 6 * 36e5), end = parisDay(d + DAY * 1.5) - 1;
+      if (db.meta.glifeDone && key <= db.meta.glifeDone) continue;
+      days.push({ key, from: Math.max(d, start), to: Math.min(end, now), final: now > end + 36e5 });
+    }
+    await Promise.all(days.map(async d => { d.rows = await glifeInvoices(co.glifeCompanyId, d.from, d.to); }));
+    return { days };
+  }
+  A['glife.sync'] = (c, p) => {
+    const co = c.db.company, data = p.__server;
+    if (!co.glifeAuto) fail('CA automatique désactivé (Paramètres)');
+    if (!data || !Array.isArray(data.days)) fail('Synchronisation indisponible');
+    let changed = 0;
+    const unknown = new Set();
+    data.days.forEach(d => (d.rows || []).forEach(x => {
+      const e = c.db.employees.find(k => !k.archived && String(k.charId) === String(x.charId));
+      if (!e) { unknown.add(x.name || x.charId); return; }
+      const id = glifeId(x.charId, d.key), rate = +roleOf(c.db, e).commission || 0, total = c.r(+x.revenue || 0), com = c.r(total * rate / 100);
+      const item = { productId: 'glife', name: 'Factures en jeu', category: 'glife', price: total, cost: 0, qty: +x.count || 0, total };
+      let s = c.db.sales.find(k => k.id === id);
+      if (!s) {
+        s = { id, num: 0, ref: 'GL-' + d.key.replace(/-/g, '') + '-' + x.charId, employeeId: e.id, employeeName: e.name, customerId: null, customerName: 'Factures en jeu',
+          partnerId: null, partnerName: null, items: [item], subtotal: total, factory: 0, discount: null, markup: null, total, commissionRate: rate, commission: com, commissionBase: total,
+          payment: 'glife', status: 'paid', note: '', vehicle: null, source: 'glife', createdAt: new Date(Math.min(parisDay(d.from) + 12 * 36e5, c.now)).toISOString() };
+        c.db.sales.push(s);
+      } else if (s.total !== total || s.items[0].qty !== item.qty) Object.assign(s, { items: [item], subtotal: total, total, commissionRate: rate, commission: com, commissionBase: total });
+      else return;
+      changed++;
+      /* commission : la part non versée suit le montant ; ce qui a déjà été payé n'est pas repris */
+      const mine = c.db.commissions.filter(k => k.saleId === id), paid = c.r(mine.filter(k => k.payrollId).reduce((a, k) => a + k.amount, 0));
+      const open = mine.find(k => !k.payrollId), want = c.r(com - paid);
+      if (open) { if (want) Object.assign(open, { amount: want, rate }); else c.db.commissions = c.db.commissions.filter(k => k !== open); }
+      else if (want) c.db.commissions.push({ id: uid('com'), employeeId: e.id, saleId: id, ref: s.ref, amount: want, rate, createdAt: s.createdAt, payrollId: null });
+    }));
+    data.days.forEach(d => { if (d.final && (!c.db.meta.glifeDone || d.key > c.db.meta.glifeDone)) c.db.meta.glifeDone = d.key; });
+    c.db.meta.glifeSyncAt = c.iso;
+    return { changed, unknown: [...unknown], days: data.days.length };
+  };
+
   async function glifeRecap(db, now) {
     now = now || Date.now();
     const co = db && db.company;
@@ -1604,6 +1662,10 @@
       const inv = ((core && core.invoices) || []).find(i => i.saleId === p.id || (i.saleIds || []).includes(p.id));
       q.push({ kinds: ['sales'], ids: [String(p.id || '')] }, { kinds: ['commissions', 'bank'], refs: [String(p.id || '')].concat(inv ? [inv.id] : []) });
     } else if (action === 'payroll.generate') { const a = Date.parse(p.from), b = Date.parse(p.to); if (isFinite(a) && isFinite(b)) q.push({ kinds: ['sales'], from: a - day, to: b + 2 * day }); }
+    else if (action === 'glife.sync' && p.__server) {
+      const ids = []; (p.__server.days || []).forEach(d => (d.rows || []).forEach(x => ids.push(glifeId(x.charId, d.key))));
+      if (ids.length) q.push({ kinds: ['sales'], ids }, { kinds: ['commissions'], refs: ids });
+    }
     else if (action === 'archive.export' || action === 'archive.purge') {
       const r = monthRange(p.month);
       if (r && (action === 'archive.purge' || ROWS[p.part])) q.push({ kinds: action === 'archive.purge' ? Object.keys(ROWS) : [p.part], from: r.from, to: r.to });
@@ -1688,7 +1750,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, glifeFetch, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });

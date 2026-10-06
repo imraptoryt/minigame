@@ -388,6 +388,13 @@
           ${U.field({ name: 'glifeCompanyId', label: 'ID de l’entreprise GLife', type: 'number', min: 1 }, co.glifeCompanyId || 139)}
           ${U.field({ name: 'unlistedWebhook', label: 'Véhicules non recensés', full: true, placeholder: co.hasUnlistedWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'Un message par modèle absent de la liste (signalé à la première recherche).' }, '')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="disc">${icon('save')}Enregistrer</button></div></div></section>
+        <section class="panel"><div class="panel-head"><h3>${icon('refresh-cw')}CA automatique (factures en jeu)</h3>${co.glifeAuto ? U.badge('Actif', 'ok') : ''}</div><div class="panel-body" id="fAuto">
+          <label class="check" style="align-items:flex-start"><input type="checkbox" id="gaOn" ${co.glifeAuto ? 'checked' : ''}><span><b>Automatiser le CA</b> — les factures faites en jeu (API GLife, entreprise ${esc(co.glifeCompanyId || '—')}) sont comptées pour chaque employé, sans passer par le point de vente.</span></label>
+          <div class="section-title">Catégories facturées en jeu <small class="muted" style="text-transform:none;letter-spacing:0">(retirées du point de vente)</small></div>
+          <div class="chips">${co.categories.map(k => `<label class="check" style="margin-right:12px"><input type="checkbox" data-gc="${k.id}" ${(co.glifeAutoCats || []).includes(k.id) ? 'checked' : ''}><span>${esc(k.label)}</span></label>`).join('')}</div>
+          <p class="hint" style="margin:10px 0 0">Les customs (cases non cochées) restent au point de vente. Chaque employé est reconnu par son Char ID ; sa commission = % de son grade sur le montant facturé.
+            ${co.glifeAuto ? `<br>Actif depuis le ${U.fmtDT(co.glifeAutoFrom)} · dernière synchro : ${(S().meta || {}).glifeSyncAt ? U.ago(S().meta.glifeSyncAt) : 'jamais'} (automatique toutes les 5 min environ).` : ''}</p>
+          <div class="row" style="margin-top:12px">${co.glifeAuto ? `<button class="btn sm" id="gaSync">${icon('refresh-cw')}Synchroniser maintenant</button>` : ''}<span class="grow"></span><button class="btn primary sm" data-save="auto">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('database')}Données</h3></div><div class="panel-body">
           <p class="muted" style="margin:0 0 12px">Mode actuel : <b style="color:var(--text)">${{ local: 'Démo locale (navigateur)', http: 'Serveur (Vercel + Supabase)', nui: 'FiveM NUI' }[LSC.api.mode]}</b>${local ? ' — les données sont stockées dans ce navigateur uniquement.' : ''}</p>
           <div class="row">${local ? `<button class="btn sm" id="exp">${icon('download')}Exporter (JSON)</button>` : ''}${local && A().can('*') ? `<button class="btn sm danger" id="reset">${icon('rotate-ccw')}Tout effacer (sauf comptes)</button>` : ''}</div>
@@ -404,6 +411,10 @@
       const k = b.dataset.save;
       if (k === 'co') save(form('#fCo'));
       else if (k === 'disc') { const v = {}; el.querySelectorAll('#fDisc input').forEach(i => { v[i.name] = i.value.trim(); }); v.largeSale = +v.largeSale || 0; v.glifeCompanyId = +v.glifeCompanyId || 0; save(v, 'Réglages Discord enregistrés'); }
+      else if (k === 'auto') {
+        const on = el.querySelector('#gaOn').checked;
+        save({ glifeAuto: on, glifeAutoCats: [...el.querySelectorAll('[data-gc]:checked')].map(i => i.dataset.gc) }, on ? 'CA automatique activé' : 'CA automatique désactivé').then(r => { if (r && r.ok && on) A().glifeSync(true); });
+      }
       else if (k === 'rates') A().call('roles.rates', { rates: [...el.querySelectorAll('[data-rate]')].filter(r => !r.querySelector('input').disabled).map(r => ({ id: r.dataset.rate, commission: +r.querySelector('[data-k=com]').value || 0, salary: +r.querySelector('[data-k=sal]').value || 0 })) }, 'Salaires par grade enregistrés');
       else if (k === 'dc') save({ dismissChecklist: [...el.querySelectorAll('#dcRows .cfg-row')].map(r => ({ id: r.dataset.id, label: r.querySelector('input').value.trim() })) }, 'Étapes du licenciement enregistrées');
       else if (k === 'veh') {
@@ -435,6 +446,7 @@
       } else if (k === 'notif') { const notify = {}; el.querySelectorAll('[data-n]').forEach(i => { notify[i.dataset.n] = i.checked; }); save({ notify }); }
     });
     el.querySelector('#impMc').onclick = () => importModels(co);
+    const gs = el.querySelector('#gaSync'); if (gs) gs.onclick = () => A().glifeSync(true);
     el.querySelector('#addDc').onclick = () => { el.querySelector('#dcRows').insertAdjacentHTML('beforeend', dcRow({ id: '', label: '' })); U.paint(); };
     el.querySelector('#dcRows').addEventListener('click', e => { const b = e.target.closest('[data-rmrow]'); if (b) b.closest('.cfg-row').remove(); });
     el.querySelectorAll('[data-addun]').forEach(b => b.onclick = () => {

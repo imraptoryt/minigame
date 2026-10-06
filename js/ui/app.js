@@ -96,7 +96,22 @@
     customer(id) { return this.state.customers.find(c => c.id === id); },
     product(id) { return this.state.products.find(p => p.id === id); },
     catLabel(id) { const c = this.state.company.categories.find(x => x.id === id); return c ? c.label : 'Autres'; },
-    payLabel(id) { const m = this.state.company.paymentMethods.find(x => x.id === id); return m ? m.label : id; },
+    payLabel(id) { if (id === 'glife') return 'Facture en jeu'; const m = this.state.company.paymentMethods.find(x => x.id === id); return m ? m.label : id; },
+    /* CA automatique : relit les factures en jeu (au plus toutes les 5 min, ou tout de suite si demandé) */
+    async glifeSync(force) {
+      const st = this.state, co = st && st.company;
+      if (!co || !co.glifeAuto || this.glifeBusy) return;
+      if (!force && Date.now() - (Date.parse((st.meta || {}).glifeSyncAt || '') || 0) < 5 * 6e4) return;
+      this.glifeBusy = true;
+      const r = await LSC.api.call('glife.sync', {});
+      this.glifeBusy = false;
+      if (r && r.ok && r.state) { apply(r); this.render(); }
+      if (force) {
+        if (!r || !r.ok) U.toast((r && r.error) || 'Synchronisation impossible', 'error');
+        else if (r.data && r.data.skipped) U.toast('Déjà synchronisé il y a moins de 3 minutes');
+        else U.toast(`Factures en jeu synchronisées : ${r.data.changed} mise(s) à jour` + (r.data.unknown.length ? ` · Char ID inconnus : ${r.data.unknown.slice(0, 5).join(', ')}` : ''), r.data.unknown.length ? 'warn' : 'ok');
+      }
+    },
     /* Appel serveur + rafraîchissement global (toutes les pages partagent l'état) */
     async call(action, payload, okMsg) {
       const r = await LSC.api.call(action, payload);
@@ -510,7 +525,9 @@
     if (location.hash.slice(1) !== App.route) history.replaceState(null, '', '#' + App.route);
     App.render();
     $('#main').classList.add('enter');
+    App.glifeSync();
   }
+  setInterval(() => { if (!document.hidden && App.state) App.glifeSync(); }, 5 * 6e4);
 
   Theme.apply();
 

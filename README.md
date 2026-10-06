@@ -52,6 +52,11 @@ résultat imposable (CA − charges déductibles) ; chaque type de frais peut ê
 Performances : 15 pièces (Moteur, Freins, Transmission, Suspension, Turbo) avec un tarif fixe par catégorie de véhicule
 (5 prix de vente + 5 prix usine dans la fiche de l'article). Le prix suit la catégorie choisie dans le panier.
 
+CA automatique (Paramètres → CA automatique) : les factures faites en jeu (API GLife de l'entreprise) deviennent une vente
+« Factures en jeu » par employé (Char ID) et par jour, mise à jour toutes les 5 min environ ; la commission = % du grade sur le
+montant. Les catégories cochées (par défaut Services, Réparations, Vente) sont retirées du point de vente : seuls les customs y
+passent. Rien n'est repris d'avant l'activation. Les montants sont toujours lus par le serveur, jamais fournis par le navigateur.
+
 En ligne, définir `LSC_OWNER_CHARID` : seul ce Char ID peut devenir le premier PDG ; les autres inscriptions attendent sa validation.
 
 Thèmes : Sombre, Clair, Halloween et Noël (avec décorations animées). Le thème par défaut se règle dans Paramètres →
