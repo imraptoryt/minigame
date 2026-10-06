@@ -450,6 +450,11 @@
     const sum = (list, f) => list.reduce((a, p) => a + f(p), 0);
     const emp = p => s.employees.find(x => x.id === p.employeeId);
     const req = p => { const e = emp(p); return e ? ST.prereq(s, e, Date.parse(p.from), Date.parse(p.to)) : null; };
+    /* CA de la fiche : ventes dont la commission est versée avec cette paie (y compris celles d'avant non encore payées) */
+    const ficheCA = p => { const ids = new Set(p.commissionIds || []), seen = new Set(); let t = 0;
+      s.commissions.forEach(c => { if (!ids.has(c.id) || seen.has(c.saleId)) return; seen.add(c.saleId);
+        const sale = s.sales.find(x => x.id === c.saleId); t += sale ? (sale.status === 'cancelled' ? 0 : sale.total) : (c.rate ? c.amount * 100 / c.rate : 0); });
+      return Math.round(t * 100) / 100; };
     const reason = `S${ST.weekNum(r.from)} ${s.company.payReason || 'Paye LS Customs'}`;
     /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
     const late = s.payrolls.filter(p => p.status !== 'paid' && Date.parse(p.to) < ST.range('week').from);
@@ -484,7 +489,7 @@
       columns: [
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
         { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)} ${cp(e.bankAccount, 'Copier le n° de compte')}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
-        { key: 'ca', label: 'CA', align: 'right', sortValue: p => (req(p) || {}).ca || 0, render: p => money((req(p) || {}).ca || 0) },
+        { key: 'ca', label: 'CA', align: 'right', sortValue: ficheCA, render: p => `<span title="Ventes comprises dans cette fiche">${money(ficheCA(p))}</span>` },
         { key: 'salary', label: 'Salaire', align: 'right', sortValue: sal, render: p => `${money(sal(p))}<br><small class="muted">${money(p.base)} + ${money(p.commissions)} com.${p.deduction ? ' − ' + money(p.deduction) : ''}</small>` },
         { key: 'primes', label: 'Primes', align: 'right', sortValue: prim, render: p => prim(p) ? `<span class="ok-t" title="${esc((p.primes || []).map(x => (x.auto ? '[auto] ' : '') + x.label + ' : ' + money(x.amount)).concat(p.bonus ? ['Bonus : ' + money(p.bonus)] : []).join(' | '))}">+${money(prim(p))}</span>` : '<span class="faint">$0</span>' },
         { key: 'total', label: 'Salaire + primes', align: 'right', render: p => `<span class="nowrap"><b class="big-qty">${money(p.total)}</b> ${cp(String(Math.round(p.total * 100) / 100), 'Copier le montant')}</span>` },
