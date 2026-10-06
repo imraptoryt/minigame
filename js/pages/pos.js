@@ -61,7 +61,8 @@
           <div id="cartSum"></div>
           <div class="cart-actions"><button class="btn" data-act="clear">${icon('trash-2')}Vider le panier</button><button class="btn primary" data-act="checkout" title="Ctrl + Entrée">${icon('save')}Enregistrer</button></div>
         </section>
-      </aside></div>`;
+      </aside>
+      <button class="cart-fab" id="cartFab" hidden></button></div>`;
     drawGrid(); drawCart();
     bind();
   }
@@ -357,6 +358,9 @@
         <div class="sum-row click" data-act="markup" title="Appliquer / modifier une majoration"><span>Majoration${P.markup ? ` (${P.markup.type === 'percent' ? P.markup.value + '%' : 'fixe'})` : ''} :</span><span><b>${money(q.markup)}</b><span class="edit">${icon('pencil', 'xs')}</span></span></div>
       </div><div class="sum-total"><span>Total :</span><b>${money(q.total)}</b></div>`;
     root.querySelector('[data-act="checkout"]').disabled = !q.items.length;
+    /* téléphone : barre flottante vers le panier */
+    const fab = root.querySelector('#cartFab'), nb = P.cart.reduce((a, l) => a + l.qty, 0);
+    if (fab) { fab.hidden = !nb; fab.innerHTML = `${icon('shopping-basket')}<span>${nb} article${nb > 1 ? 's' : ''}</span><b>${money(q.total)}</b>${icon('chevron-down')}`; }
     paint();
   }
 
@@ -442,6 +446,11 @@
 
   /* ---------- événements ---------- */
   function bind() {
+    const fab = root.querySelector('#cartFab'), cart = root.querySelector('.cart');
+    if (fab && cart) {
+      fab.onclick = () => { const m = document.getElementById('main'); m.scrollTo({ top: m.scrollTop + cart.getBoundingClientRect().top - m.getBoundingClientRect().top - 8, behavior: 'smooth' }); };
+      if (window.IntersectionObserver) new IntersectionObserver(([e]) => fab.classList.toggle('away', e.isIntersecting), { threshold: .25 }).observe(cart);
+    }
     root.querySelector('#posCats').onclick = e => { const b = e.target.closest('[data-cat]'); if (!b) return; P.cat = b.dataset.cat; P.sub = 'all'; drawGrid(); drawCart(); };
     root.querySelector('#posSubs').onclick = e => { const b = e.target.closest('[data-subtab]'); if (b) { P.sub = b.dataset.subtab; drawGrid(); } };
     root.querySelector('#posGrid').onclick = e => {

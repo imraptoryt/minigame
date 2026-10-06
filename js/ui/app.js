@@ -523,6 +523,12 @@
   $('#svcBtn').onclick = () => { if (App.state && !U.closePopover()) serviceClick(); };
   $('#advertBtn').onclick = () => { if (App.state) openAdvert(0); };
   $('#userBtn').onclick = () => { if (!U.closePopover()) openUser(); };
+  /* téléphone : menu latéral en tiroir */
+  const closeNav = () => document.body.classList.remove('nav-open');
+  $('#menuBtn').onclick = () => document.body.classList.toggle('nav-open');
+  $('#navShade').onclick = closeNav;
+  $('#sidebar').addEventListener('click', e => { if (e.target.closest('[data-route], [data-act]')) closeNav(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
   $('#topSearch').addEventListener('input', e => { if (App.route === 'pos') LSC.pages.pos.setQuery(e.target.value); });
   $('#topSearch').addEventListener('focus', e => { if (App.route !== 'pos' && App.state) { e.target.blur(); openPalette(); } });
   window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (App.state && h !== App.route && ROUTES[h]) App.go(h); });
