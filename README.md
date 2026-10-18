@@ -17,9 +17,15 @@ données sont stockées dans `localStorage`.
 Connexion : Char ID + mot de passe (on arrive sur le Point de vente ; en rouvrant la page dans l'heure, on revient sur
 la dernière page de la même personne). La base démarre vide : **le premier compte créé** (« Créer un compte ») devient PDG ;
 les suivants apparaissent dans Personnel → Liste et doivent être validés par un Recruteur ou plus.
-Sécurité : mots de passe de 6 caractères minimum, jamais affichés ni transmis à l'interface. 5 échecs → compte bloqué
-15 min (Recruteur + peut le débloquer dans Personnel → Liste). DRH + peut réinitialiser un mot de passe : à la connexion
-suivante avec ce Char ID, l'employé en choisit un nouveau (même chose pour un compte créé par la direction).
+Sécurité : mots de passe de 6 caractères minimum, jamais affichés ni transmis à l'interface, enregistrés en scrypt salé
+(les anciens sont convertis à la connexion suivante). 5 échecs depuis une même connexion (IP, ou licence en jeu) → cette
+connexion est bloquée 15 min, sans gêner l'employé ailleurs ; 25 échecs en 15 min toutes connexions confondues → compte bloqué
+15 min (Recruteur + peut le débloquer dans Personnel → Liste). Le message d'erreur ne dit pas si le Char ID existe.
+Discord ID et n° de compte des collègues : visibles seulement avec « Voir le personnel » ou « Gérer les salaires ».
+Demandes de compte : 2 en attente au plus par connexion, oubliées après 7 jours. DRH + peut réinitialiser un mot de passe :
+le site affiche une seule fois un mot de passe provisoire (8 caractères, valable 48 h, une seule utilisation) à donner à
+l'employé, qui se connecte avec puis choisit le sien. Même chose pour un compte créé par la direction. Sans ce code, personne
+ne peut prendre le compte, même en connaissant le Char ID.
 
 Licenciement (onglet du menu) : aide à la décision (salaire et prérequis des 2 dernières semaines), puis fenêtre d'étapes à
 cocher — Company, Discord, Compta (dernier salaire réglé) — modifiables dans Paramètres → Licenciement. Quand tout est coché,
@@ -52,10 +58,9 @@ résultat imposable (CA − charges déductibles) ; chaque type de frais peut ê
 Performances : 15 pièces (Moteur, Freins, Transmission, Suspension, Turbo) avec un tarif fixe par catégorie de véhicule
 (5 prix de vente + 5 prix usine dans la fiche de l'article). Le prix suit la catégorie choisie dans le panier.
 
-CA automatique (Paramètres → CA automatique) : les factures faites en jeu (API GLife de l'entreprise) deviennent une vente
-« Factures en jeu » par employé (Char ID) et par jour, mise à jour toutes les 5 min environ ; la commission = % du grade sur le
-montant. Les catégories cochées (par défaut Services, Réparations, Vente) sont retirées du point de vente : seuls les customs y
-passent. Rien n'est repris d'avant l'activation. Les montants sont toujours lus par le serveur, jamais fournis par le navigateur.
+Factures en jeu (Paramètres → Factures en jeu) : « Désactivé » ou « Vérification anti-fraude ». Tout est saisi au point de
+vente ; en Vérification, ce que chaque employé (Char ID) déclare dans les catégories cochées (par défaut Services, Réparations,
+Vente, jamais les customs) est comparé à ses factures en jeu (API GLife), avec ✓ / ✗ dans Salaires.
 
 En ligne, définir `LSC_OWNER_CHARID` : seul ce Char ID peut devenir le premier PDG ; les autres inscriptions attendent sa validation.
 

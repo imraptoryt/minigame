@@ -40,8 +40,26 @@
     }
     return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
   }
-  const config = { hash: pwd => sha256('lsc:' + pwd) }; // hachage des mots de passe (remplaçable côté Node)
-  const PWD_MIN = 6, LOCK_MAX = 5, LOCK_MS = 15 * 60e3; // 6 caractères min. ; blocage 15 min après 5 échecs
+  /* mots de passe : hash / verify / rehash remplacés côté Node (api/rpc.js : scrypt salé) ; ici SHA-256 pour la démo locale */
+  const config = { hash: pwd => sha256('lsc:' + pwd) };
+  config.verify = (pwd, stored) => !!stored && stored === config.hash(pwd);
+  config.rehash = () => false; // true = ancien format, à re-hacher à la prochaine connexion réussie
+  /* 6 caractères min. ; 5 échecs depuis une même connexion -> cette connexion est bloquée 15 min ;
+   * 25 échecs en 15 min toutes connexions confondues -> le compte entier est bloqué (débloquable par Recruteur +) */
+  const PWD_MIN = 6, LOCK_MAX = 5, LOCK_ALL = 25, LOCK_MS = 15 * 60e3;
+  /* mot de passe provisoire (réinitialisation / compte créé par la direction) : 8 caractères, 48 h, une seule utilisation */
+  const TEMP_MS = 48 * 36e5, TEMP_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  function tempCode() {
+    const a = new Uint32Array(8);
+    globalThis.crypto.getRandomValues(a); // navigateur et Node 18+
+    return Array.from(a, x => TEMP_ABC[x % TEMP_ABC.length]).join('');
+  }
+  /* donne à l'employé un mot de passe provisoire ; seul le responsable le voit, une fois */
+  function giveTemp(e, now) {
+    const code = tempCode(), until = new Date(now + TEMP_MS).toISOString();
+    Object.assign(e, { pinHash: null, mustReset: true, tempHash: config.hash(code), tempUntil: until, failedLogins: 0, loginFails: null, failTotal: null, lockedUntil: null });
+    return { tempPassword: code, tempUntil: until };
+  }
 
   /* [clé, libellé, groupe] */
   const PERMISSIONS = [
@@ -334,11 +352,9 @@
     const method = (db.company.paymentMethods || []).find(m => m.id === mode.payment);
     if (!method) fail('Mode de paiement invalide');
     const need = {};
-    const auto = db.company.glifeAuto ? db.company.glifeAutoCats || [] : [];
     q.items.forEach(i => {
       const pr = db.products.find(x => x.id === i.productId);
       if (!pr.active) fail(pr.name + ' est désactivé');
-      if (auto.includes(pr.category)) fail(pr.name + ' est compté automatiquement via les factures en jeu (CA automatique)');
       if (pr.inventoryId && db.inventory.some(x => x.id === pr.inventoryId)) need[pr.inventoryId] = (need[pr.inventoryId] || 0) + i.qty * (pr.consume || 1);
     });
     Object.keys(need).forEach(id => {
@@ -1079,10 +1095,10 @@
       c.audit('staff.create', `a recruté ${e.name} (${role.name})`);
     }
     if (p.license) e.license = str(p.license, 80);
-    if (!p.id) { e.pinHash = null; e.mustReset = true; } // l'employé choisira son mot de passe à sa première connexion
+    const temp = p.id ? null : giveTemp(e, c.now); // nouveau compte : mot de passe provisoire, remplacé à la 1re connexion
     if (p.photo !== undefined) e.photo = cleanPhoto(p.photo);
     if (p.hiredAt) { const t = Date.parse(p.hiredAt); if (isFinite(t)) e.hiredAt = new Date(t).toISOString(); }
-    return { id: e.id };
+    return Object.assign({ id: e.id }, temp);
   };
   const cleanPhoto = v => { const u = str(v, 500); if (u && !/^https?:\/\/\S+$/i.test(u)) fail('Photo : URL invalide (http/https)'); return u; };
   /* Mon compte : chacun met à jour ses propres infos (photo, Discord, compte bancaire, PIN).
@@ -1097,44 +1113,77 @@
     c.audit('account.update', 'a mis à jour son compte');
   };
   /* =================== CONNEXION (partagée par le mode local et l'API) ===================
-   * 5 échecs -> compte bloqué 15 min (débloquable par Recruteur +).
-   * Mot de passe réinitialisé (DRH +) ou jamais défini -> l'employé en choisit un nouveau. */
+   * p.from = empreinte de la connexion (IP ou licence FiveM), fournie par l'hôte, jamais par le navigateur.
+   * Un inconnu qui se trompe ne bloque donc que lui-même, pas l'employé (voir LOCK_MAX / LOCK_ALL).
+   * Mot de passe réinitialisé (DRH +) ou compte créé par la direction : seul le mot de passe provisoire donné par le
+   * responsable est accepté, puis l'employé choisit le sien (setPassword, qui redemande le provisoire). */
   const byChar = (db, id) => db.employees.find(x => !x.archived && (x.charId || x.playerId) === id);
-  const lockMsg = (e, now) => `Compte bloqué après ${LOCK_MAX} essais : réessayez dans ${Math.max(1, Math.ceil((Date.parse(e.lockedUntil) - now) / 60e3))} min ou demandez à un recruteur de le débloquer`;
+  const lockMsg = (until, now) => `Trop d'essais : réessayez dans ${Math.max(1, Math.ceil((Date.parse(until) - now) / 60e3))} min ou demandez à un recruteur de débloquer le compte`;
+  const BAD_LOGIN = 'Char ID ou mot de passe incorrect';
+  /* échecs récents par connexion (au plus 50, plus vieux que 15 min oubliés) */
+  function recentFails(e, now) {
+    const src = e.loginFails && typeof e.loginFails === 'object' ? e.loginFails : {}, out = {};
+    Object.keys(src).map(k => [k, src[k]]).filter(([, x]) => x && (Date.parse(x.until || '') > now || now - (Date.parse(x.at || '') || 0) < LOCK_MS))
+      .sort((a, b) => String(b[1].at).localeCompare(String(a[1].at))).slice(0, 50).forEach(([k, x]) => { out[k] = x; });
+    return out;
+  }
+  /* vérifications communes à la connexion et au choix du mot de passe : renvoie une erreur, ou null */
+  function gate(db, p, now) {
+    const id = str(p.charId, 30), e = byChar(db, id);
+    if (!e) { config.verify(String(p.password || ''), null); return { r: { ok: false, error: (db.signups || []).some(x => x.charId === id) ? 'Compte en attente de validation par la direction' : BAD_LOGIN } }; }
+    if (e.status === 'suspended') return { r: { ok: false, error: 'Compte suspendu' } };
+    if (e.dismissal && e.dismissal.done) return { r: { ok: false, error: 'Compte fermé (licenciement)' } };
+    if (e.lockedUntil && Date.parse(e.lockedUntil) > now) return { r: { ok: false, locked: true, error: lockMsg(e.lockedUntil, now) } };
+    const from = str(p.from || 'local', 80), fails = recentFails(e, now), mine = fails[from] || { n: 0 };
+    if (mine.until && Date.parse(mine.until) > now) return { r: { ok: false, locked: true, error: lockMsg(mine.until, now) } };
+    const temp = !!(e.mustReset || !e.pinHash);
+    if (temp && !e.tempHash) return { r: { ok: false, error: 'Aucun mot de passe provisoire : demandez-en un à la direction (Réinitialiser le mot de passe)' } };
+    if (temp && !(Date.parse(e.tempUntil) > now)) return { r: { ok: false, error: 'Mot de passe provisoire expiré : demandez-en un nouveau à la direction' } };
+    return { e, from, fails, mine, temp };
+  }
   function login(db, p, now) {
     now = now || Date.now();
-    const id = str(p.charId, 30), e = byChar(db, id);
-    if (!e) return { ok: false, error: (db.signups || []).some(x => x.charId === id) ? 'Compte en attente de validation par la direction' : 'Char ID ou mot de passe incorrect' };
-    if (e.status === 'suspended') return { ok: false, error: 'Compte suspendu' };
-    if (e.dismissal && e.dismissal.done) return { ok: false, error: 'Compte fermé (licenciement)' };
-    if (e.lockedUntil && Date.parse(e.lockedUntil) > now) return { ok: false, locked: true, error: lockMsg(e, now) };
-    if (e.mustReset || !e.pinHash) return { ok: false, needNewPassword: true, error: 'Choisissez votre nouveau mot de passe' };
-    if (e.pinHash !== config.hash(String(p.password || ''))) {
-      e.failedLogins = (e.failedLogins || 0) + 1;
-      if (e.failedLogins >= LOCK_MAX) {
-        e.failedLogins = 0; e.lockedUntil = new Date(now + LOCK_MS).toISOString();
-        db.notifications.push({ id: uid('ntf'), type: 'lock', title: 'Compte bloqué', body: `${e.name} : ${LOCK_MAX} mots de passe erronés`, level: 'warn', route: 'staff', at: new Date(now).toISOString(), read: false });
-        db.meta.version++;
-        return { ok: false, locked: true, changed: true, error: lockMsg(e, now) };
-      }
+    const g = gate(db, p, now); if (g.r) return g.r;
+    const { e, from, fails, mine } = g, pwd = String(p.password || ''), iso = new Date(now).toISOString();
+    if (!config.verify(pwd, g.temp ? e.tempHash : e.pinHash)) return badTry(db, e, from, fails, mine, now);
+    if (g.temp) return { ok: false, needNewPassword: true, error: 'Mot de passe provisoire accepté : choisissez votre mot de passe' };
+    return loggedIn(db, e, from, fails, pwd, now);
+  }
+  function badTry(db, e, from, fails, mine, now) {
+    const iso = new Date(now).toISOString();
+    {
+      const n = (mine.n || 0) + 1;
+      fails[from] = n >= LOCK_MAX ? { n: 0, at: iso, until: new Date(now + LOCK_MS).toISOString() } : { n, at: iso };
+      e.loginFails = fails;
+      const t = e.failTotal && now - (Date.parse(e.failTotal.since) || 0) < LOCK_MS ? e.failTotal : { n: 0, since: iso };
+      t.n++; e.failTotal = t;
       db.meta.version++;
-      const left = LOCK_MAX - e.failedLogins;
-      return { ok: false, changed: true, error: `Char ID ou mot de passe incorrect (${left} essai${left > 1 ? 's' : ''} avant blocage)` };
+      if (t.n >= LOCK_ALL) { // attaque depuis plusieurs connexions : le compte entier est bloqué
+        Object.assign(e, { lockedUntil: new Date(now + LOCK_MS).toISOString(), loginFails: null, failTotal: null });
+        db.notifications.push({ id: uid('ntf'), type: 'lock', title: 'Compte bloqué', body: `${e.name} : ${LOCK_ALL} mots de passe erronés en 15 min`, level: 'warn', route: 'staff', at: iso, read: false });
+        return { ok: false, locked: true, changed: true, error: lockMsg(e.lockedUntil, now) };
+      }
+      if (fails[from].until) return { ok: false, locked: true, changed: true, error: lockMsg(fails[from].until, now) };
+      return { ok: false, changed: true, error: BAD_LOGIN };
     }
-    Object.assign(e, { failedLogins: 0, lockedUntil: null, lastLogin: new Date(now).toISOString() });
+  }
+  function loggedIn(db, e, from, fails, pwd, now) {
+    delete fails[from]; // les blocages des autres connexions restent
+    Object.assign(e, { failedLogins: 0, loginFails: Object.keys(fails).length ? fails : null, lastLogin: new Date(now).toISOString() });
+    if (config.rehash(e.pinHash)) e.pinHash = config.hash(pwd); // ancien hachage -> nouveau, sans rien demander à l'employé
     db.meta.version++;
     return { ok: true, id: e.id, changed: true };
   }
   function setPassword(db, p, now) {
     now = now || Date.now();
-    const e = byChar(db, str(p.charId, 30));
-    if (!e) return { ok: false, error: 'Char ID introuvable' };
-    if (e.status === 'suspended') return { ok: false, error: 'Compte suspendu' };
-    if (e.lockedUntil && Date.parse(e.lockedUntil) > now) return { ok: false, error: lockMsg(e, now) };
-    if (!(e.mustReset || !e.pinHash)) return { ok: false, error: 'Ce compte a déjà un mot de passe' };
+    const g = gate(db, Object.assign({}, p, { password: p.code }), now); if (g.r) return g.r;
+    const { e, from, fails, mine } = g;
+    if (!g.temp) return { ok: false, error: 'Ce compte a déjà un mot de passe' };
+    if (!config.verify(String(p.code || ''), e.tempHash)) return badTry(db, e, from, fails, mine, now);
     const pwd = String(p.password || '');
     if (pwd.length < PWD_MIN) return { ok: false, error: `Le mot de passe doit faire au moins ${PWD_MIN} caractères` };
-    Object.assign(e, { pinHash: config.hash(pwd), mustReset: false, failedLogins: 0, lockedUntil: null, lastLogin: new Date(now).toISOString() });
+    if (pwd.toUpperCase() === String(p.code || '').toUpperCase()) return { ok: false, error: 'Choisissez un mot de passe différent du mot de passe provisoire' };
+    Object.assign(e, { pinHash: config.hash(pwd), mustReset: false, tempHash: null, tempUntil: null, failedLogins: 0, loginFails: null, failTotal: null, lockedUntil: null, lastLogin: new Date(now).toISOString() });
     db.meta.version++;
     return { ok: true, id: e.id, changed: true };
   }
@@ -1142,7 +1191,7 @@
     c.need('staff.manage');
     const e = find(c.db.employees, p.id, 'Employé');
     c.above(e);
-    Object.assign(e, { failedLogins: 0, lockedUntil: null });
+    Object.assign(e, { failedLogins: 0, loginFails: null, failTotal: null, lockedUntil: null });
     c.audit('staff.unlock', `a débloqué le compte de ${e.name}`);
   };
   A['staff.resetPassword'] = (c, p) => {
@@ -1150,8 +1199,9 @@
     const e = find(c.db.employees, p.id, 'Employé');
     if (e.id === c.me.id) fail('Changez votre propre mot de passe dans « Mon compte »');
     c.above(e);
-    Object.assign(e, { pinHash: null, mustReset: true, failedLogins: 0, lockedUntil: null });
-    c.audit('staff.resetpwd', `a réinitialisé le mot de passe de ${e.name}`);
+    const temp = giveTemp(e, c.now);
+    c.audit('staff.resetpwd', `a réinitialisé le mot de passe de ${e.name} (mot de passe provisoire, 48 h)`);
+    return temp; // affiché une seule fois au responsable
   };
 
   /* Changement de grade rapide (promotion / rétrogradation) */
@@ -1222,7 +1272,7 @@
       if (s) { s.pauses.forEach(z => { if (!z.end) z.end = c.iso; }); s.end = c.iso; s.minutes = minutesOf(s, c.now); }
       fireLog(c, e, e.dismissal.reason);
       /* compte supprimé de la compta : plus d'accès (mot de passe, licence), fiche gardée dans les archives pour l'historique */
-      Object.assign(e, { archived: true, leftAt: c.iso, leaveReason: 'Licenciement', lastRoleName: roleOf(c.db, e).name, status: 'off', pinHash: null, license: '', failedLogins: 0, lockedUntil: null });
+      Object.assign(e, { archived: true, leftAt: c.iso, leaveReason: 'Licenciement', lastRoleName: roleOf(c.db, e).name, status: 'off', pinHash: null, tempHash: null, tempUntil: null, license: '', failedLogins: 0, loginFails: null, failTotal: null, lockedUntil: null });
       c.db.payrolls = c.db.payrolls.filter(x => !(x.employeeId === e.id && x.status === 'draft'));
       c.audit('staff.dismiss', `a licencié ${e.name} : compte supprimé de la compta`);
     } else if (first) c.audit('staff.dismiss', `a commencé le licenciement de ${e.name} (${checks.length}/${steps.length} étapes)`);
@@ -1287,7 +1337,8 @@
       if (data.discordId && !/^\d{5,25}$/.test(data.discordId)) fail('Discord ID invalide (chiffres uniquement)');
       const pwd = String(p.password || '');
       if (pwd.length < PWD_MIN) fail(`Le mot de passe doit faire au moins ${PWD_MIN} caractères`);
-      db.signups = db.signups || [];
+      db.signups = (db.signups || []).filter(x => (now || Date.now()) - (Date.parse(x.createdAt) || 0) < 7 * DAY); // demandes oubliées après 7 jours
+      const from = str(p.from || 'local', 80);
       /* base vide : le premier compte devient PDG (seulement le Char ID du propriétaire s'il est configuré) */
       if (!db.employees.some(x => !x.archived) && (!config.ownerCharId || data.charId === String(config.ownerCharId))) {
         const top = db.roles.slice().sort((a, b) => b.rank - a.rank)[0];
@@ -1297,8 +1348,9 @@
       }
       if (db.employees.some(x => !x.archived && x.charId === data.charId)) fail('Ce Char ID possède déjà un compte');
       if (db.signups.some(x => x.charId === data.charId)) fail('Une demande est déjà en attente pour ce Char ID');
+      if (db.signups.filter(x => x.from === from).length >= 2) fail('Vous avez déjà des demandes en attente : attendez leur validation');
       if (db.signups.length >= 30) fail('Trop de demandes en attente : contactez la direction');
-      const sg = Object.assign({ id: uid('sgn'), name: data.firstName + ' ' + data.lastName, pinHash: config.hash(pwd), createdAt: iso }, data);
+      const sg = Object.assign({ id: uid('sgn'), name: data.firstName + ' ' + data.lastName, pinHash: config.hash(pwd), createdAt: iso, from }, data);
       db.signups.push(sg);
       if (!db.company.notify || db.company.notify.signup !== false) {
         db.notifications.push({ id: uid('ntf'), type: 'signup', title: 'Demande de compte', body: `${sg.name} (Char ID ${sg.charId}) attend une validation`, level: 'info', route: 'staff', at: iso, read: false });
@@ -1420,12 +1472,11 @@
       if (o.primes + o.dividends + o.treasury > 100.001) fail('La répartition dépasse 100 %');
       co.payout = o;
     }
-    /* factures en jeu : off | auto (comptées automatiquement) | check (saisies au point de vente, contrôlées par l'API) */
-    if (s.glifeMode != null || s.glifeAuto != null) {
-      const mode = s.glifeMode != null ? (['off', 'auto', 'check'].includes(s.glifeMode) ? s.glifeMode : 'off') : s.glifeAuto ? 'auto' : 'off';
+    /* factures en jeu : off | check (saisies au point de vente, contrôlées par l'API) */
+    if (s.glifeMode != null) {
+      const mode = s.glifeMode === 'check' ? 'check' : 'off';
       if (mode !== 'off' && !co.glifeCompanyId) fail("Renseignez d'abord l'ID de l'entreprise GLife");
-      if (mode === 'auto' && !co.glifeAuto) co.glifeAutoFrom = c.iso; // rien n'est repris avant l'activation (pas de double comptage)
-      co.glifeMode = mode; co.glifeAuto = mode === 'auto';
+      co.glifeMode = mode; co.glifeAuto = false;
     }
     if (Array.isArray(s.glifeAutoCats)) co.glifeAutoCats = s.glifeAutoCats.filter(id => co.categories.some(k => k.id === id) && !['custom', 'performances'].includes(id));
     if (s.commissionBase != null) co.commissionBase = s.commissionBase === 'revenue' ? 'revenue' : 'margin';
@@ -1579,53 +1630,6 @@
     const d = await r.json();
     return (Array.isArray(d) ? d : []).map(x => ({ charId: String(x.id), name: String(x.name || ''), count: +x.total || 0, revenue: +x.revenue || 0 })).sort((a, b) => b.revenue - a.revenue);
   }
-  /* ---------- CA automatique : une vente « Factures en jeu » par employé et par jour (heure de Paris) ---------- */
-  const parisOff = t => { const d = new Date(t); return Date.parse(d.toLocaleString('en-US', { timeZone: 'Europe/Paris' })) - Date.parse(d.toLocaleString('en-US', { timeZone: 'UTC' })); };
-  const parisDay = t => { const o = parisOff(t); return Math.floor((t + o) / DAY) * DAY - o; };
-  const dayKey = t => new Date(parisDay(t) + parisOff(t)).toISOString().slice(0, 10);
-  const glifeId = (charId, key) => `gls_${String(charId).replace(/\W/g, '')}_${key.replace(/-/g, '')}`;
-  /* jours à relire : depuis l'activation, au plus 8 jours, sans les jours déjà clos */
-  async function glifeFetch(db, now) {
-    const co = db.company, start = Math.max(Date.parse(co.glifeAutoFrom || '') || now, now - 8 * DAY), days = [];
-    for (let d = parisDay(start); d <= now; d = parisDay(d + DAY * 1.5)) {
-      const key = dayKey(d + 6 * 36e5), end = parisDay(d + DAY * 1.5) - 1;
-      if (db.meta.glifeDone && key <= db.meta.glifeDone) continue;
-      days.push({ key, from: Math.max(d, start), to: Math.min(end, now), final: now > end + 36e5 });
-    }
-    await Promise.all(days.map(async d => { d.rows = await glifeInvoices(co.glifeCompanyId, d.from, d.to); }));
-    return { days };
-  }
-  A['glife.sync'] = (c, p) => {
-    const co = c.db.company, data = p.__server;
-    if (!co.glifeAuto) fail('CA automatique désactivé (Paramètres)');
-    if (!data || !Array.isArray(data.days)) fail('Synchronisation indisponible');
-    let changed = 0;
-    const unknown = new Set();
-    data.days.forEach(d => (d.rows || []).forEach(x => {
-      const e = c.db.employees.find(k => !k.archived && String(k.charId) === String(x.charId));
-      if (!e) { unknown.add(x.name || x.charId); return; }
-      const id = glifeId(x.charId, d.key), rate = +roleOf(c.db, e).commission || 0, total = c.r(+x.revenue || 0), com = c.r(total * rate / 100);
-      const item = { productId: 'glife', name: 'Factures en jeu', category: 'glife', price: total, cost: 0, qty: +x.count || 0, total };
-      let s = c.db.sales.find(k => k.id === id);
-      if (!s) {
-        s = { id, num: 0, ref: 'GL-' + d.key.replace(/-/g, '') + '-' + x.charId, employeeId: e.id, employeeName: e.name, customerId: null, customerName: 'Factures en jeu',
-          partnerId: null, partnerName: null, items: [item], subtotal: total, factory: 0, discount: null, markup: null, total, commissionRate: rate, commission: com, commissionBase: total,
-          payment: 'glife', status: 'paid', note: '', vehicle: null, source: 'glife', createdAt: new Date(Math.min(parisDay(d.from) + 12 * 36e5, c.now)).toISOString() };
-        c.db.sales.push(s);
-      } else if (s.total !== total || s.items[0].qty !== item.qty) Object.assign(s, { items: [item], subtotal: total, total, commissionRate: rate, commission: com, commissionBase: total });
-      else return;
-      changed++;
-      /* commission : la part non versée suit le montant ; ce qui a déjà été payé n'est pas repris */
-      const mine = c.db.commissions.filter(k => k.saleId === id), paid = c.r(mine.filter(k => k.payrollId).reduce((a, k) => a + k.amount, 0));
-      const open = mine.find(k => !k.payrollId), want = c.r(com - paid);
-      if (open) { if (want) Object.assign(open, { amount: want, rate }); else c.db.commissions = c.db.commissions.filter(k => k !== open); }
-      else if (want) c.db.commissions.push({ id: uid('com'), employeeId: e.id, saleId: id, ref: s.ref, amount: want, rate, createdAt: s.createdAt, payrollId: null });
-    }));
-    data.days.forEach(d => { if (d.final && (!c.db.meta.glifeDone || d.key > c.db.meta.glifeDone)) c.db.meta.glifeDone = d.key; });
-    c.db.meta.glifeSyncAt = c.iso;
-    return { changed, unknown: [...unknown], days: data.days.length };
-  };
-
   async function glifeRecap(db, now) {
     now = now || Date.now();
     const co = db && db.company;
@@ -1663,10 +1667,6 @@
       const inv = ((core && core.invoices) || []).find(i => i.saleId === p.id || (i.saleIds || []).includes(p.id));
       q.push({ kinds: ['sales'], ids: [String(p.id || '')] }, { kinds: ['commissions', 'bank'], refs: [String(p.id || '')].concat(inv ? [inv.id] : []) });
     } else if (action === 'payroll.generate') { const a = Date.parse(p.from), b = Date.parse(p.to); if (isFinite(a) && isFinite(b)) q.push({ kinds: ['sales'], from: a - day, to: b + 2 * day }); }
-    else if (action === 'glife.sync' && p.__server) {
-      const ids = []; (p.__server.days || []).forEach(d => (d.rows || []).forEach(x => ids.push(glifeId(x.charId, d.key))));
-      if (ids.length) q.push({ kinds: ['sales'], ids }, { kinds: ['commissions'], refs: ids });
-    }
     else if (action === 'archive.export' || action === 'archive.purge') {
       const r = monthRange(p.month);
       if (r && (action === 'archive.purge' || ROWS[p.part])) q.push({ kinds: action === 'archive.purge' ? Object.keys(ROWS) : [p.part], from: r.from, to: r.to });
@@ -1706,7 +1706,7 @@
       bills: any('bills.manage', 'accounting.view') ? db.bills : [],
       expenses: any('expenses.manage', 'accounting.view') ? db.expenses : [],
       /* demandes de compte : visibles par la direction, sans le mot de passe */
-      signups: can('staff.manage') ? (db.signups || []).map(x => { const o = Object.assign({}, x); delete o.pinHash; return o; }) : [],
+      signups: can('staff.manage') ? (db.signups || []).map(x => { const o = Object.assign({}, x); delete o.pinHash; delete o.from; return o; }) : [],
       inventoryTx: any('inventory.manage', 'stock.move') ? db.inventoryTx.slice(-2000) : [],
       /* l'URL du webhook n'est transmise qu'aux gestionnaires du stock */
       partners: db.partners.map(k => Object.assign({}, k, { hasWebhook: !!k.webhook, webhook: can('partners.manage') ? k.webhook : '' })),
@@ -1714,7 +1714,13 @@
     };
     const state = { company: db.company, meta: db.meta };
     COLLECTIONS.forEach(k => { state[k] = k in rules ? rules[k] : db[k]; });
-    state.employees = db.employees.map(e => { const o = Object.assign({}, e, { hasPassword: !!e.pinHash }); delete o.pinHash; delete o.license; delete o.failedLogins; return o; });
+    const seeIds = any('staff.view', 'payroll.manage'); // Discord ID et compte bancaire des collègues : direction / salaires uniquement
+    state.employees = db.employees.map(e => {
+      const o = Object.assign({}, e, { hasPassword: !!e.pinHash });
+      ['pinHash', 'tempHash', 'license', 'failedLogins', 'loginFails', 'failTotal'].forEach(k => { delete o[k]; });
+      if (e.id !== me.id && !seeIds) { delete o.discordId; delete o.bankAccount; delete o.lockedUntil; }
+      return o;
+    });
     /* URL des webhooks : uniquement pour ceux qui les gèrent */
     const WH = ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook'];
     state.company = Object.assign({}, db.company);
@@ -1751,7 +1757,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, glifeFetch, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });

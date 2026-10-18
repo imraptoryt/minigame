@@ -77,7 +77,7 @@
         { key: 'name', label: 'Nom Prénom', render: e => `<div class="who">${U.avatar(e.name)}<div><b>${esc(e.name)}</b><small>${ident(e)}</small></div></div>` },
         { key: 'rank', label: 'Grade', sortValue: e => e.role.rank, render: e => canRank(e) ? `<span class="row nowrap" data-id="${e.id}"><select class="input sm" data-rank="${e.id}">${U.opts(rankRoles(e).map(r => ({ value: r.id, label: r.name })), e.roleId)}</select>${act('up', 'Promouvoir', 'chevron-up')}${act('down', 'Rétrograder', 'chevron-down')}</span>` : esc(e.role.name) },
         { key: 'bankAccount', label: 'Compte bancaire', render: e => e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)}</span>` : '<span class="faint">—</span>' },
-        { key: 'status', label: 'Statut', render: e => (e.dismissal ? U.badge('Licenciement en cours', 'warn') + ' ' : '') + (locked(e) ? U.badge('Bloqué', 'danger') + ' ' : '') + (e.mustReset || !e.hasPassword ? U.badge('Mot de passe à choisir', 'warn') + ' ' : '') + (mng && e.id !== A().me.id ? `<select class="input sm" data-status="${e.id}">${U.opts([{ value: 'on', label: 'En service' }, { value: 'off', label: 'Hors service' }, { value: 'pause', label: 'En pause' }, { value: 'suspended', label: 'Suspendu' }], e.status)}</select>` : U.status('staff', e.status)) + (ST.absentNow(s, e.id) ? ' ' + U.badge('En absence', 'warn') : '') },
+        { key: 'status', label: 'Statut', render: e => (e.dismissal ? U.badge('Licenciement en cours', 'warn') + ' ' : '') + (locked(e) ? U.badge('Bloqué', 'danger') + ' ' : '') + (e.mustReset || !e.hasPassword ? U.badge(e.tempUntil && Date.parse(e.tempUntil) > Date.now() ? 'Mot de passe provisoire' : 'Mot de passe à recréer', 'warn') + ' ' : '') + (mng && e.id !== A().me.id ? `<select class="input sm" data-status="${e.id}">${U.opts([{ value: 'on', label: 'En service' }, { value: 'off', label: 'Hors service' }, { value: 'pause', label: 'En pause' }, { value: 'suspended', label: 'Suspendu' }], e.status)}</select>` : U.status('staff', e.status)) + (ST.absentNow(s, e.id) ? ' ' + U.badge('En absence', 'warn') : '') },
         { key: 'last', label: 'Dernière connexion', render: e => e.last ? `${U.fmtDate(e.last)} <span class="muted">${U.fmtTime(e.last)}</span>` : '<span class="faint">—</span>' },
         { key: 'hours', label: 'Heures', align: 'right', sortValue: e => e.z.minutes, render: e => U.fmtDur(e.z.minutes) },
         { key: 'ca', label: 'CA généré', align: 'right', sortValue: e => e.z.revenue, render: e => `<b>${money(e.z.revenue)}</b>` },
@@ -92,12 +92,26 @@
     if (nb) nb.onclick = () => LSC.forms.employee(null);
     onActs(el, { edit: id => LSC.forms.employee(id), arch: id => archive(id), up: id => stepRank(id, 1), down: id => stepRank(id, -1),
       unlock: id => A().call('staff.unlock', { id }, 'Compte débloqué'),
-      reset: async id => { const e = s.employees.find(x => x.id === id); if (await U.confirm(`Réinitialiser le mot de passe de ${e.name} ? À sa prochaine connexion avec son Char ID, il devra en choisir un nouveau.`, { ok: 'Réinitialiser', danger: true })) A().call('staff.resetPassword', { id }, 'Mot de passe réinitialisé'); },
+      reset: async id => {
+        const e = s.employees.find(x => x.id === id);
+        if (!await U.confirm(`Réinitialiser le mot de passe de ${e.name} ? Son mot de passe actuel ne marchera plus : un mot de passe provisoire va être créé, à lui donner.`, { ok: 'Réinitialiser', danger: true })) return;
+        const r = await A().call('staff.resetPassword', { id });
+        if (r && r.ok && r.data) showTemp(e.name, r.data);
+      },
       approve: id => A().call('signups.approve', { id }, 'Compte validé : l’employé peut se connecter'),
       reject: async id => { const g = s.signups.find(x => x.id === id); if (g && await U.confirm(`Refuser la demande de compte de ${g.name} ?`, { ok: 'Refuser', danger: true })) A().call('signups.reject', { id }, 'Demande refusée'); } });
     draw();
   }
   const locked = e => e.lockedUntil && Date.parse(e.lockedUntil) > Date.now();
+  /* mot de passe provisoire : affiché une seule fois, à transmettre à l'employé (en jeu ou en message privé) */
+  function showTemp(name, d) {
+    const m = U.modal({ title: 'Mot de passe provisoire', icon: 'key-round', size: 'sm', body: `<p class="lead" style="margin-top:0">À donner à <b>${esc(name)}</b> :</p>
+        <div class="row" style="gap:10px;align-items:center;margin:12px 0"><code style="font-size:24px;letter-spacing:.18em;padding:8px 14px;border:1px solid var(--line);border-radius:8px">${esc(d.tempPassword)}</code>
+        <button class="btn sm" data-cp>${icon('copy')}Copier</button></div>
+        <p class="hint" style="margin:0">Il se connecte avec son Char ID et ce mot de passe, puis choisit le sien. Valable une seule fois, jusqu'au ${U.fmtDT(d.tempUntil)}. Il ne sera plus affiché : notez-le maintenant.</p>`,
+      foot: '<button class="btn primary" data-close>J\'ai noté le mot de passe</button>' });
+    m.el.querySelector('[data-cp]').onclick = () => U.copy(d.tempPassword);
+  }
   const canAct = e => e.id !== A().me.id && (A().can('*') || (S().roles.find(r => r.id === e.roleId) || { rank: 0 }).rank < myRank());
   /* Changement de grade : uniquement vers des grades inférieurs au sien (sauf accès complet) */
   const myRank = () => A().myRole().rank || 0;
@@ -128,8 +142,12 @@
         { name: 'roleId', label: 'Grade', type: 'select', options: roles.map(r => ({ value: r.id, label: `${r.name} (${r.commission}%)` })), hint: e ? '' : 'Apprenti par défaut.' },
         { name: 'hiredAt', label: 'Date d’arrivée', type: 'date' }, { name: 'photo', label: 'Photo de profil (URL)', placeholder: 'https://...' },
         { name: 'license', label: 'Licence FiveM', placeholder: e ? 'Laisser vide pour ne pas changer' : 'license:xxxxxxxx', hint: 'Identifie le joueur côté serveur FiveM.' },
-        { name: 'pwdInfo', type: 'html', full: true, html: `<p class="hint" style="margin:0">${icon('key-round', 'xs')} ${e ? 'Mot de passe caché. Pour en changer : bouton « Réinitialiser le mot de passe » (DRH +) dans la liste.' : 'L’employé choisira son mot de passe à sa première connexion avec son Char ID.'}</p>` }],
-      onSubmit: v => A().call('staff.save', Object.assign({ id }, v), e ? 'Compte modifié' : 'Compte créé') });
+        { name: 'pwdInfo', type: 'html', full: true, html: `<p class="hint" style="margin:0">${icon('key-round', 'xs')} ${e ? 'Mot de passe caché. Pour en changer : bouton « Réinitialiser le mot de passe » (DRH +) dans la liste.' : 'Un mot de passe provisoire sera affiché après la création : donnez-le à l’employé, il choisira le sien à sa première connexion.'}</p>` }],
+      onSubmit: async v => {
+        const r = await A().call('staff.save', Object.assign({ id }, v), e ? 'Compte modifié' : 'Compte créé');
+        if (r && r.ok && r.data && r.data.tempPassword) setTimeout(() => showTemp(v.firstName + ' ' + v.lastName, r.data), 50);
+        return r;
+      } });
   };
   /* identité courte affichée sous le nom */
   const ident = e => `Char ID ${esc(e.charId || '—')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}`;

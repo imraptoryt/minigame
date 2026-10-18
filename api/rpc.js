@@ -20,8 +20,27 @@ const Server = require('../js/core/server.js');
 const Seed = require('../js/core/seed.js');
 
 const env = process.env;
-const hash = s => crypto.createHash('sha256').update('lsc:' + s).digest('hex');
+/* mots de passe : scrypt avec sel propre à chaque compte (« s1$sel$hash ») ;
+ * les anciens SHA-256 restent acceptés et sont convertis à la connexion suivante */
+const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+const legacyHash = s => crypto.createHash('sha256').update('lsc:' + s).digest('hex');
+const scrypt = (pwd, salt) => crypto.scryptSync(String(pwd), salt, 32, SCRYPT);
+const hash = pwd => { const salt = crypto.randomBytes(16).toString('hex'); return 's1$' + salt + '$' + scrypt(pwd, salt).toString('hex'); };
+function verifyPwd(pwd, stored) {
+  stored = String(stored || '');
+  if (!stored) { scrypt(pwd, 'lsc-dummy'); return false; } // même durée, compte existant ou non
+  if (stored.startsWith('s1$')) { const [, salt, h] = stored.split('$'); const want = Buffer.from(h || '', 'hex'), got = scrypt(pwd, salt); return want.length === got.length && crypto.timingSafeEqual(want, got); }
+  return safeEqual(legacyHash(pwd), stored);
+}
 Server.config.hash = hash;
+Server.config.verify = verifyPwd;
+Server.config.rehash = stored => !String(stored || '').startsWith('s1$');
+/* empreinte de la connexion (IP en ligne, licence en jeu) : sert au blocage anti-essais et à la limite d'inscriptions ;
+ * jamais l'IP en clair dans la base */
+function connKey(req, body, fivem) {
+  const raw = fivem ? 'lic:' + String(body.actorLicense || '') : 'ip:' + String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '').split(',')[0].trim();
+  return raw.slice(0, 3) + crypto.createHmac('sha256', env.LSC_SECRET || 'lsc').update(raw).digest('hex').slice(0, 20);
+}
 Server.config.ownerCharId = env.LSC_OWNER_CHARID || ''; // seul ce Char ID peut devenir le premier PDG
 
 async function sb(path, opts) {
@@ -172,7 +191,7 @@ module.exports = async (req, res) => {
       /* connexion : blocage après 5 échecs, nouveau mot de passe si réinitialisé (règles dans server.js) */
       const fivem = !!(env.LSC_FIVEM_KEY && safeEqual(req.headers['x-lsc-server-key'], env.LSC_FIVEM_KEY));
       if (action === 'auth.login' || action === 'auth.setPassword') {
-        const r = (action === 'auth.login' ? Server.login : Server.setPassword)(core, payload);
+        const r = (action === 'auth.login' ? Server.login : Server.setPassword)(core, Object.assign({}, payload, { from: connKey(req, body, fivem) }));
         /* en jeu : la licence du joueur est reliée au compte (une seule fois, plus besoin de mot de passe ensuite) */
         const lic = fivem ? String(body.actorLicense || '') : '';
         if (r.ok && lic) {
@@ -187,7 +206,7 @@ module.exports = async (req, res) => {
 
       /* création de compte : demande en attente, validée ensuite par la direction */
       if (action === 'auth.register') {
-        const r = Server.register(core, payload);
+        const r = Server.register(core, Object.assign({}, payload, { from: connKey(req, body, fivem) }));
         if (!r.ok) return res.json(r);
         { const nv = await commit(version, core); if (nv > 0) { remember(core, nv); return res.json(r); } }
         continue;
@@ -227,15 +246,7 @@ module.exports = async (req, res) => {
         continue;
       }
 
-      /* CA automatique : les montants viennent de l'API GLife, lus ici (jamais fournis par le navigateur) */
-      if (action === 'glife.sync') {
-        const co = core.company || {};
-        if (!co.glifeAuto || !co.glifeCompanyId) return res.json({ ok: false, error: 'CA automatique désactivé' });
-        if (now - (Date.parse((core.meta || {}).glifeSyncAt || '') || 0) < 3 * 6e4) return res.json({ ok: true, readonly: true, data: { skipped: true } });
-        let data;
-        try { data = await Server.glifeFetch(core, now); } catch (e) { return res.json({ ok: false, error: 'API GLife injoignable' }); }
-        payload = { __server: data };
-      } else if (payload && payload.__server) payload = Object.assign({}, payload, { __server: undefined });
+      if (payload && payload.__server) payload = Object.assign({}, payload, { __server: undefined });
       const maps = await loadRows(Server.needs(action, payload, core, now));
       const before = snapshot(maps), db = assemble(core, maps);
       const r = Server.handle(db, actorId, action, payload, now);
