@@ -1040,3 +1040,11 @@ button.d-val:hover { background: var(--accent-soft); color: var(--accent); }
 .chk-btn .ic { width: 20px; height: 20px; }
 .chk-btn.ok { color: var(--ok); } .chk-btn.over { color: var(--danger); } .chk-btn.under { color: var(--warn); }
 .chk-btn:hover { background: rgba(var(--fg), .06); }
+
+/* fenêtre « catégorie du véhicule » (articles à prix par catégorie, ex. Révision) */
+.vc-modal .vc-card { padding: 12px 4px; gap: 3px; }
+.vc-modal .vc-card b { font-size: 20px; }
+.vc-modal .vc-card small { font-size: 10px; }
+.vc-price { font-size: 12px; font-weight: 700; color: var(--accent); }
+.vc-card.on .vc-price { color: var(--accent-ink); }
+@media (max-width: 520px) { .vc-modal { grid-template-columns: 1fr; } .vc-modal .vc-card { flex-direction: row; justify-content: space-between; padding: 10px 14px; } .vc-modal .vc-card small { flex: 1; text-align: left; padding-left: 10px; } }

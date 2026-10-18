@@ -365,9 +365,18 @@
   }
 
   /* ---------- actions panier ---------- */
-  function add(id, cardEl) {
+  /* article à prix selon la catégorie hors onglet « véhicule » (ex. Révision) : fenêtre de choix à l'ajout, fermable */
+  function pickClass(p, cardEl) {
+    const m = U.modal({ title: p.name + ' : catégorie du véhicule', icon: 'car', size: 'sm',
+      body: `<p class="muted" style="margin:0 0 12px">Le prix dépend de la catégorie du véhicule.</p>
+        <div class="vc-cards vc-modal">${[1, 2, 3, 4, 5].map(n => `<button class="vc-card big ${P.vehicle.cls === n ? 'on' : ''}" data-pick="${n}"><b>${n}</b><small>${esc(classLabel(n))}</small><span class="vc-price">${money(p.classPrices[n - 1])}</span></button>`).join('')}</div>`,
+      foot: '<button class="btn ghost" data-close>Annuler</button>' });
+    m.el.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; m.close(); setClass(+b.dataset.pick); add(p.id, cardEl, true); });
+  }
+  function add(id, cardEl, picked) {
     const p = app().product(id);
     if (!p) return;
+    if (!picked && Array.isArray(p.classPrices) && !isVehicleCat(p.category)) return pickClass(p, cardEl);
     const st = available(p);
     if (st != null && inCart(id) + 1 > st) { U.toast(`Stock insuffisant pour ${p.name}`, 'warn'); return; }
     const l = P.cart.find(x => x.productId === id);

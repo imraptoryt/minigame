@@ -113,7 +113,7 @@
       this.onTick = null;
       this.route = route;
       LSC.api.lastRoute(route, this.me && this.me.id); LSC.api.touch();
-      if (location.hash.slice(1) !== route) history.replaceState(null, '', '#' + route);
+      cleanUrl();
       renderChrome(); renderPage(true);
       if (opts && opts.then) opts.then();
     }
@@ -463,7 +463,7 @@
     const f = ov.querySelector('form'), el = f.elements;
     if (charId) el.charId.value = charId;
     setTimeout(() => (reg ? el.firstName : charId ? el.password : el.charId).focus(), 30);
-    const enter = () => { ov.remove(); document.body.classList.remove('locked'); history.replaceState(null, '', '#pos'); boot(); };
+    const enter = () => { ov.remove(); document.body.classList.remove('locked'); startRoute = 'pos'; cleanUrl(); boot(); };
     f.querySelector('[data-mode]').onclick = e => showLogin('', e.currentTarget.dataset.mode, el.charId.value.trim());
     f.onsubmit = async e => {
       e.preventDefault();
@@ -501,15 +501,19 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSession(); });
 
   /* ---------- démarrage ---------- */
+  /* adresse propre : la page en cours n'apparaît pas dans l'URL (#pos...) ; elle est retenue par compte (lastRoute) */
+  let startRoute = null;
+  function cleanUrl() { if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
   async function boot() {
     $('#main').innerHTML = U.pageSkeleton();
     const r = await LSC.api.call('bootstrap');
     if (!r.ok) { if (r.needLink) return showLogin('Première ouverture en jeu : connectez-vous une seule fois avec votre Char ID et votre mot de passe pour relier votre compte.', 'link'); if (r.needLogin) return showLogin(); $('#main').innerHTML = U.empty({ icon: 'server-crash', title: 'Chargement impossible', text: r.error || 'Serveur injoignable', hint: false }); paint(); return; }
     apply(r);
-    const h = location.hash.slice(1) || LSC.api.lastRoute(null, App.me.id) || '';
+    const h = startRoute || location.hash.slice(1) || LSC.api.lastRoute(null, App.me.id) || '';
+    startRoute = null;
     App.route = ROUTES[h] && App.allowed(h) ? h : App.allowed('pos') ? 'pos' : 'home';
     LSC.api.lastRoute(App.route, App.me.id);
-    if (location.hash.slice(1) !== App.route) history.replaceState(null, '', '#' + App.route);
+    cleanUrl();
     App.render();
     $('#main').classList.add('enter');
   }
@@ -533,7 +537,7 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
   $('#topSearch').addEventListener('input', e => { if (App.route === 'pos') LSC.pages.pos.setQuery(e.target.value); });
   $('#topSearch').addEventListener('focus', e => { if (App.route !== 'pos' && App.state) { e.target.blur(); openPalette(); } });
-  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (App.state && h !== App.route && ROUTES[h]) App.go(h); });
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (App.state && h !== App.route && ROUTES[h]) App.go(h); else cleanUrl(); }); // anciens liens #page
 
   document.addEventListener('keydown', e => {
     if (!App.state) return;
