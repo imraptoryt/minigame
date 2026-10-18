@@ -30,7 +30,7 @@
   const isVehicleCat = id => !!(catOf(id) || {}).vehicleClass;
   /* perf disponible pour la catégorie de véhicule choisie (aucune classe cochée = toutes) */
   const classOk = (p, cls) => !isVehicleCat(p.category) || !(p.classes || []).length || p.classes.includes(cls);
-  const cartNeedsVehicle = () => P.cart.some(l => { const p = app().product(l.productId); return p && isVehicleCat(p.category); });
+  const cartNeedsVehicle = () => P.cart.some(l => { const p = app().product(l.productId); return p && (isVehicleCat(p.category) || Array.isArray(p.classPrices)); }); // prix selon la catégorie du véhicule
   /* Produits triés : ordre des catégories, puis des sous-catégories, puis ordre choisi dans le mode édition */
   function sorted() {
     const idx = {}, sidx = {};
@@ -94,7 +94,7 @@
       ${off ? `<span class="prod-flag">${p.active ? 'Masqué' : 'Inactif'}</span>` : canEdit() && !P.edit ? `<span class="icon-btn sm prod-edit" data-edit="${p.id}" title="Modifier">${icon('pencil', 'xs')}</span>` : ''}
       ${P.edit && isVehicleCat(p.category) ? `<span class="prod-classes">${(p.classes || []).length ? 'Cat. ' + p.classes.join(' · ') : 'Toutes cat.'}</span>` : ''}
       <div class="prod-body"><div class="prod-name">${esc(p.name)}</div><div class="prod-cat">${esc(app().catLabel(p.category))}</div>
-        <div class="prod-price">${list ? money(price) + (price !== list ? `<s>${money(list)}</s>` : '') + (p.classPrices && P.vehicle.cls ? ` <small class="muted">cat. ${P.vehicle.cls}</small>` : '') : '<span class="warn-t">Prix à définir</span>'}</div>
+        <div class="prod-price">${list ? money(price) + (price !== list ? `<s>${money(list)}</s>` : '') + (p.classPrices ? ` <small class="muted">${P.vehicle.cls ? 'cat. ' + P.vehicle.cls : 'selon cat.'}</small>` : '') : '<span class="warn-t">Prix à définir</span>'}</div>
         <div class="prod-stock ${tone}">${U.dot(tone || 'ok')}${st == null ? 'Disponible' : st <= 0 ? 'Rupture de stock' : 'Stock : ' + st}</div></div></button>`;
   }
   /* Grille rangée par catégorie (sections), dans l'ordre choisi */
@@ -254,7 +254,7 @@
       <div class="veh-top">
         <label class="plate" title="Plaque d'immatriculation"><span>San Andreas</span><input id="vehPlate" maxlength="8" placeholder="PLAQUE" value="${esc(v.plate)}" list="plateList" autocomplete="off" spellcheck="false"></label>
         <div class="veh-meta"><b>${v.cls ? 'Catégorie ' + v.cls + ' · ' + esc(classLabel(v.cls)) : 'Catégorie du véhicule à choisir'}</b>
-          <small>${v.cls ? U.badge((SRC[v.source] || SRC.manual)[0], (SRC[v.source] || SRC.manual)[1]) : 'Obligatoire pour les performances'}</small>
+          <small>${v.cls ? U.badge((SRC[v.source] || SRC.manual)[0], (SRC[v.source] || SRC.manual)[1]) : 'Obligatoire : le prix dépend de la catégorie'}</small>
           <small class="muted">${k ? (k.count ? `${k.count} intervention${k.count > 1 ? 's' : ''} · dernière le ${U.fmtDate(k.lastAt)}` : 'Jamais venu au garage') : v.plate ? 'Appuyez sur Entrée pour rechercher' : ''}</small></div>
         <div class="veh-actions"><button class="icon-btn sm" data-act="vehLookup" title="Rechercher la plaque">${icon('scan-search', 'sm')}</button><button class="icon-btn sm" data-act="vehClear" title="Effacer le véhicule">${icon('x', 'sm')}</button></div>
       </div>

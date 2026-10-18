@@ -363,10 +363,10 @@
     });
     const discount = adjRecord(c, p.discount, q.discount, q.subtotal, 'discount');
     const markup = adjRecord(c, p.markup, q.markup, q.subtotal, 'markup');
-    /* Catégorie du véhicule (1-5) : obligatoire pour les catégories « selon le véhicule » */
+    /* Catégorie du véhicule (1-5) : obligatoire pour les catégories « selon le véhicule » et les articles à prix par catégorie (ex. Révision) */
     const vcats = new Set(db.company.categories.filter(k => k.vehicleClass).map(k => k.id));
     const pv = p.vehicle || {}, vClass = Math.floor(+pv.class), plate = str(pv.plate, 12).toUpperCase();
-    const needClass = q.items.some(i => vcats.has(i.category));
+    const needClass = q.items.some(i => vcats.has(i.category) || Array.isArray((db.products.find(x => x.id === i.productId) || {}).classPrices));
     if (needClass) {
       if (!(vClass >= 1 && vClass <= 5)) fail('Choisissez la catégorie du véhicule (1 à 5)');
       q.items.forEach(i => {
