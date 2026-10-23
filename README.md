@@ -58,6 +58,11 @@ résultat imposable (CA − charges déductibles) ; chaque type de frais peut ê
 Performances : 15 pièces (Moteur, Freins, Transmission, Suspension, Turbo) avec un tarif fixe par catégorie de véhicule
 (5 prix de vente + 5 prix usine dans la fiche de l'article). Le prix suit la catégorie choisie dans le panier.
 
+Clôture de la semaine (Salaires → « Clôturer la semaine », DRH +) : les fiches de paie depuis la dernière clôture sont
+calculées et validées, et le récap (CA, ventes, meilleur vendeur, salaire de chacun) part sur le webhook « Récap à la clôture
+de la semaine » (Paramètres → Discord). Ce qui est fait après la clôture compte pour la semaine suivante.
+Vente pour un autre employé (DRH +) : au point de vente, « Vente pour » ; la vente et la commission vont à cet employé.
+
 Factures en jeu (Paramètres → Factures en jeu) : « Désactivé » ou « Vérification anti-fraude ». Tout est saisi au point de
 vente ; en Vérification, ce que chaque employé (Char ID) déclare dans les catégories cochées (par défaut Services, Réparations,
 Vente, jamais les customs) est comparé à ses factures en jeu (API GLife), avec ✓ / ✗ dans Salaires.

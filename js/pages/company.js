@@ -386,6 +386,7 @@
           ${U.field({ name: 'fireWebhook', label: 'Logs : licenciements', full: true, placeholder: co.hasFireWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
           ${U.field({ name: 'glifeWebhook', label: 'Récap quotidien des factures en jeu (GLife)', placeholder: co.hasGlifeWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
           ${U.field({ name: 'glifeCompanyId', label: 'ID de l’entreprise GLife', type: 'number', min: 1 }, co.glifeCompanyId || 139)}
+          ${U.field({ name: 'weekWebhook', label: 'Récap à la clôture de la semaine', full: true, placeholder: co.hasWeekWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'CA, ventes, meilleur vendeur et salaire de chacun, envoyés au clic sur « Clôturer la semaine » (Salaires).' }, '')}
           ${U.field({ name: 'unlistedWebhook', label: 'Véhicules non recensés', full: true, placeholder: co.hasUnlistedWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'Un message par modèle absent de la liste (signalé à la première recherche).' }, '')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="disc">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('refresh-cw')}Factures en jeu (API GLife)</h3>${co.glifeMode === 'check' ? U.badge('Vérification', 'info') : ''}</div><div class="panel-body" id="fAuto">

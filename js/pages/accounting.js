@@ -510,6 +510,8 @@
     const g = chk ? glifeRows(cf, ct, () => { if (A().route === 'payroll') A().render(); }) : null;
     /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
     const late = s.payrolls.filter(p => p.status !== 'paid' && Date.parse(p.to) < ST.range('week').from);
+    /* clôture : faite cette semaine -> la suite compte pour la semaine prochaine */
+    const lastClose = ((s.meta || {}).weekCloses || []).slice(-1)[0] || null, closed = !!(lastClose && Date.parse(lastClose.at) >= ST.range('week').from);
     if (pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
       pyst.autoAt = Date.now();
       A().call('payroll.generate', { auto: true, from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
@@ -517,7 +519,9 @@
     const cp = (txt, title) => `<button class="icon-btn sm" data-copy="${esc(txt)}" title="${esc(title)}">${icon('copy', 'sm')}</button>`;
     el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + commissions (% du bénéfice) − retenues. Les primes sont comptées à part.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
-          <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button></div></div>
+          <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
+          ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
+      ${closed && pyst.wk === 0 ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent pour la <b>semaine prochaine</b>.</span></div>` : ''}
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(rows, sal)), sub: rows.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Primes', value: money(sum(rows, prim)), sub: 'hors salaire', icon: 'gift' })}
         ${U.stat({ label: 'Reste à verser', value: money(sum(unpaid, p => p.total)), sub: unpaid.length + ' fiche(s)', icon: 'hourglass', tone: unpaid.length ? 'warn' : '' })}
@@ -566,6 +570,12 @@
       if (res.ok) { pyst.tab = 'week'; U.toast(`${res.data.count} fiche(s) de paie calculée(s)`); A().render(); }
     };
     el.querySelector('#pyPrime').onclick = () => primeForm(null);
+    const pc = el.querySelector('#pyClose');
+    if (pc) pc.onclick = async () => {
+      if (!await U.confirm('Clôturer la semaine ? Les fiches de paie sont calculées et validées (plus modifiables), et le récap part sur Discord. Tout ce qui est fait ensuite comptera pour la semaine prochaine.', { ok: 'Clôturer la semaine' })) return;
+      const res = await A().call('week.close', {});
+      if (res.ok) U.toast(`Semaine clôturée : ${res.data.count} fiche(s), ${money(res.data.pay)} à verser · CA ${money(res.data.ca)}`);
+    };
     const pa = el.querySelector('#pyPayAll');
     if (pa) pa.onclick = async () => {
       if (!await U.confirm(`Marquer ${unpaid.length} salaire(s) comme payé(s) pour un total de ${money(sum(unpaid, p => p.total))} ? Le montant est débité du compte bancaire.`, { ok: 'Tout marquer payé' })) return;

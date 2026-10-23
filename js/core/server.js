@@ -343,8 +343,16 @@
   A['pos.createSale'] = (c, p) => {
     c.need('pos.use');
     const db = c.db;
+    /* vente enregistrée pour un autre employé (direction : DRH +) : la vente et la commission vont à cet employé, au % de son grade */
+    let seller = c.me, sellerRole = c.role;
+    if (p.employeeId && p.employeeId !== c.me.id) {
+      c.need('payroll.manage');
+      seller = find(db.employees, p.employeeId, 'Employé');
+      if (seller.archived || (seller.dismissal && seller.dismissal.done)) fail(seller.name + " ne fait plus partie de l'entreprise");
+      sellerRole = roleOf(db, seller);
+    }
     const partner = p.partnerId ? find(db.partners, p.partnerId, 'Partenaire') : null;
-    const q = quote(db, { items: p.items, partnerId: partner && partner.id, discount: p.discount, markup: p.markup, vehicleClass: (p.vehicle || {}).class }, c.role.commission);
+    const q = quote(db, { items: p.items, partnerId: partner && partner.id, discount: p.discount, markup: p.markup, vehicleClass: (p.vehicle || {}).class }, sellerRole.commission);
     if (q.missing.length) fail("Un article du panier n'existe plus");
     if (!q.items.length) fail('Le panier est vide');
     /* Mode de paiement décidé par le serveur : partenaire -> à facturer, sinon paiement direct */
@@ -382,7 +390,7 @@
     const ref = 'LSC-' + pad(n, 6);
     [discount, markup].forEach(a => a && Object.assign(a, { original: q.subtotal, final: q.total }));
     const sale = {
-      id: uid('sale'), num: n, ref, employeeId: c.me.id, employeeName: c.me.name,
+      id: uid('sale'), num: n, ref, employeeId: seller.id, employeeName: seller.name, addedBy: seller.id !== c.me.id ? c.me.name : null,
       customerId: null, customerName: partner ? partner.name : 'Client',
       partnerId: partner ? partner.id : null, partnerName: partner ? partner.name : null,
       items: q.items, subtotal: q.subtotal, factory: q.factory, discount, markup, total: q.total,
@@ -390,7 +398,7 @@
       payment: method.id, status: method.id === 'invoice' ? 'pending' : 'paid', note: str(p.note, 300), vehicle, createdAt: c.iso
     };
     db.sales.push(sale);
-    if (q.commission > 0) db.commissions.push({ id: uid('com'), employeeId: c.me.id, saleId: sale.id, ref, amount: q.commission, rate: q.commissionRate, createdAt: c.iso, payrollId: null });
+    if (q.commission > 0) db.commissions.push({ id: uid('com'), employeeId: seller.id, saleId: sale.id, ref, amount: q.commission, rate: q.commissionRate, createdAt: c.iso, payrollId: null });
     if (method.bank) c.bank('in', sale.total, 'vente', `Vente #${ref}`, sale.id);
     Object.keys(need).forEach(id => c.stock(id, -need[id], 'Vente #' + ref, sale.id));
     stockWebhooks(c, sale, false);
@@ -403,14 +411,14 @@
       username: (db.company.name || 'LS Customs') + ' — Ventes',
       embeds: [{ title: `💰 Grosse vente #${ref} — ${money(sale.total)}`, color: 0x1fd1a5,
         description: sale.items.map(i => `• ${i.name} ×${i.qty} — ${money(i.total)}`).join('\n'),
-        fields: [{ name: 'Employé', value: c.me.name + (c.me.charId ? ` (Char ID ${c.me.charId})` : ''), inline: true },
+        fields: [{ name: 'Employé', value: seller.name + (seller.charId ? ` (Char ID ${seller.charId})` : '') + (sale.addedBy ? ` · ajoutée par ${sale.addedBy}` : ''), inline: true },
           ...(vehicle && (vehicle.plate || vehicle.name) ? [{ name: 'Véhicule', value: `${vehicle.name || vehicle.model || ''} ${vehicle.plate ? '(' + vehicle.plate + ')' : ''}${vehicle.class ? ' · Cat. ' + vehicle.class : ''}`.trim(), inline: true }] : []),
           ...(partner ? [{ name: 'Partenaire', value: partner.name, inline: true }] : []),
           ...(discount ? [{ name: 'Réduction', value: `${money(discount.amount)} — ${discount.reason}` }] : [])],
         timestamp: c.iso }]
     } });
-    if (sale.total >= (+db.company.largeSale || Infinity)) c.notify('largeSale', 'Vente importante', `#${ref} — ${money(sale.total)} par ${c.me.name}`, 'ok', 'sales');
-    c.audit('sale.create', `a créé la vente #${ref} (${money(sale.total)})${vehLabel(vehicle)}`);
+    if (sale.total >= (+db.company.largeSale || Infinity)) c.notify('largeSale', 'Vente importante', `#${ref} — ${money(sale.total)} par ${seller.name}`, 'ok', 'sales');
+    c.audit('sale.create', sale.addedBy ? `a ajouté la vente #${ref} (${money(sale.total)}) pour ${seller.name}${vehLabel(vehicle)}` : `a créé la vente #${ref} (${money(sale.total)})${vehLabel(vehicle)}`);
     return { sale };
   };
 
@@ -937,8 +945,12 @@
   A['payroll.generate'] = (c, p) => {
     c.need('payroll.manage');
     const db = c.db;
-    const from = Date.parse(p.from), to = Date.parse(p.to) + (String(p.to || '').length <= 10 ? DAY - 1 : 0);
+    let from = Date.parse(p.from);
+    const to = Date.parse(p.to) + (String(p.to || '').length <= 10 ? DAY - 1 : 0);
     if (!(from < to)) fail('Période invalide');
+    const closeAt = Date.parse((db.meta || {}).weekStart || '') || 0;
+    if (!p.closing && closeAt >= from && closeAt <= to) return { count: 0, closed: true }; // semaine clôturée : la suite compte pour la semaine prochaine
+    if (closeAt && closeAt < from && closeAt > from - 7 * DAY) from = closeAt; // ce qui a été fait depuis la dernière clôture
     const caMap = {};
     db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + s.total; });
     db.employees.forEach(e => { if (e.archived) delete caMap[e.id]; });
@@ -972,6 +984,54 @@
     });
     if (!p.auto) c.audit('payroll.generate', `a généré la paie du ${fmtD(from)} au ${fmtD(to)} (${n} fiches)`);
     return { count: n };
+  };
+  /* =================== CLÔTURE DE LA SEMAINE (DRH +) ===================
+   * Calcule les fiches de paie depuis la dernière clôture, les valide (plus modifiables, prêtes à payer)
+   * et envoie le récap sur Discord. Ce qui est fait ensuite compte pour la semaine suivante :
+   * une clôture le mercredi envoie la fin de semaine sur la paie d'après. */
+  const parisOff = t => { const d = new Date(t); return Date.parse(d.toLocaleString('en-US', { timeZone: 'Europe/Paris' })) - Date.parse(d.toLocaleString('en-US', { timeZone: 'UTC' })); };
+  function parisMonday(now) {
+    const local = new Date(now + parisOff(now)), back = (local.getUTCDay() + 6) % 7, m = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() - back);
+    return m - parisOff(m - parisOff(now));
+  }
+  /* début de la période ouverte : dernière clôture si elle date de moins d'une semaine, sinon lundi 00h00 (Paris) */
+  const openFrom = (db, now) => { const m = parisMonday(now), ca = Date.parse(((db && db.meta) || {}).weekStart || '') || 0; return ca && ca > m - 7 * DAY ? ca : m; };
+  function weekRecap(c, from, to, fiches) {
+    const db = c.db, co = db.company;
+    const sales = db.sales.filter(s => s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to);
+    const by = {};
+    sales.forEach(s => { const x = by[s.employeeId] = by[s.employeeId] || { ca: 0, n: 0 }; x.ca += s.total; x.n++; });
+    const people = db.employees.filter(e => by[e.id] || fiches.some(f => f.employeeId === e.id)).map(e => {
+      const f = fiches.find(x => x.employeeId === e.id) || {}, x = by[e.id] || { ca: 0, n: 0 };
+      return { name: e.name, role: roleOf(db, e).name, ca: c.r(x.ca), n: x.n, pay: c.r(f.total || 0) };
+    }).sort((a, b) => b.ca - a.ca);
+    const ca = c.r(sales.reduce((a, s) => a + s.total, 0)), pay = c.r(fiches.reduce((a, f) => a + (f.total || 0), 0));
+    const lines = people.slice(0, 25).map((p, i) => `${i < 3 && p.ca > 0 ? ['🥇', '🥈', '🥉'][i] : '•'} **${p.name}** (${p.role}) — CA ${money(p.ca)} · ${p.n} vente${p.n > 1 ? 's' : ''} · salaire ${money(p.pay)}`);
+    return { ca, count: sales.length, pay, body: {
+      username: (co.name || 'LS Customs') + ' — Semaine',
+      embeds: [{ title: `📊 Semaine clôturée — ${fmtD(from)} → ${fmtD(to)}`, color: 0x5aa9ef,
+        description: lines.join('\n') || 'Aucune vente ni salaire sur la période.',
+        fields: [{ name: 'CA total', value: money(ca), inline: true }, { name: 'Ventes', value: String(sales.length), inline: true },
+          { name: 'Salaires à verser', value: money(pay), inline: true },
+          ...(people[0] && people[0].ca > 0 ? [{ name: 'Meilleur vendeur', value: `${people[0].name} (${money(people[0].ca)})`, inline: true }] : [])],
+        footer: { text: `Clôturée par ${c.me.name} · ce qui est fait ensuite compte pour la semaine suivante` }, timestamp: new Date(to).toISOString() }]
+    } };
+  }
+  A['week.close'] = (c, p) => {
+    c.need('payroll.manage');
+    const db = c.db, from = openFrom(db, c.now), to = c.now;
+    if (to - from < 60e3) fail('La semaine vient déjà d’être clôturée');
+    const late = db.payrolls.filter(x => x.status === 'validated');
+    if (late.length) fail(`${late.length} salaire(s) de la clôture précédente pas encore payé(s) : marquez-les payés d'abord`);
+    A['payroll.generate'](c, { from: new Date(from).toISOString(), to: new Date(to).toISOString(), auto: true, closing: true });
+    const fiches = db.payrolls.filter(x => x.status === 'draft');
+    fiches.forEach(f => Object.assign(f, { status: 'validated', validatedAt: c.iso, validatedBy: c.me.name, closedAt: c.iso }));
+    const r = weekRecap(c, from, to, fiches);
+    db.meta.weekStart = c.iso;
+    db.meta.weekCloses = (db.meta.weekCloses || []).concat([{ at: c.iso, by: c.me.name, from: new Date(from).toISOString(), ca: r.ca, sales: r.count, pay: r.pay, fiches: fiches.length }]).slice(-26);
+    if (db.company.weekWebhook) c.effect({ type: 'discord', url: db.company.weekWebhook, body: r.body });
+    c.audit('week.close', `a clôturé la semaine du ${fmtD(from)} au ${fmtD(to)} (CA ${money(r.ca)}, ${fiches.length} fiche(s), ${money(r.pay)} à verser)`);
+    return { from: new Date(from).toISOString(), count: fiches.length, ca: r.ca, pay: r.pay };
   };
   A['payroll.update'] = (c, p) => {
     c.need('payroll.manage');
@@ -1488,7 +1548,7 @@
     }
     if (s.invoiceDays != null) co.invoiceDays = Math.round(num(s.invoiceDays, 1, 90));
     /* webhooks Discord : vide = inchangé, « - » = retirer */
-    ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook'].forEach(k => {
+    ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook', 'weekWebhook'].forEach(k => {
       const v = s[k] == null ? '' : str(s[k], 300);
       if (v === '-') co[k] = '';
       else if (v) { if (!WEBHOOK_RE.test(v)) fail('URL de webhook Discord invalide'); co[k] = v; }
@@ -1666,7 +1726,8 @@
     else if (action === 'sales.cancel') {
       const inv = ((core && core.invoices) || []).find(i => i.saleId === p.id || (i.saleIds || []).includes(p.id));
       q.push({ kinds: ['sales'], ids: [String(p.id || '')] }, { kinds: ['commissions', 'bank'], refs: [String(p.id || '')].concat(inv ? [inv.id] : []) });
-    } else if (action === 'payroll.generate') { const a = Date.parse(p.from), b = Date.parse(p.to); if (isFinite(a) && isFinite(b)) q.push({ kinds: ['sales'], from: a - day, to: b + 2 * day }); }
+    } else if (action === 'week.close') { const a = openFrom(core, now); q.push({ kinds: ['sales'], from: a - day, to: now + day }); }
+    else if (action === 'payroll.generate') { const a = Date.parse(p.from), b = Date.parse(p.to); if (isFinite(a) && isFinite(b)) q.push({ kinds: ['sales'], from: a - day, to: b + 2 * day }); }
     else if (action === 'archive.export' || action === 'archive.purge') {
       const r = monthRange(p.month);
       if (r && (action === 'archive.purge' || ROWS[p.part])) q.push({ kinds: action === 'archive.purge' ? Object.keys(ROWS) : [p.part], from: r.from, to: r.to });
@@ -1722,7 +1783,7 @@
       return o;
     });
     /* URL des webhooks : uniquement pour ceux qui les gèrent */
-    const WH = ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook'];
+    const WH = ['stockWebhook', 'archiveWebhook', 'saleWebhook', 'fireWebhook', 'glifeWebhook', 'unlistedWebhook', 'weekWebhook'];
     state.company = Object.assign({}, db.company);
     WH.forEach(k => { state.company['has' + k[0].toUpperCase() + k.slice(1)] = !!db.company[k]; if (!can('settings.manage')) state.company[k] = ''; });
     state.products = db.products.map(x => x.webhook ? Object.assign({}, x, { hasWebhook: true, webhook: can('products.manage') ? x.webhook : '' }) : x);

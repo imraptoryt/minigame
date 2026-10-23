@@ -56,6 +56,7 @@
       <aside class="pos-right">
         <section class="panel cart">
           <div class="panel-head"><h3>${icon('shopping-basket')}Panier</h3><small id="cartSub">Nouvelle commande</small></div>
+          <div id="cartSeller"></div>
           <div id="cartVehicle"></div>
           <div class="cart-lines" id="cartLines"></div>
           <div id="cartSum"></div>
@@ -335,9 +336,20 @@
   }
   let plateTimer = null;
 
+  /* direction (DRH +) : enregistrer la vente pour un autre employé */
+  function drawSeller() {
+    const box = root.querySelector('#cartSeller');
+    if (!box) return;
+    if (!app().can('payroll.manage')) { box.innerHTML = ''; return; }
+    const me = app().me.id, list = S().employees.filter(e => !e.archived && !(e.dismissal && e.dismissal.done)).sort((a, b) => a.name.localeCompare(b.name));
+    if (P.seller && !list.some(e => e.id === P.seller)) P.seller = '';
+    box.innerHTML = `<label class="seller ${P.seller && P.seller !== me ? 'other' : ''}">${icon('user-round')}<span>Vente pour</span>
+      <select class="input sm" id="cartSellerSel">${list.map(e => `<option value="${e.id}" ${(P.seller || me) === e.id ? 'selected' : ''}>${esc(e.name)}${e.id === me ? ' (moi)' : ''}</option>`).join('')}</select></label>`;
+    box.querySelector('#cartSellerSel').onchange = e => { P.seller = e.target.value === me ? '' : e.target.value; drawSeller(); };
+  }
   function drawCart() {
     if (!root || !root.querySelector('#cartLines')) return;
-    drawVehicle();
+    drawSeller(); drawVehicle();
     const q = quote(), lines = root.querySelector('#cartLines'), pa = partner();
     const n = P.cart.reduce((a, l) => a + l.qty, 0);
     root.querySelector('#cartSub').textContent = n ? `Nouvelle commande · ${n} article${n > 1 ? 's' : ''}${pa ? ' · ' + pa.name : ''}` : 'Nouvelle commande';
@@ -398,7 +410,7 @@
     if (P.sel === id) P.sel = P.cart.length ? P.cart[P.cart.length - 1].productId : null;
     persist(); drawCart(); drawGrid();
   }
-  function reset() { P.cart = []; P.sel = null; P.discount = null; P.markup = null; P.customerId = null; P.cq = ''; P.vehicle = noVehicle(); persist(); }
+  function reset() { P.cart = []; P.sel = null; P.seller = ''; P.discount = null; P.markup = null; P.customerId = null; P.cq = ''; P.vehicle = noVehicle(); persist(); }
 
   /* ---------- modales ---------- */
   function adjustModal(kind) {
@@ -441,7 +453,7 @@
     if (cartNeedsVehicle() && !P.vehicle.cls) { U.toast('Choisissez la catégorie du véhicule (1 à 5) dans le panier', 'error'); drawCart(); return; }
     const veh = cartNeedsVehicle() || P.vehicle.plate ? P.vehicle : null;
     const mode = LSCServer.saleMode(S(), pa); // même règle que le serveur : partenaire -> à facturer, sinon paiement direct
-    const payload = { items: P.cart, partnerId: P.partnerId || null, payment: mode.payment, discount: P.discount, markup: P.markup, note: '',
+    const payload = { items: P.cart, partnerId: P.partnerId || null, payment: mode.payment, discount: P.discount, markup: P.markup, note: '', employeeId: P.seller || null,
       vehicle: veh ? { plate: veh.plate, class: veh.cls, source: veh.source === 'manual' ? 'manual' : 'auto', model: (vehSel(veh) || {}).model || veh.model, name: (vehSel(veh) || {}).name } : null };
     /* le panier se vide tout de suite ; il revient tel quel si le serveur refuse la vente */
     const snap = JSON.parse(JSON.stringify({ cart: P.cart, discount: P.discount, markup: P.markup, partnerId: P.partnerId, vehicle: P.vehicle }));
@@ -450,7 +462,7 @@
     saving = false;
     if (!r.ok) { Object.assign(P, snap); persist(); drawCart(); drawGrid(); return; }
     const sale = r.data.sale;
-    U.toast(`Vente #${sale.ref} enregistrée · ${money(sale.total)}${sale.status === 'pending' ? ' · à facturer à ' + (sale.partnerName || 'partenaire') : ''}`);
+    U.toast(`Vente #${sale.ref} enregistrée · ${money(sale.total)}${sale.addedBy ? ' · pour ' + sale.employeeName : ''}${sale.status === 'pending' ? ' · à facturer à ' + (sale.partnerName || 'partenaire') : ''}`);
   }
 
   /* ---------- événements ---------- */
