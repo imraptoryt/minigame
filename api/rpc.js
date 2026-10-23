@@ -160,41 +160,6 @@ function verify(token) {
 }
 function safeEqual(a, b) { a = Buffer.from(String(a || '')); b = Buffer.from(String(b || '')); return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b); }
 
-/* ---------- bot Discord (Secrétaire Carla) : clé LSC_BOT_KEY (en-tête x-lsc-bot-key), lecture seule ----------
- *   bot.staff : un compte par Discord ID (le compte actif passe avant un ancien compte archivé)
- *   bot.week  : par employé actif, CA et commissions depuis lundi 00h00 (heure de Paris), salaire estimé (fixe + commissions, sans primes) */
-const parisOffset = t => { const d = new Date(t); return Date.parse(d.toLocaleString('en-US', { timeZone: 'Europe/Paris' })) - Date.parse(d.toLocaleString('en-US', { timeZone: 'UTC' })); };
-function parisMonday(now) {
-  const local = new Date(now + parisOffset(now)), back = (local.getUTCDay() + 6) % 7; // 0 = lundi
-  const m = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() - back);
-  return m - parisOffset(m - parisOffset(now));
-}
-const activeEmp = e => !e.archived && !(e.dismissal && e.dismissal.done);
-const r2 = n => Math.round((+n || 0) * 100) / 100;
-async function botAction(action, core, now) {
-  const roleOf = e => core.roles.find(r => r.id === e.roleId) || {};
-  const ident = e => ({ discordId: String(e.discordId || ''), charId: String(e.charId || ''), firstName: e.firstName || '', lastName: e.lastName || '' });
-  if (action === 'bot.staff') {
-    const byDiscord = new Map();
-    core.employees.forEach(e => {
-      if (!String(e.discordId || '').trim()) return;
-      const row = Object.assign(ident(e), { grade: e.archived ? (e.lastRoleName || roleOf(e).name || '') : (roleOf(e).name || ''), active: activeEmp(e) });
-      const prev = byDiscord.get(row.discordId);
-      if (!prev || (row.active && !prev.active)) byDiscord.set(row.discordId, row);
-    });
-    return { ok: true, staff: [...byDiscord.values()] };
-  }
-  const from = parisMonday(now), maps = await loadRows([{ kinds: ['sales', 'commissions'], from, to: now + 864e5 }]);
-  const sales = [...maps.sales.values()].filter(s => s.status !== 'cancelled' && Date.parse(s.createdAt) >= from);
-  const coms = [...maps.commissions.values()].filter(x => Date.parse(x.createdAt) >= from);
-  const week = core.employees.filter(activeEmp).map(e => {
-    const role = roleOf(e), com = coms.filter(x => x.employeeId === e.id).reduce((a, x) => a + (+x.amount || 0), 0);
-    return Object.assign(ident(e), { grade: role.name || '', ca: r2(sales.filter(s => s.employeeId === e.id).reduce((a, s) => a + (+s.total || 0), 0)),
-      commissions: r2(com), salary: r2((+role.salary || 0) + com) });
-  });
-  return { ok: true, from: new Date(from).toISOString(), week };
-}
-
 function actorOf(req, body, db) {
   if (env.LSC_FIVEM_KEY && safeEqual(req.headers['x-lsc-server-key'], env.LSC_FIVEM_KEY)) {
     const e = db.employees.find(x => !x.archived && x.license && x.license === body.actorLicense);
@@ -222,13 +187,6 @@ module.exports = async (req, res) => {
   try {
     for (let attempt = 0; attempt < 3; attempt++) {
       const { core, version } = await loadCore();
-
-      /* bot Discord : clé séparée de FiveM ; mauvaise clé -> 401, autre action -> 400 ; rien n'est jamais enregistré */
-      if (req.headers['x-lsc-bot-key'] !== undefined) {
-        if (!env.LSC_BOT_KEY || !safeEqual(req.headers['x-lsc-bot-key'], env.LSC_BOT_KEY)) return res.status(401).json({ ok: false, error: 'Clé du bot invalide' });
-        if (action !== 'bot.staff' && action !== 'bot.week') return res.status(400).json({ ok: false, error: 'Action non autorisée pour le bot' });
-        return res.json(await botAction(action, core, Date.now()));
-      }
 
       /* connexion : blocage après 5 échecs, nouveau mot de passe si réinitialisé (règles dans server.js) */
       const fivem = !!(env.LSC_FIVEM_KEY && safeEqual(req.headers['x-lsc-server-key'], env.LSC_FIVEM_KEY));
