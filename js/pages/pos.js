@@ -249,6 +249,8 @@
   function drawVehicle() {
     const box = root.querySelector('#cartVehicle');
     if (!(isVehicleCat(P.cat) || cartNeedsVehicle())) { box.innerHTML = ''; return; }
+    /* le cadre est redessiné après la recherche de la plaque : le champ garde le curseur (on peut continuer à taper) */
+    const ae = document.activeElement, keep = ae && ae.id === 'vehPlate' ? [ae.selectionStart, ae.selectionEnd] : null;
     const v = P.vehicle, k = v.known;
     const plates = [...new Set(S().sales.filter(x => x.vehicle && x.vehicle.plate).map(x => x.vehicle.plate).reverse())].slice(0, 15);
     box.innerHTML = `<div class="veh-card ${!v.cls ? 'missing' : ''}">
@@ -263,6 +265,7 @@
       <div class="vc-cards">${vcButtons(false)}</div>
       <datalist id="plateList">${plates.map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>`;
     paint();
+    if (keep) { const i = box.querySelector('#vehPlate'); if (i) { i.focus(); try { i.setSelectionRange(keep[0], keep[1]); } catch (e) { /* facultatif */ } } }
   }
   function setClass(n, source) {
     P.vehicle.cls = n; P.vehicle.source = source || 'manual';
