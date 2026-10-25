@@ -15,7 +15,7 @@
     const editable = r && (full || r.rank < myRank) && !r.perms.includes('*');
     const groups = {};
     A().permissions.forEach(p => { (groups[p[2]] = groups[p[2]] || []).push(p); });
-    el.innerHTML = `<div class="page-head"><div><h1>Gestion des rôles</h1><div class="sub">Grades, taux de commission, salaires et permissions. Les permissions sont vérifiées côté serveur.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Gestion des rôles</h1></div>
         <div class="actions"><button class="btn primary sm" data-new>${icon('plus')}Nouveau grade</button></div></div>
       <div class="grid cols-3">
         ${U.panel('Grades', `<div class="list">${list.map(x => `<div class="role-item ${x.id === rst.sel ? 'on' : ''}" data-role="${x.id}"><span class="li-ic ${x.perms.includes('*') ? 'ok' : ''}">${icon(x.perms.includes('*') ? 'crown' : 'shield')}</span>
@@ -57,7 +57,7 @@
     const moves = s.inventoryTx.filter(t => itemIds.has(t.itemId));
     const linked = id => s.products.filter(p => p.inventoryId === id).map(p => p.name);
     const lastMove = id => { for (let i = s.inventoryTx.length - 1; i >= 0; i--) if (s.inventoryTx[i].itemId === id) return s.inventoryTx[i]; return null; };
-    el.innerHTML = `<div class="page-head"><div><h1>Stock · entrées / sorties</h1><div class="sub">Chaque entrée ou sortie est enregistrée et publiée sur le webhook Discord de sa catégorie (les sorties dues aux ventes aussi).</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Stock · entrées / sorties</h1></div>
         <div class="actions">${mng ? `<button class="btn sm" data-x="newcat">${icon('folder-plus')}Nouvelle catégorie</button>` : ''}${mng && ivst.cat ? `<button class="btn primary sm" data-x="newitem">${icon('plus')}Nouvel article</button>` : ''}</div></div>
       <div class="stock-layout">
         <aside class="panel"><div class="panel-head"><h3>${icon('folders')}Catégories</h3></div><div class="panel-body list">
@@ -114,7 +114,7 @@
   function moveForm(id, type) {
     const s = S(), i = s.inventory.find(x => x.id === id), k = (s.stockCats || []).find(c => c.id === i.categoryId);
     const isIn = type === 'in';
-    U.form({ title: (isIn ? 'Entrée · ' : 'Sortie · ') + i.name, icon: isIn ? 'arrow-down-to-line' : 'arrow-up-from-line', size: 'sm', submit: isIn ? 'Enregistrer l’entrée' : 'Enregistrer la sortie',
+    U.form({ title: (isIn ? 'Entrée · ' : 'Sortie · ') + i.name, icon: isIn ? 'arrow-down-to-line' : 'arrow-up-from-line', size: 'sm', submit: isIn ? 'Enregistrer l\'entrée' : 'Enregistrer la sortie',
       intro: `<p class="lead" style="margin-bottom:12px">Stock actuel : <b>${i.qty}</b>${k && k.hasWebhook ? ` · <span class="ok-t">publié sur Discord (${esc(k.name)})</span>` : ''}</p>`,
       values: { qty: 1 },
       fields: [{ name: 'qty', label: 'Quantité', type: 'number', min: 1, step: '1', required: true, full: true, attrs: 'autofocus' },
@@ -127,7 +127,7 @@
       fields: [{ name: 'name', label: 'Nom', required: true, full: true },
         { name: 'categoryId', label: 'Catégorie', type: 'select', full: true, options: [{ value: '', label: 'Sans catégorie' }].concat((s.stockCats || []).map(k => ({ value: k.id, label: k.name }))) },
         ...(i ? [] : [{ name: 'qty', label: 'Quantité initiale', type: 'number', min: 0 }]),
-        { name: 'min', label: 'Seuil d’alerte', type: 'number', min: 0, hint: 'Facultatif : alerte « stock faible ».' }],
+        { name: 'min', label: 'Seuil d\'alerte', type: 'number', min: 0, hint: 'Facultatif : alerte « stock faible ».' }],
       onSubmit: v => A().call('inventory.save', Object.assign({ id }, v), i ? 'Article modifié' : 'Article créé') });
   }
   function stockCatForm(id) {
@@ -135,8 +135,8 @@
     const cur = k && k.webhook ? k.webhook.replace(/(\/webhooks\/\d+\/).{6,}/, '$1••••••') : '';
     U.form({ title: k ? 'Catégorie · ' + k.name : 'Nouvelle catégorie de stock', icon: 'folder-plus', values: k ? { name: k.name, icon: k.icon } : { icon: 'package' },
       fields: [{ name: 'name', label: 'Nom', required: true, placeholder: 'Pièces, Coffre, Outillage...' }, { name: 'icon', label: 'Icône (Lucide)', placeholder: 'package, wrench, vault...' },
-        { name: 'webhook', label: 'Webhook Discord', full: true, placeholder: k && k.webhook ? 'Laisser vide pour garder l’actuel · « - » pour le retirer' : 'https://discord.com/api/webhooks/...',
-          hint: (cur ? 'Actuel : ' + cur + '. ' : '') + 'Discord › Paramètres du salon › Intégrations › Webhooks › Copier l’URL.' }],
+        { name: 'webhook', label: 'Webhook Discord', full: true, placeholder: k && k.webhook ? 'Laisser vide pour garder l\'actuel · « - » pour le retirer' : 'https://discord.com/api/webhooks/...',
+          hint: (cur ? 'Actuel : ' + cur + '. ' : '') + 'Discord › Paramètres du salon › Intégrations › Webhooks › Copier l\'URL.' }],
       onSubmit: async v => { const r = await A().call('stock.cat.save', Object.assign({ id }, v), k ? 'Catégorie modifiée' : 'Catégorie créée'); if (r.ok && r.data) { ivst.cat = r.data.id; A().render(); } return r; } });
   }
   /* Fiche produit (utilisée aussi depuis le POS) */
@@ -160,7 +160,7 @@
         { name: 'classes', label: 'Catégories de véhicule concernées', type: 'html', html: classHtml },
         { name: 'tiers', label: 'Tarif par catégorie de véhicule', type: 'html', html: tierHtml, full: true },
         { name: 'description', label: 'Description', type: 'textarea', full: true, rows: 2 },
-        { name: 'image', label: 'Image', placeholder: 'img/products/... ou https://...', hint: 'Choisir dans la liste, coller une URL, ou laisser vide pour l’icône.', attrs: 'list="imgList"' }, { name: 'icon', label: 'Icône (Lucide)', placeholder: 'wrench, car, cog...' },
+        { name: 'image', label: 'Image', placeholder: 'img/products/... ou https://...', hint: 'Choisir dans la liste, coller une URL, ou laisser vide pour l\'icône.', attrs: 'list="imgList"' }, { name: 'icon', label: 'Icône (Lucide)', placeholder: 'wrench, car, cog...' },
         { name: 'cost', label: "Prix d'achat / usine", type: 'money' }, { name: 'price', label: 'Prix de vente', type: 'money', required: true },
         { name: 'margin', label: 'Marge (%)', type: 'number', step: '1', hint: 'Modifier la marge recalcule le prix de vente.' },
         { name: 'webhook', label: 'Webhook Discord des sorties de stock', full: true, placeholder: p && p.hasWebhook ? 'Webhook enregistré · laisser vide pour le garder' : 'https://discord.com/api/webhooks/...', hint: `Chaque vente envoie une sortie de stock sur ce salon (annulation = retour). Vide = webhook par défaut des Paramètres${S().company.hasStockWebhook ? '' : ' (non défini)'}. « - » pour retirer.` },
@@ -247,7 +247,7 @@
     const inR = sorted.filter(t => ST.within(r, t.at));
     const ins = inR.filter(t => t.type === 'in').reduce((a, t) => a + t.amount, 0), outs = inR.filter(t => t.type === 'out').reduce((a, t) => a + t.amount, 0);
     const list = ST.buckets(r), vals = list.map(b => { let v = 0; for (const t of sorted) { if (Date.parse(t.at) < b.start + (r.bucket === 'hour' ? 36e5 : r.bucket === 'month' ? 31 * ST.DAY : ST.DAY)) v = after[t.id]; else break; } return v; });
-    el.innerHTML = `<div class="page-head"><div><h1>Compte bancaire</h1><div class="sub">Alimenté automatiquement : ventes carte / compte entreprise, factures, charges, salaires, achats.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Compte bancaire</h1></div>
         <div class="actions">${U.periodBar(bst)}${A().can('bank.manage') ? `<button class="btn primary sm" data-new>${icon('plus')}Nouvelle transaction</button>` : ''}</div></div>
       <div class="grid stats">${U.stat({ label: 'Solde disponible', value: money(bal), valueCls: bal < 0 ? 'danger-t' : 'ok-t', icon: 'landmark' })}
         ${U.stat({ label: 'Entrées', value: '+' + money(ins), sub: inR.filter(t => t.type === 'in').length + ' opération(s)', icon: 'arrow-down-left' })}
@@ -259,7 +259,7 @@
         <select class="input" id="bkc"><option value="">Toutes catégories</option>${U.opts(Object.keys(BCAT).map(k => ({ value: k, label: BCAT[k] })), bst.cat)}</select></div><div id="bkTable"></div></div></div>`;
     const draw = reset => U.table(el.querySelector('#bkTable'), { id: 'bank', sort: 'at', resetPage: reset,
       rows: inR.filter(t => (!bst.type || t.type === bst.type) && (!bst.cat || t.category === bst.cat) && (!bst.q || (t.label + ' ' + t.amount).toLowerCase().includes(bst.q.toLowerCase()))),
-      empty: { icon: 'landmark', title: 'Aucune transaction', text: 'Aucune donnée disponible pour cette période.', hint: 'Modifiez les filtres ou créez une nouvelle transaction.' },
+      empty: { icon: 'landmark', title: 'Aucune transaction', text: 'Aucune donnée disponible pour cette période.' },
       columns: [{ key: 'at', label: 'Date', render: t => `${U.fmtDate(t.at)} <span class="muted">${U.fmtTime(t.at)}</span>` }, { key: 'label', label: 'Libellé', render: t => `<b>${esc(t.label)}</b>` },
         { key: 'category', label: 'Catégorie', render: t => U.badge(BCAT[t.category] || t.category) }, { key: 'by', label: 'Par', render: t => `<span class="muted">${esc(A().empName(t.by))}</span>` },
         { key: 'amount', label: 'Montant', align: 'right', sortValue: t => t.type === 'in' ? t.amount : -t.amount, render: t => `<b class="${t.type === 'in' ? 'ok-t' : 'danger-t'}">${t.type === 'in' ? '+' : '-'}${money(t.amount)}</b>` },
@@ -287,7 +287,7 @@
   const ast = { q: '', actor: '' };
   function audit(el) {
     const s = S();
-    el.innerHTML = `<div class="page-head"><div><h1>Historique</h1><div class="sub">Journal des actions importantes (audit).</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Historique</h1></div>
         <div class="actions"><div class="search">${icon('search')}<input class="input" id="auq" placeholder="Rechercher..." value="${esc(ast.q)}"></div><select class="input sm" id="aua" data-combo><option value="">Tous les employés</option>${U.opts(s.employees.map(e => ({ value: e.id, label: e.name })), ast.actor)}</select>${A().auditFrom > A().oldest ? `<button class="btn sm ghost" id="auMore">${icon('history')}Plus ancien</button>` : ''}</div></div>
       <div class="panel"><div class="panel-body" id="auList"></div></div>`;
     const draw = () => {
@@ -307,7 +307,7 @@
   /* =================== PARAMÈTRES =================== */
   function settings(el) {
     const s = S(), co = s.company, local = LSC.api.mode === 'local';
-    el.innerHTML = `<div class="page-head"><div><h1>Paramètres</h1><div class="sub">Configuration de l'entreprise, de la comptabilité et du point de vente.</div></div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Paramètres</h1></div></div>
       <div class="settings-grid">
         <section class="panel"><div class="panel-head"><h3>${icon('building-2')}Entreprise</h3></div><div class="panel-body"><form class="form" id="fCo">
           ${[['name', 'Nom'], ['subtitle', 'Sous-titre'], ['address', 'Adresse'], ['phone', 'Téléphone']].map(f => U.field({ name: f[0], label: f[1] }, co[f[0]])).join('')}
@@ -316,7 +316,7 @@
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="co">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('calculator')}Comptabilité</h3></div><div class="panel-body"><form class="form" id="fAcc">
           ${U.field({ name: 'currency', label: 'Devise (symbole)' }, co.currency)}${U.field({ name: 'rounding', label: 'Arrondis', type: 'select', options: [{ value: 1, label: "À l'unité ($1)" }, { value: 0.01, label: 'Au centime ($0.01)' }] }, co.rounding)}
-          ${U.field({ name: 'commissionBase', label: 'Commission des employés', type: 'select', options: [{ value: 'margin', label: '% du bénéfice (prix − coût) · règle mairie' }, { value: 'revenue', label: '% du chiffre d’affaires' }] }, co.commissionBase || 'margin')}
+          ${U.field({ name: 'commissionBase', label: 'Commission des employés', type: 'select', options: [{ value: 'margin', label: '% du bénéfice (prix − coût) · règle mairie' }, { value: 'revenue', label: '% du chiffre d\'affaires' }] }, co.commissionBase || 'margin')}
           ${U.field({ name: 'payReason', label: 'Motif du virement de paie', hint: 'Précédé du n° de semaine : « S40 Paye LS Customs ».' }, co.payReason || 'Paye LS Customs')}${U.field({ name: 'invoiceDays', label: 'Échéance factures (jours)', type: 'number', min: 1 }, co.invoiceDays)}
           ${U.field({ name: 'partnerBankAccount', label: 'Compte à débiter des partenaires', placeholder: 'ex. 8517', hint: 'Affiché sur les factures Discord de tous les partenaires (sauf compte propre renseigné sur la fiche).' }, co.partnerBankAccount || '')}
           ${U.field({ name: 'largeSale', label: 'Seuil « vente importante »', type: 'money' }, co.largeSale)}${U.field({ name: 'maxDiscountPct', label: 'Plafond réduction sans permission étendue (%)', type: 'number', min: 0, max: 100 }, co.maxDiscountPct)}</form>
@@ -354,7 +354,7 @@
           <p class="muted" style="margin:0 0 12px">Dans Salaires, un rond <span class="req ok"></span> vert s'affiche à côté du nom si tous les prérequis de la période sont atteints, sinon <span class="req ko"></span> rouge.</p>
           <div class="form">${U.field({ name: 'quota', label: 'Quota minimum de ventes (CA / semaine)', type: 'money', hint: '0 = pas de quota.' }, (co.payrollRules || {}).quota)}
           ${U.field({ name: 'minDays', label: 'Ancienneté minimum (jours depuis le recrutement)', type: 'number', min: 0, hint: '0 = pas de condition.' }, (co.payrollRules || {}).minDays)}
-          ${U.field({ name: 'absence', label: 'En cas d’absence dans la semaine', type: 'select', full: true, options: [{ value: 'exempt', label: 'Dispensé du quota (absence justifiée)' }, { value: 'block', label: 'Prérequis non atteint' }, { value: 'ignore', label: 'Ne pas tenir compte des absences' }] }, (co.payrollRules || {}).absence)}</div>
+          ${U.field({ name: 'absence', label: 'En cas d\'absence dans la semaine', type: 'select', full: true, options: [{ value: 'exempt', label: 'Dispensé du quota (absence justifiée)' }, { value: 'block', label: 'Prérequis non atteint' }, { value: 'ignore', label: 'Ne pas tenir compte des absences' }] }, (co.payrollRules || {}).absence)}</div>
           <div class="section-title">Grades éligibles <small class="muted" style="text-transform:none;letter-spacing:0">(aucun coché = tous)</small></div>
           <div class="chips">${s.roles.slice().sort((a, b) => a.rank - b.rank).map(r => `<label class="check" style="margin-right:12px"><input type="checkbox" data-rr="${r.id}" ${((co.payrollRules || {}).roles || []).includes(r.id) ? 'checked' : ''}><span>${esc(r.name)}</span></label>`).join('')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="req">${icon('save')}Enregistrer</button></div></div></section>
@@ -378,23 +378,23 @@
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="veh">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('message-square')}Discord</h3></div><div class="panel-body" id="fDisc">
           <p class="muted" style="margin:0 0 10px">Laisser vide pour garder le webhook enregistré, « - » pour le retirer.</p>
-          <div class="form">${U.field({ name: 'stockWebhook', label: 'Sorties de stock (webhook par défaut)', full: true, placeholder: co.hasStockWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'Utilisé pour les produits qui n’ont pas leur propre webhook (fiche produit).' }, '')}
-          ${U.field({ name: 'archiveWebhook', label: 'Rappel d’archivage (début de mois)', full: true, placeholder: co.hasArchiveWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
+          <div class="form">${U.field({ name: 'stockWebhook', label: 'Sorties de stock (webhook par défaut)', full: true, placeholder: co.hasStockWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'Utilisé pour les produits qui n\'ont pas leur propre webhook (fiche produit).' }, '')}
+          ${U.field({ name: 'archiveWebhook', label: 'Rappel d\'archivage (début de mois)', full: true, placeholder: co.hasArchiveWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
           ${U.field({ name: 'archiveRole', label: 'ID du rôle à pinger pour le rappel', full: true, placeholder: 'ex. 112233445566778899' }, co.archiveRole || '')}
           ${U.field({ name: 'saleWebhook', label: 'Logs : grosses ventes', placeholder: co.hasSaleWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
           ${U.field({ name: 'largeSale', label: 'Grosse vente à partir de', type: 'money' }, co.largeSale)}
           ${U.field({ name: 'fireWebhook', label: 'Logs : licenciements', full: true, placeholder: co.hasFireWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
           ${U.field({ name: 'glifeWebhook', label: 'Récap quotidien des factures en jeu (GLife)', placeholder: co.hasGlifeWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...' }, '')}
-          ${U.field({ name: 'glifeCompanyId', label: 'ID de l’entreprise GLife', type: 'number', min: 1 }, co.glifeCompanyId || 139)}
+          ${U.field({ name: 'glifeCompanyId', label: 'ID de l\'entreprise GLife', type: 'number', min: 1 }, co.glifeCompanyId || 139)}
           ${U.field({ name: 'weekWebhook', label: 'Récap à la clôture de la semaine', full: true, placeholder: co.hasWeekWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'CA, ventes, meilleur vendeur et salaire de chacun, envoyés au clic sur « Clôturer la semaine » (Salaires).' }, '')}
           ${U.field({ name: 'unlistedWebhook', label: 'Véhicules non recensés', full: true, placeholder: co.hasUnlistedWebhook ? 'Webhook enregistré' : 'https://discord.com/api/webhooks/...', hint: 'Un message par modèle absent de la liste (signalé à la première recherche).' }, '')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="disc">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('refresh-cw')}Factures en jeu (API GLife)</h3>${co.glifeMode === 'check' ? U.badge('Vérification', 'info') : ''}</div><div class="panel-body" id="fAuto">
           <div class="list">${[['off', 'Désactivé', 'Tout est saisi au point de vente, sans contrôle.'],
-            ['check', 'Vérification anti-fraude', 'Les employés saisissent tout au point de vente ; l’API compare ce qu’ils déclarent avec leurs factures en jeu (✓ / ✗ dans Salaires).']]
+            ['check', 'Vérification anti-fraude', 'Les employés saisissent tout au point de vente ; l\'API compare ce qu\'ils déclarent avec leurs factures en jeu (✓ / ✗ dans Salaires).']]
             .map(m => `<label class="check li" style="align-items:flex-start;padding:7px 2px"><input type="radio" name="gaMode" value="${m[0]}" ${(co.glifeMode === 'check' ? 'check' : 'off') === m[0] ? 'checked' : ''}><span><b>${m[1]}</b><br><small class="muted">${m[2]}</small></span></label>`).join('')}</div>
           <div class="section-title">Catégories facturées en jeu <small class="muted" style="text-transform:none;letter-spacing:0">(contrôlées par l'API, les customs ne le sont pas)</small></div>
-          <div class="chips">${co.categories.map(k => { const cu = ['custom', 'performances'].includes(k.id); return `<label class="check" style="margin-right:12px" ${cu ? 'title="Customs : jamais contrôlées par l’API"' : ''}><input type="checkbox" data-gc="${k.id}" ${!cu && (co.glifeAutoCats || []).includes(k.id) ? 'checked' : ''} ${cu ? 'disabled' : ''}><span class="${cu ? 'faint' : ''}">${esc(k.label)}</span></label>`; }).join('')}</div>
+          <div class="chips">${co.categories.map(k => { const cu = ['custom', 'performances'].includes(k.id); return `<label class="check" style="margin-right:12px" ${cu ? 'title="Customs : jamais contrôlées par l\'API"' : ''}><input type="checkbox" data-gc="${k.id}" ${!cu && (co.glifeAutoCats || []).includes(k.id) ? 'checked' : ''} ${cu ? 'disabled' : ''}><span class="${cu ? 'faint' : ''}">${esc(k.label)}</span></label>`; }).join('')}</div>
           <p class="hint" style="margin:10px 0 0">Chaque employé est reconnu par son Char ID : ce qu'il saisit au point de vente dans ces catégories est comparé à ses factures en jeu.</p>
           <div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn primary sm" data-save="auto">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('database')}Données</h3></div><div class="panel-body">
@@ -497,7 +497,7 @@
   }
   function importModels(co) {
     U.form({ title: 'Importer une liste de véhicules', icon: 'upload', size: 'lg', submit: 'Importer',
-      intro: '<p class="lead" style="margin-bottom:10px">Collez la liste (copiée d’un tableur : nom, modèle, catégorie · ou « modèle ; catégorie » par ligne). Les modèles déjà présents sont mis à jour.</p>',
+      intro: '<p class="lead" style="margin-bottom:10px">Collez la liste (copiée d\'un tableur : nom, modèle, catégorie · ou « modèle ; catégorie » par ligne). Les modèles déjà présents sont mis à jour.</p>',
       fields: [{ name: 'text', label: 'Liste', type: 'textarea', rows: 12, full: true, required: true }],
       onSubmit: v => {
         const add = parseModels(v.text || ''), n = Object.keys(add).length;

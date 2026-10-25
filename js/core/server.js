@@ -817,7 +817,7 @@
     let list = '', shown = 0;
     for (const x of prods) {
       const line = `• **${x.name}** · x${x.qty} → ${money(x.total)}\n`;
-      if (list.length + line.length > 980) { list += `… ${prods.length - shown} autre(s)`; break; }
+      if (list.length + line.length > 980) { list += `... ${prods.length - shown} autre(s)`; break; }
       list += line; shown++;
     }
     const name = co.name || 'Los Santos Customs';
@@ -1091,13 +1091,13 @@
     const actor = db.employees.find(e => !e.archived && hasPerm(roleOf(db, e), '*'));
     if (!actor) return { skip: 'aucun compte de direction' };
     const mon = parisMonday(now);
-    if ((db.payrolls || []).some(x => x.status !== 'paid' && x.status !== 'cancelled' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d’abord' };
+    if ((db.payrolls || []).some(x => x.status !== 'paid' && x.status !== 'cancelled' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d\'abord' };
     return { actorId: actor.id, payload: { auto: true, from: new Date(mon).toISOString(), to: new Date(now).toISOString() } };
   }
   A['week.close'] = (c, p) => {
     c.need('payroll.manage');
     const db = c.db, from = openFrom(db, c.now), to = c.now;
-    if (to - from < 60e3) fail('La semaine vient déjà d’être clôturée');
+    if (to - from < 60e3) fail('La semaine vient déjà d\'être clôturée');
     const late = db.payrolls.filter(x => x.status === 'validated');
     if (late.length) fail(`${late.length} salaire(s) de la clôture précédente pas encore payé(s) : marquez-les payés d'abord`);
     A['payroll.generate'](c, { from: new Date(from).toISOString(), to: new Date(to).toISOString(), auto: true, closing: true });

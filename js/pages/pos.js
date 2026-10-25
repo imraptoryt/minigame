@@ -45,7 +45,7 @@
     if (P.edit && !canEdit()) P.edit = false;
     el.innerHTML = `<div class="pos ${P.edit ? 'editing' : ''}">
       <section class="pos-left">
-        <div class="page-head"><h1>Point de vente - ${esc(S().company.name)}</h1>
+        <div class="page-head"><h1>Point de vente · ${esc(S().company.name)}</h1>
           <div class="actions">${canEdit() ? `${P.edit ? `<button class="btn sm" data-act="newCat">${icon('folder-plus')}Nouvelle catégorie</button>` : ''}<button class="btn sm" data-act="newProduct">${icon('plus')}Nouveau produit</button>
             <button class="btn sm ${P.edit ? 'primary' : ''}" data-act="edit">${icon(P.edit ? 'check' : 'layout-grid')}${P.edit ? 'Terminer' : 'Modifier / ranger'}</button>` : ''}</div></div>
         ${P.edit ? `<div class="alert info edit-hint">${icon('move')}<span><b>Mode édition</b> · glissez une carte pour la ranger (sur une carte, une sous-catégorie ou un onglet), glissez les onglets et les sous-catégories pour les réordonner. Cliquez sur une carte pour modifier son prix, son image...</span></div>` : ''}
@@ -367,7 +367,7 @@
         <div class="cart-unit">${money(i.price)} x ${i.qty}</div>
         <div class="cart-ctrl"><span class="qty"><button data-dec="${i.productId}" title="Diminuer">${icon('minus', 'xs')}</button><span>${i.qty}</span><button data-inc="${i.productId}" title="Augmenter">${icon('plus', 'xs')}</button></span>
           <button class="icon-btn sm danger" data-del="${i.productId}" title="Supprimer (Suppr)">${icon('trash-2', 'sm')}</button></div></div>`;
-    }).join('') : U.empty({ icon: 'shopping-basket', title: 'Panier vide', text: 'Cliquez sur un service pour l’ajouter.', hint: false });
+    }).join('') : U.empty({ icon: 'shopping-basket', title: 'Panier vide', text: 'Cliquez sur un service pour l\'ajouter.', hint: false });
     root.querySelector('#cartSum').innerHTML = `<div class="sum">
         <div class="sum-row" title="Bénéfice de la vente (total − prix usine). Le % du grade s'applique uniquement au salaire."><span>Commission :</span><b>${money(q.commissionBase)}</b></div>
         <div class="sum-row"><span>Prix usine :</span><b>${money(q.factory)}</b></div>

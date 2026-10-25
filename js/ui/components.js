@@ -206,10 +206,10 @@
   }
   function pager(page, pages, total, size) {
     const nums = [];
-    for (let p = 1; p <= pages; p++) if (p === 1 || p === pages || Math.abs(p - page) <= 1) nums.push(p); else if (nums[nums.length - 1] !== '…') nums.push('…');
+    for (let p = 1; p <= pages; p++) if (p === 1 || p === pages || Math.abs(p - page) <= 1) nums.push(p); else if (nums[nums.length - 1] !== '...') nums.push('...');
     return `<div class="pager"><span class="muted">${(page - 1) * size + 1} à ${Math.min(page * size, total)} sur ${total}</span><span class="grow"></span>
       <button class="icon-btn sm" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">${icon('chevron-left')}</button>
-      ${nums.map(p => p === '…' ? '<span class="muted">…</span>' : `<button class="pg ${p === page ? 'on' : ''}" data-page="${p}">${p}</button>`).join('')}
+      ${nums.map(p => p === '...' ? '<span class="muted">...</span>' : `<button class="pg ${p === page ? 'on' : ''}" data-page="${p}">${p}</button>`).join('')}
       <button class="icon-btn sm" ${page >= pages ? 'disabled' : ''} data-page="${page + 1}">${icon('chevron-right')}</button></div>`;
   }
 
@@ -225,7 +225,7 @@
   }
   function empty(o) {
     o = o || {};
-    return `<div class="empty">${icon(o.icon || 'inbox')}<h4>${esc(o.title || 'Aucune donnée')}</h4><p>${esc(o.text || 'Aucune donnée disponible pour cette période.')}</p>${o.hint !== false ? `<small>${esc(o.hint || 'Modifiez les filtres ou créez un nouvel élément.')}</small>` : ''}${o.action || ''}</div>`;
+    return `<div class="empty">${icon(o.icon || 'inbox')}<h4>${esc(o.title || 'Aucune donnée')}</h4><p>${esc(o.text || 'Aucune donnée disponible pour cette période.')}</p>${o.hint ? `<small>${esc(o.hint)}</small>` : ''}${o.action || ''}</div>`;
   }
   function skeleton(kind) {
     const line = w => `<div class="sk" style="width:${w};height:12px"></div>`;

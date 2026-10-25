@@ -65,7 +65,7 @@
         while (cur > from) {
           const a = Math.max(from, cur - 31 * 864e5);
           const r = await LSC.api.call('rows.range', { from: a, to: cur });
-          if (!r.ok) { U.toast(r.error || 'Chargement de l’historique impossible', 'error'); cur = from; break; }
+          if (!r.ok) { U.toast(r.error || 'Chargement de l\'historique impossible', 'error'); cur = from; break; }
           apply(Object.assign(r, { merge: true }));
           cur = a;
         }
@@ -310,7 +310,7 @@
   }
   function advertForm(i) {
     const list = (App.state.company.adverts || []).slice(), a = list[i];
-    U.form({ title: a ? 'Modifier l’annonce' : 'Nouvelle annonce', icon: 'megaphone', values: a || { label: 'Annonce ' + (list.length + 1) },
+    U.form({ title: a ? 'Modifier l\'annonce' : 'Nouvelle annonce', icon: 'megaphone', values: a || { label: 'Annonce ' + (list.length + 1) },
       fields: [{ name: 'label', label: 'Nom (onglet)', full: true, placeholder: 'Ouvert, Fermé, Promo...' },
         { name: 'title', label: 'Titre', required: true, full: true, hint: 'Les codes couleur du jeu (~p~, ~g~...) sont conservés.' },
         { name: 'image', label: 'Image (URL)', full: true }, { name: 'message', label: 'Message', type: 'textarea', rows: 4, required: true, full: true }],
@@ -440,7 +440,7 @@
         ${fld('charId', 'Char ID *', 'text', 'required maxlength="30" autocomplete="username"')}
         ${fld('password', 'Mot de passe * (6 caractères min.)', 'password', 'required minlength="6" autocomplete="new-password"')}
         ${fld('password2', 'Confirmer le mot de passe *', 'password', 'required autocomplete="new-password"')}
-        <small class="login-note">${icon('shield-alert')}N'utilisez pas un vrai mot de passe (e-mail, Discord, banque…) : choisissez-en un uniquement pour ce serveur RP.</small>
+        <small class="login-note">${icon('shield-alert')}Mettez pas votre vrai mot de passe, mettez un truc simple juste pour ici.</small>
         <div class="login-row">${fld('discordId', 'Discord ID', 'text', 'inputmode="numeric" maxlength="25"')}${fld('bankAccount', 'N° de compte bancaire', 'text', 'maxlength="40"')}</div>
         <button class="btn primary block" type="submit">${icon('user-plus')}Envoyer la demande</button>
         <small class="muted">Le compte sera actif après validation par la direction (grade Apprenti).</small>
@@ -449,7 +449,7 @@
         ${code ? '' : fld('code', 'Mot de passe provisoire (donné par la direction)', 'text', 'required autocomplete="one-time-code" maxlength="20"')}
         ${fld('password', 'Nouveau mot de passe (6 caractères min.)', 'password', 'required minlength="6" autocomplete="new-password"')}
         ${fld('password2', 'Confirmer le mot de passe', 'password', 'required autocomplete="new-password"')}
-        <small class="login-note">${icon('shield-alert')}N'utilisez pas un vrai mot de passe (e-mail, Discord, banque…) : choisissez-en un uniquement pour ce serveur RP.</small>
+        <small class="login-note">${icon('shield-alert')}Mettez pas votre vrai mot de passe, mettez un truc simple juste pour ici.</small>
         <button class="btn primary block" type="submit">${icon('key-round')}Enregistrer et se connecter</button>
         <button class="btn ghost block" type="button" data-mode="login">${icon('arrow-left')}Retour</button>`
       : `${fld('charId', 'Char ID', 'text', 'required autocomplete="username"')}

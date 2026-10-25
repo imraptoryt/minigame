@@ -36,7 +36,7 @@
       ${li('Déductible :', 'salaires, achats fournisseurs (kits, stock), loyers.')}
       ${li('Non déductible :', 'achat de locaux ou de véhicules, customs de véhicules, achats de confort (nourriture).')}
       ${li('Salaires :', "un % du bénéfice de l'employé (prix − coût du kit), pas de son CA.")}
-      ${li('Impôt :', 'par tranches · 10 % jusqu’à 20 000 $, 20 % de 20 000 à 50 000 $, 30 % au-delà.')}
+      ${li('Impôt :', 'par tranches · 10 % jusqu\'à 20 000 $, 20 % de 20 000 à 50 000 $, 30 % au-delà.')}
       ${li('Après impôt :', 'dividendes (obligatoires), primes (facultatives), trésorerie à laisser en banque (obligatoire).')}
     </ul><a class="btn sm ghost" href="${SLIDES}" target="_blank" rel="noopener" style="margin-top:8px">${icon('external-link')}Bases de la comptabilité (mairie)</a>`;
   }
@@ -60,7 +60,7 @@
     const grp = rows => `<div class="d-grp">${rows.join('')}</div>`;
     const col = (title, total, ic, body) => `<section class="d-col"><div class="d-head">${icon(ic)}<span>${title}</span>${v(total)}</div>${body}</section>`;
     const wn = ST.weekNum(r.from);
-    el.innerHTML = `<div class="page-head"><div><h1>Déclaration</h1><div class="sub">Résultat de la semaine à déclarer : chiffre d'affaires, charges, impôt et répartition. Cliquez un montant pour le copier.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Déclaration</h1><div class="sub">Cliquez sur un montant pour le copier.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-dw="-1" title="Semaine précédente">${icon('chevron-left')}</button><span class="d-wk">S<input class="input sm" id="dWeek" type="number" min="1" max="53" value="${wn}"></span><span class="muted">${esc(ST.weekLabel(r).split(' · ')[1] || '')}</span><button class="icon-btn sm" data-dw="1" title="Semaine suivante" ${dst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
         <button class="btn sm" id="dCopy">${icon('clipboard-copy')}Copier le résumé</button></div></div>
       <div class="decl">
@@ -153,7 +153,7 @@
       ['Achats de stock', -z.purchases], ['Frais (commandes)', -z.charges - z.bills], ['Salaires', -z.salaries], ['Commissions', -z.commissions],
       ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'], ['Impôt (barème)', -z.tax], ['Bénéfice net après impôt', z.netAfterTax, 'b']
     ];
-    el.innerHTML = `<div class="page-head"><div><h1>Bilan</h1><div class="sub">Compte de résultat calculé à partir des ventes, charges, paies et achats.</div></div><div class="actions">${U.periodBar(bst)}</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Bilan</h1></div><div class="actions">${U.periodBar(bst)}</div></div>
       <div class="grid stats">
         ${U.stat({ label: "Chiffre d'affaires", value: money(z.revenue), trend: ST.trend(z.revenue, o.revenue), icon: 'dollar-sign' })}
         ${U.stat({ label: 'Dépenses', value: money(z.expenses), trend: ST.trend(z.expenses, o.expenses), inverse: true, sub: 'commissions, salaires, frais, achats', icon: 'arrow-up-right', tone: 'warn' })}
@@ -217,7 +217,7 @@
   function salesPage(el, own) {
     const s = S(), st = own ? mst : sst, me = A().me.id;
     const emps = s.employees.filter(e => s.sales.some(x => x.employeeId === e.id));
-    el.innerHTML = `<div class="page-head"><div><h1>${own ? 'Mes ventes' : 'Ventes'}</h1><div class="sub">${own ? 'Historique de vos ventes et commissions.' : 'Toutes les ventes enregistrées au point de vente.'}</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>${own ? 'Mes ventes' : 'Ventes'}</h1></div>
         <div class="actions">${U.periodBar(st)}${A().can('pos.use') ? `<button class="btn primary sm" data-go="pos">${icon('plus')}Nouvelle vente</button>` : ''}</div></div>
       <div id="salesStats"></div>
       <div class="panel mt"><div class="panel-body">
@@ -239,10 +239,10 @@
         ${U.stat({ label: 'Total des ventes', value: money(tot), icon: 'dollar-sign' })}
         ${U.stat({ label: 'Nombre de ventes', value: ok.length, sub: rows.length - ok.length ? `${rows.length - ok.length} annulée(s)` : '', icon: 'receipt', tone: 'info' })}
         ${U.stat({ label: 'Panier moyen', value: money(ok.length ? tot / ok.length : 0), icon: 'shopping-basket' })}
-        ${U.stat({ label: 'Commissions (100 %)', value: money(com), sub: 'le % du grade s’applique au salaire', icon: 'percent', tone: 'info' })}</div>`;
+        ${U.stat({ label: 'Commissions (100 %)', value: money(com), sub: 'le % du grade s\'applique au salaire', icon: 'percent', tone: 'info' })}</div>`;
       U.table(el.querySelector('#salesTable'), {
         id: own ? 'mysales' : 'sales', rows, sort: 'createdAt', resetPage: reset, onRow: x => LSC.open.sale(x.id),
-        empty: { icon: 'receipt', title: 'Aucune transaction', text: 'Aucune vente pour ces filtres.', hint: 'Modifiez les filtres ou créez une nouvelle vente.' },
+        empty: { icon: 'receipt', title: 'Aucune transaction', text: 'Aucune vente pour ces filtres.' },
         rowClass: x => x.status === 'cancelled' ? 'dim' : '',
         columns: [
           { key: 'num', label: 'ID', render: x => `<b>#${x.num}</b>` },
@@ -300,7 +300,7 @@
   function byProduct(el) {
     const s = S(), r = ST.range(pst.period, pst.from, pst.to, pst.wk), rows = ST.byProduct(s, r);
     const tot = rows.reduce((a, x) => a + x.revenue, 0), mar = rows.reduce((a, x) => a + x.margin, 0);
-    el.innerHTML = `<div class="page-head"><div><h1>Ventes par produit</h1><div class="sub">Analyse des services et produits vendus (hors ventes annulées, avant réduction).</div></div><div class="actions">${U.periodBar(pst)}</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Ventes par produit</h1><div class="sub">Hors ventes annulées, avant réduction.</div></div><div class="actions">${U.periodBar(pst)}</div></div>
       <div class="grid stats">${U.stat({ label: "Chiffre d'affaires", value: money(tot), icon: 'dollar-sign' })}${U.stat({ label: 'Marge', value: money(mar), sub: tot ? (mar / tot * 100).toFixed(1) + '% du CA' : '', icon: 'trending-up' })}
         ${U.stat({ label: 'Articles vendus', value: rows.reduce((a, x) => a + x.qty, 0), icon: 'package', tone: 'info' })}${U.stat({ label: 'Meilleur service', value: rows[0] ? esc(rows[0].name) : '·', sub: rows[0] ? money(rows[0].revenue) : '', icon: 'trophy', tone: 'warn' })}</div>
       <div class="grid cols-3 mt">
@@ -353,7 +353,7 @@
     const tabsList = [{ id: 'all', label: 'Toutes', count: all.length }, { id: 'draft', label: 'Brouillons', count: count('draft') }, { id: 'sent', label: 'Envoyées', count: count('sent') }, { id: 'cancelled', label: 'Annulées', count: count('cancelled') }];
     const billed = r => all.filter(i => i.st !== 'draft' && i.st !== 'cancelled' && ST.within(ST.range(r), i.createdAt));
     const todo = s.sales.filter(x => x.partnerId && x.status === 'pending' && !x.invoiceId);
-    el.innerHTML = `<div class="page-head"><div><h1>Factures partenaires</h1><div class="sub">Les ventes faites avec un partenaire sont mises « à facturer ». « Générer la facture » les regroupe et l'envoie sur le Discord du partenaire (avec ping).</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Factures partenaires</h1></div>
         <div class="actions">${A().can('partners.manage') ? `<button class="btn sm" data-newp>${icon('handshake')}Nouveau partenaire</button>` : ''}<button class="btn primary sm" data-new>${icon('file-pen')}Facture personnalisée</button></div></div>
       <div class="grid stats">${U.stat({ label: 'À facturer', value: money(todo.reduce((a, x) => a + x.total, 0)), sub: todo.length + ' vente(s) partenaire', icon: 'file-plus', tone: 'warn' })}
         ${U.stat({ label: 'Facturé cette semaine', value: money(billed('week').reduce((a, i) => a + i.total, 0)), sub: billed('week').length + ' facture(s)', icon: 'send', tone: 'info' })}
@@ -364,7 +364,7 @@
     const draw = reset => U.table(el.querySelector('#invTable'), {
       id: 'invoices', sort: 'createdAt', resetPage: reset, onRow: x => LSC.open.invoice(x.id),
       rows: all.filter(i => (ist.tab === 'all' || i.st === ist.tab) && (!ist.q || (i.ref + ' ' + i.customerName).toLowerCase().includes(ist.q.toLowerCase()))),
-      empty: { icon: 'file-text', title: 'Aucune facture', text: 'Aucune facture dans cette catégorie.', hint: 'Créez une nouvelle facture.' },
+      empty: { icon: 'file-text', title: 'Aucune facture', text: 'Aucune facture dans cette catégorie.' },
       columns: [
         { key: 'num', label: 'Facture', render: x => `<b>${esc(x.ref)}</b><br>${x.kind === 'auto' ? U.badge('Auto · ' + (x.saleIds || []).length + ' vente(s)', 'info') : U.badge('Personnalisée')}` },
         { key: 'customerName', label: 'Partenaire', render: x => esc(x.customerName) },
@@ -446,7 +446,7 @@
   function bills(el) {
     const s = S(), all = s.bills.map(b => Object.assign({}, b, { st: ST.billStatus(b) }));
     const open = all.filter(b => b.st !== 'paid'), soon = open.filter(b => Date.parse(b.due) - Date.now() < 7 * ST.DAY && b.st !== 'overdue');
-    el.innerHTML = `<div class="page-head"><div><h1>Factures à payer</h1><div class="sub">Factures fournisseurs. Le paiement débite le compte bancaire.</div></div><div class="actions"><button class="btn primary sm" data-new>${icon('plus')}Nouvelle facture fournisseur</button></div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Factures à payer</h1></div><div class="actions"><button class="btn primary sm" data-new>${icon('plus')}Nouvelle facture fournisseur</button></div></div>
       <div class="grid stats">${U.stat({ label: 'Total à payer', value: money(open.reduce((a, b) => a + b.amount, 0)), sub: open.length + ' facture(s)', icon: 'file-clock', tone: 'warn' })}
         ${U.stat({ label: 'En retard', value: money(open.filter(b => b.st === 'overdue').reduce((a, b) => a + b.amount, 0)), sub: open.filter(b => b.st === 'overdue').length + ' facture(s)', icon: 'clock-alert', tone: 'danger' })}
         ${U.stat({ label: 'Échéance < 7 jours', value: money(soon.reduce((a, b) => a + b.amount, 0)), sub: soon.length + ' facture(s)', icon: 'calendar-clock', tone: 'warn' })}
@@ -515,7 +515,7 @@
     }
     const cp = (txt, title) => `<button class="icon-btn sm" data-copy="${esc(txt)}" title="${esc(title)}">${icon('copy', 'sm')}</button>`;
     const auto = (s.meta || {}).payrollAutoAt;
-    el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + commissions (% du bénéfice) − retenues. Les primes sont comptées à part.<br>Recalcul automatique tous les jours et le dimanche à 23h59${auto ? ` · dernier : ${U.fmtDT(auto)}` : ''}.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Recalcul automatique tous les jours et le dimanche à 23h59${auto ? ` · dernier : ${U.fmtDT(auto)}` : ''}.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
           <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
           ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
@@ -539,7 +539,7 @@
     });
     else U.table(el.querySelector('#pyTable'), {
       id: 'payroll-week', rows, sort: 'employeeName', dir: 1, resetPage: true,
-      empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: pyst.wk === 0 ? 'Les fiches apparaissent automatiquement dès qu’il y a un salaire ou une commission.' : 'Cliquez sur « Recalculer » pour calculer cette semaine.', hint: false },
+      empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: pyst.wk === 0 ? 'Les fiches apparaissent automatiquement dès qu\'il y a un salaire ou une commission.' : 'Cliquez sur « Recalculer » pour calculer cette semaine.', hint: false },
       columns: [
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
         { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)} ${cp(e.bankAccount, 'Copier le n° de compte')}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
@@ -547,7 +547,7 @@
         ...(chk ? [{ key: 'chk', label: 'Contrôle', align: 'center', sortable: false, render: p => {
           const e = emp(p);
           if (!e) return '';
-          if (g.wait) return '<span class="faint">…</span>';
+          if (g.wait) return '<span class="faint">...</span>';
           if (g.err) return `<span class="warn-t" title="API GLife injoignable">${icon('wifi-off', 'sm')}</span>`;
           const inv = (g.rows.find(x => x.charId === String(e.charId)) || {}).revenue || 0, d = declared(s, e.id, cf, ct), v = verdict(d.total, inv);
           return idCell(p.id, `<button class="chk-btn ${v}" data-a="chk" title="${esc(VERDICT[v][1])} · saisi ${money(d.total)} · factures en jeu ${money(inv)}">${icon(VERDICT[v][0])}</button>`);
@@ -626,7 +626,7 @@
     const s = S(), r = ST.range(est.period, est.from, est.to, est.wk), cats = s.company.expenseCategories;
     const inR = s.expenses.filter(e => ST.within(r, e.date)), rows = inR.filter(e => !est.cat || e.category === est.cat);
     const byCat = {}; inR.forEach(e => { const k = feeLabel(s, e); byCat[k] = (byCat[k] || 0) + e.amount; });
-    el.innerHTML = `<div class="page-head"><div><h1>Commandes (frais)</h1><div class="sub">Les seuls frais de l'entreprise : chaque commande débite le compte bancaire. Types et prix unitaires dans Paramètres.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Commandes (frais)</h1></div>
         <div class="actions">${U.periodBar(est)}<button class="btn primary sm" data-new>${icon('plus')}Nouvelle commande</button></div></div>
       <div class="grid stats">${U.stat({ label: 'Total des frais', value: money(inR.reduce((a, e) => a + e.amount, 0)), sub: inR.length + ' commande(s)', icon: 'wallet', tone: 'warn' })}
         ${cats.map(c => { const l = inR.filter(e => e.category === c.id); return U.stat({ label: c.label, value: money(l.reduce((a, e) => a + e.amount, 0)), sub: l.reduce((a, e) => a + (e.qty || 1), 0) + ' unité(s) · ' + money(c.price) + ' / u', icon: 'package', tone: 'info' }); }).join('')}</div>
@@ -634,7 +634,7 @@
           <div class="filters"><select class="input" id="exCat"><option value="">Toutes les commandes</option>${U.opts(cats.map(c => ({ value: c.id, label: c.label })), est.cat)}</select></div><div id="exTable"></div></div></div>
         ${U.panel('Répartition', U.hbars(Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]).map(k => ({ label: k, value: byCat[k], color: 'var(--warn)' }))), { icon: 'chart-pie' })}</div>`;
     U.table(el.querySelector('#exTable'), { id: 'expenses', rows, sort: 'date', resetPage: true,
-      empty: { icon: 'wallet', title: 'Aucune commande', text: 'Aucune commande sur cette période.', hint: 'Modifiez les filtres ou passez une nouvelle commande.' },
+      empty: { icon: 'wallet', title: 'Aucune commande', text: 'Aucune commande sur cette période.' },
       columns: [{ key: 'date', label: 'Date', render: e => U.fmtDate(e.date) }, { key: 'category', label: 'Commande', render: e => U.badge(feeLabel(s, e)) },
         { key: 'qty', label: 'Qté', align: 'right', render: e => e.qty || 1 }, { key: 'unitPrice', label: 'Prix unitaire', align: 'right', render: e => money(e.unitPrice != null ? e.unitPrice : e.amount) },
         { key: 'amount', label: 'Total', align: 'right', render: e => `<b>${money(e.amount)}</b>` },

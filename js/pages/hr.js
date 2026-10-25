@@ -60,7 +60,7 @@
       return Object.assign({}, e, { role: s.roles.find(x => x.id === e.roleId) || { name: '·', rank: 0 }, z, last: e.lastLogin || (last && last.start) || null });
     });
     const count = k => list.filter(e => e.status === k).length;
-    el.innerHTML = `<div class="page-head"><div><h1>Liste du personnel</h1><div class="sub">${list.length} employés · statistiques de la semaine en cours</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Liste du personnel</h1><div class="sub">${list.length} employé${list.length > 1 ? "s" : ""} · statistiques de la semaine en cours</div></div>
         <div class="actions">${mng ? `<button class="btn primary sm" data-new>${icon('user-plus')}Nouveau compte</button>` : ''}</div></div>
       <div class="grid stats">${U.stat({ label: 'En service', value: count('on'), icon: 'user-check' })}${U.stat({ label: 'En pause', value: count('pause'), icon: 'coffee', tone: 'warn' })}
         ${U.stat({ label: 'Hors service', value: count('off'), icon: 'user-x', tone: 'info' })}${U.stat({ label: 'Suspendus', value: count('suspended'), icon: 'user-round-x', tone: 'danger' })}</div>
@@ -98,7 +98,7 @@
         const r = await A().call('staff.resetPassword', { id });
         if (r && r.ok && r.data) showTemp(e.name, r.data);
       },
-      approve: id => A().call('signups.approve', { id }, 'Compte validé : l’employé peut se connecter'),
+      approve: id => A().call('signups.approve', { id }, 'Compte validé : l\'employé peut se connecter'),
       reject: async id => { const g = s.signups.find(x => x.id === id); if (g && await U.confirm(`Refuser la demande de compte de ${g.name} ?`, { ok: 'Refuser', danger: true })) A().call('signups.reject', { id }, 'Demande refusée'); } });
     draw();
   }
@@ -140,9 +140,9 @@
         { name: 'charId', label: 'Char ID', required: true, placeholder: 'ex. 1487' }, { name: 'discordId', label: 'Discord ID', placeholder: 'ex. 284019374512330000', hint: 'Identifiant numérique Discord.' },
         { name: 'bankAccount', label: 'N° compte bancaire', placeholder: 'ex. LSB-1487-4410', hint: 'Compte sur lequel le salaire est versé.' },
         { name: 'roleId', label: 'Grade', type: 'select', options: roles.map(r => ({ value: r.id, label: `${r.name} (${r.commission}%)` })), hint: e ? '' : 'Apprenti par défaut.' },
-        { name: 'hiredAt', label: 'Date d’arrivée', type: 'date' }, { name: 'photo', label: 'Photo de profil (URL)', placeholder: 'https://...' },
+        { name: 'hiredAt', label: 'Date d\'arrivée', type: 'date' }, { name: 'photo', label: 'Photo de profil (URL)', placeholder: 'https://...' },
         { name: 'license', label: 'Licence FiveM', placeholder: e ? 'Laisser vide pour ne pas changer' : 'license:xxxxxxxx', hint: 'Identifie le joueur côté serveur FiveM.' },
-        { name: 'pwdInfo', type: 'html', full: true, html: `<p class="hint" style="margin:0">${icon('key-round', 'xs')} ${e ? 'Mot de passe caché. Pour en changer : bouton « Réinitialiser le mot de passe » (DRH +) dans la liste.' : 'Un mot de passe provisoire sera affiché après la création : donnez-le à l’employé, il choisira le sien à sa première connexion.'}</p>` }],
+        { name: 'pwdInfo', type: 'html', full: true, html: `<p class="hint" style="margin:0">${icon('key-round', 'xs')} ${e ? 'Mot de passe caché. Pour en changer : bouton « Réinitialiser le mot de passe » (DRH +) dans la liste.' : 'Un mot de passe provisoire sera affiché après la création : donnez-le à l\'employé, il choisira le sien à sa première connexion.'}</p>` }],
       onSubmit: async v => {
         const r = await A().call('staff.save', Object.assign({ id }, v), e ? 'Compte modifié' : 'Compte créé');
         if (r && r.ok && r.data && r.data.tempPassword) setTimeout(() => showTemp(v.firstName + ' ' + v.lastName, r.data), 50);
@@ -183,7 +183,7 @@
     const ko = rows.filter(r => !r.ok).length;
     const money1 = p => p.none ? '<span class="faint" title="Pas encore arrivé">·</span>' : `<span title="${p.est ? 'Estimation (paie non calculée)' : p.paid ? 'Payé' : 'Fiche de paie'}">${p.est ? '~' : ''}${money(p.v)}</span>`;
     const req = (q, r) => `<span class="req ${q.ok ? 'ok' : 'ko'}" title="${esc(ST.weekLabel(r))} · ${esc(q.checks.map(c => (c.ok ? '✔ ' : '✘ ') + c.label + ' : ' + c.detail).join(' | ') || 'Aucun prérequis')}"></span>`;
-    el.innerHTML = `<div class="page-head"><div><h1>Licenciement</h1><div class="sub">Aide à la décision : salaire et prérequis des deux dernières semaines terminées (${esc(ST.weekLabel(w2).replace('Semaine ', 'S'))} et ${esc(ST.weekLabel(w1).replace('Semaine ', 'S'))}).</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Licenciement</h1><div class="sub">Salaire et prérequis des 2 dernières semaines (${esc(ST.weekLabel(w2).replace('Semaine ', 'S'))} et ${esc(ST.weekLabel(w1).replace('Semaine ', 'S'))}).</div></div>
         <div class="actions"><label class="check"><input type="checkbox" id="dsOnly" ${dsst.only ? 'checked' : ''}><span>Prérequis non atteints uniquement</span></label></div></div>
       <div class="grid stats">${U.stat({ label: 'Employés', value: rows.length, icon: 'users' })}${U.stat({ label: 'Prérequis atteints', value: rows.length - ko, icon: 'circle-check' })}${U.stat({ label: 'Prérequis non atteints', value: ko, icon: 'circle-x', tone: 'danger' })}
         ${U.stat({ label: 'Masse salariale (2 sem.)', value: money(rows.reduce((a, r) => a + r.total, 0)), icon: 'banknote', tone: 'info' })}</div>
@@ -219,7 +219,7 @@
     const s = S(), e = s.employees.find(x => x.id === id), d = e.dismissal || {}, steps = s.company.dismissChecklist || [];
     const role = s.roles.find(x => x.id === e.roleId) || { name: '·' }, days = Math.max(0, Math.floor((Date.now() - Date.parse(e.hiredAt)) / ST.DAY));
     const stepIc = l => /company|entreprise|job/i.test(l) ? 'building-2' : /discord/i.test(l) ? 'message-circle' : /compta|salaire|paie/i.test(l) ? 'banknote' : 'square-check';
-    const REASONS = ['Absences répétées', 'Inactivité', 'Comportement', 'Faute grave', 'Fin de période d’essai', 'Démission'];
+    const REASONS = ['Absences répétées', 'Inactivité', 'Comportement', 'Faute grave', 'Fin de période d\'essai', 'Démission'];
     const m = U.modal({ title: 'Licencier ' + e.name, icon: 'user-x', size: 'lg',
       body: `<div class="ds-card">${U.avatar(e.name, 'lg')}<div class="ds-who"><b>${esc(e.name)}</b><span>${esc(role.name)} · Char ID ${esc(e.charId || '·')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}</span>
           <span>Arrivé le ${U.fmtDate(e.hiredAt)} · ${days} jour(s)</span></div><div class="ds-pay">${icon('banknote', 'sm')}<span>${salaryInfo(s, e)}</span></div></div>
@@ -261,7 +261,7 @@
       const z = ST.employee(s, e.id, all);
       return Object.assign({}, e, { z, warns: s.warnings.filter(w => w.employeeId === e.id).length, paid: s.payrolls.filter(p => p.employeeId === e.id && p.status === 'paid').reduce((a, p) => a + p.total, 0) });
     });
-    el.innerHTML = `<div class="page-head"><div><h1>Archives du personnel</h1><div class="sub">Anciens employés : les données sont conservées et restent consultables.</div></div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Archives du personnel</h1></div></div>
       <div class="panel"><div class="panel-body" id="arTable"></div></div>`;
     U.table(el.querySelector('#arTable'), { id: 'archives', rows, sort: 'leftAt', onRow: e => detail(e),
       empty: { icon: 'archive', title: 'Aucune archive', text: "Aucun employé n'a quitté l'entreprise.", hint: false },
@@ -298,12 +298,12 @@
     if (!all || !s.employees.some(e => e.id === svst.emp)) svst.emp = me.id;
     const who = s.employees.find(e => e.id === svst.emp) || me;
     const rows = s.sessions.filter(x => x.end && x.employeeId === who.id);
-    el.innerHTML = `<div class="page-head"><div><h1>Services</h1><div class="sub">Prise et fin de service : les heures alimentent automatiquement la paie.</div></div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Services</h1></div></div>
       <div class="grid cols-3">
         <section class="panel"><div class="service-card">
           <span class="service-state ${state}">${U.dot(state === 'on' ? 'ok' : state === 'pause' ? 'warn' : '')}${state === 'on' ? 'EN SERVICE' : state === 'pause' ? 'EN PAUSE' : 'HORS SERVICE'}</span>
           <div class="service-timer" id="svTimer">${open ? U.fmtDur(LSCServer.minutesOf(open, Date.now())) : '00h00'}</div>
-          <div class="muted">${open ? `Depuis ${U.fmtTime(open.start)}` : 'Vous n’êtes pas en service.'}</div>
+          <div class="muted">${open ? `Depuis ${U.fmtTime(open.start)}` : 'Vous n\'êtes pas en service.'}</div>
           <div class="service-actions">${open ? `<button class="btn" data-sv="pause">${icon(paused ? 'play' : 'pause')}${paused ? 'Reprendre' : 'Pause'}</button><button class="btn danger" data-sv="end">${icon('square')}Terminer le service</button>` : `<button class="btn primary" data-sv="start">${icon('play')}Prendre son service</button>`}</div>
           <p class="muted" style="margin:18px 0 0;font-size:12px">Cette semaine : <b style="color:var(--text)">${U.fmtDur(mins)}</b></p></div></section>
         ${U.panel(`En service maintenant (${onDuty.length})`, onDuty.length ? `<div class="list">${onDuty.map(e => { const x = s.sessions.find(y => y.employeeId === e.id && !y.end); return `<div class="li">${U.avatar(e.name)}<div><b>${esc(e.name)}</b><small>${esc(A().roleName(e.roleId))} · depuis ${U.fmtTime(x.start)}</small></div><div class="meta">${U.status('staff', e.status)}<small data-live="${x.id}">${U.fmtDur(LSCServer.minutesOf(x, Date.now()))}</small></div>${mng && e.id !== me.id ? `<span data-id="${e.id}">${act('force', 'Clôturer son service', 'square', 'danger')}</span>` : ''}</div>`; }).join('')}</div>` : U.empty({ icon: 'user-x', title: 'Personne en service', hint: false }), { cls: 'span-2', icon: 'users' })}
@@ -340,7 +340,7 @@
   function warnings(el) {
     const s = S(), mng = A().can('warnings.manage');
     const rows = s.warnings.filter(w => !wst.emp || w.employeeId === wst.emp);
-    el.innerHTML = `<div class="page-head"><div><h1>Avertissements</h1><div class="sub">Sanctions et rappels à l'ordre du personnel.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Avertissements</h1></div>
         <div class="actions"><select class="input sm" id="wEmp" data-combo><option value="">Tous les employés</option>${U.opts(s.employees.map(e => ({ value: e.id, label: e.name })), wst.emp)}</select>${mng ? `<button class="btn primary sm" data-new>${icon('plus')}Nouvel avertissement</button>` : ''}</div></div>
       <div class="panel"><div class="panel-body" id="wTable"></div></div>`;
     U.table(el.querySelector('#wTable'), { id: 'warnings', rows, sort: 'at', resetPage: true, onRow: w => wDetail(w),
@@ -372,7 +372,7 @@
     const all = s.absences.map(a => Object.assign({ st: state(a), days: Math.round((Date.parse(a.to) - Date.parse(a.from)) / DAY) + 1 }, a));
     const n = k => all.filter(a => a.st === k).length;
     const ST_L = { current: ['En cours', 'warn'], future: ['À venir', 'info'], past: ['Terminée', 'muted'] };
-    el.innerHTML = `<div class="page-head"><div><h1>Absences</h1><div class="sub">Absences déclarées. Elles apparaissent dans la liste du personnel et sont prises en compte dans les prérequis de paie.</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Absences</h1></div>
         <div class="actions"><button class="btn primary sm" data-new>${icon('calendar-plus')}Déclarer une absence</button></div></div>
       <div class="panel"><div class="panel-body"><div class="filters">${U.tabs([{ id: 'current', label: 'En cours', count: n('current') }, { id: 'future', label: 'À venir', count: n('future') }, { id: 'past', label: 'Terminées', count: n('past') }, { id: 'all', label: 'Toutes', count: all.length }], abst.tab)}</div><div id="abTable"></div></div></div>`;
     U.table(el.querySelector('#abTable'), { id: 'absences', sort: 'from', resetPage: true,
@@ -390,7 +390,7 @@
   function absenceForm(id) {
     const s = S(), a = id ? s.absences.find(x => x.id === id) : null, mng = A().can('staff.manage');
     const emps = mng ? s.employees.filter(e => !e.archived) : [A().meEmp()];
-    U.form({ title: a ? 'Modifier l’absence' : 'Déclarer une absence', icon: 'calendar-plus', size: 'sm',
+    U.form({ title: a ? 'Modifier l\'absence' : 'Déclarer une absence', icon: 'calendar-plus', size: 'sm',
       values: a ? Object.assign({}, a, { from: U.toInputDate(a.from), to: U.toInputDate(a.to) }) : { employeeId: A().me.id, from: U.toInputDate(Date.now()), to: U.toInputDate(Date.now()) },
       fields: [{ name: 'employeeId', label: 'Employé', type: 'select', full: true, attrs: 'data-combo', options: emps.map(e => ({ value: e.id, label: e.name })) },
         { name: 'from', label: 'Du', type: 'date', required: true }, { name: 'to', label: 'Au (inclus)', type: 'date', required: true },
@@ -404,7 +404,7 @@
     const s = S(), e = A().meEmp(), role = A().myRole(), DAY = ST.DAY;
     const days = Math.floor((Date.now() - Date.parse(e.hiredAt)) / DAY), w = ST.range('week'), z = ST.employee(s, e.id, w);
     const ro = (label, value, ic) => `<div class="acc-ro">${icon(ic)}<div><small>${label}</small><b>${value}</b></div></div>`;
-    el.innerHTML = `<div class="page-head"><div><h1>Mon compte</h1><div class="sub">Vos informations d'employé. Le Char ID, le grade et la date d'arrivée sont gérés par la direction.</div></div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Mon compte</h1><div class="sub">Le Char ID, le grade et la date d'arrivée sont gérés par la direction.</div></div></div>
       <div class="grid cols-3">
         <section class="panel"><div class="panel-body acc-card">
           <div class="acc-photo">${e.photo ? `<img src="${esc(e.photo)}" alt="" onerror="this.remove()">` : ''}<span>${esc(e.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span></div>
@@ -416,7 +416,7 @@
             ${ro('Nom Prénom', esc(e.name), 'user-round')}
             ${ro('Grade', esc(role.name) + ` <small class="muted">· commission ${role.commission || 0}%</small>`, 'shield-check')}
             ${ro('Char ID', esc(e.charId || '·'), 'fingerprint')}
-            ${ro('Date d’arrivée', U.fmtDate(e.hiredAt) + ` <small class="muted">· ${days} jour${days > 1 ? 's' : ''}</small>`, 'calendar-check')}
+            ${ro('Date d\'arrivée', U.fmtDate(e.hiredAt) + ` <small class="muted">· ${days} jour${days > 1 ? 's' : ''}</small>`, 'calendar-check')}
           </div>
           <div class="section-title">Modifiable par vous</div>
           <form class="form" id="accForm">
