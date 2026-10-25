@@ -93,7 +93,7 @@
       body: JSON.stringify({ action, payload: payload || {} })
     });
     const res = await r.json().catch(() => ({ ok: false, error: 'Réponse serveur invalide' }));
-    if (res.ok && res.token) store.set('lsc_token', res.token); // jeton renouvelé (session glissante 1 h)
+    if (res.ok && res.token) store.set('lsc_token', res.token); // jeton renouvelé (session glissante 1 h, ou 30 jours avec « Rester connecté »)
     if (res.needLogin) store.del('lsc_token');
     return res;
   }

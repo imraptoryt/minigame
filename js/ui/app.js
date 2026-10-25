@@ -422,6 +422,7 @@
   /* ---------- connexion (mode http) ---------- */
   /* ---------- connexion (Char ID + mot de passe), session de 1 h ---------- */
   /* ---------- connexion (Char ID + mot de passe), session de 1 h ; création de compte ---------- */
+  let keep = (() => { try { return localStorage.getItem('lsc_keep') === '1'; } catch (e) { return false; } })(); // « Rester connecté »
   function showLogin(msg, mode, charId, code) { // code = mot de passe provisoire déjà vérifié (mode newpwd)
     U.closePopover();
     while (U.modal.top()) U.modal.top().close();
@@ -453,6 +454,7 @@
         <button class="btn ghost block" type="button" data-mode="login">${icon('arrow-left')}Retour</button>`
       : `${fld('charId', 'Char ID', 'text', 'required autocomplete="username"')}
         ${fld('password', 'Mot de passe', 'password', 'required autocomplete="current-password"')}
+        ${LSC.api.mode === 'http' && !link ? `<label class="check login-remember"><input type="checkbox" name="remember" ${keep ? 'checked' : ''}><span>Rester connecté sur cet appareil</span></label>` : ''}
         <button class="btn primary block" type="submit">${icon(link ? 'link' : 'log-in')}${link ? 'Relier mon compte' : 'Se connecter'}</button>
         <button class="btn ghost block" type="button" data-mode="register">${icon('user-plus')}Créer un compte</button>`}
       </form>`;
@@ -477,14 +479,16 @@
       if (np) {
         if (el.password.value !== el.password2.value) return U.toast('Les mots de passe ne correspondent pas', 'error');
         btn.disabled = true;
-        const r = await LSC.api.call('auth.setPassword', { charId: el.charId.value.trim(), code: code || el.code.value.trim(), password: el.password.value });
+        const r = await LSC.api.call('auth.setPassword', { charId: el.charId.value.trim(), code: code || el.code.value.trim(), password: el.password.value, remember: keep });
         btn.disabled = false;
         if (r.locked) return showLogin(r.error, 'login', el.charId.value.trim());
         if (!r.ok) return U.toast(r.error || 'Enregistrement impossible', 'error');
         return enter();
       }
       btn.disabled = true;
-      const id = el.charId.value.trim(), r = await LSC.api.call('auth.login', { charId: id, password: el.password.value });
+      keep = !!(el.remember && el.remember.checked);
+      try { localStorage.setItem('lsc_keep', keep ? '1' : ''); } catch (e) { /* stockage bloqué */ }
+      const id = el.charId.value.trim(), r = await LSC.api.call('auth.login', { charId: id, password: el.password.value, remember: keep });
       btn.disabled = false;
       if (r.needNewPassword) return showLogin('Mot de passe provisoire accepté : choisissez maintenant votre mot de passe personnel.', 'newpwd', id, el.password.value);
       if (r.locked) return showLogin(r.error, link ? 'link' : 'login', id);
@@ -493,7 +497,7 @@
     };
   }
   /* vérifie l'expiration (onglet resté ouvert, retour sur la page) */
-  function checkSession() { if (App.state && LSC.api.expired()) showLogin('Session expirée (1 h) : reconnectez-vous.'); }
+  function checkSession() { if (App.state && LSC.api.expired()) showLogin('Session expirée : reconnectez-vous.'); }
   setInterval(checkSession, 30000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSession(); });
 

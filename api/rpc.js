@@ -147,16 +147,24 @@ async function oldest() { const r = await sb('lsc_rows?select=at&order=at.asc&li
 
 /* Jetons web : base64url(id.exp).signature */
 const sign = s => crypto.createHmac('sha256', env.LSC_SECRET).update(s).digest('base64url');
-/* session de 1 h, renouvelée à chaque appel */
-function issue(id) { const body = Buffer.from(id + '.' + (Date.now() + 3600e3)).toString('base64url'); return body + '.' + sign(body); }
-function verify(token) {
+/* session de 1 h, ou 30 jours avec « Rester connecté », renouvelée à chaque appel.
+ * Le jeton porte une empreinte du mot de passe : un changement ou une réinitialisation déconnecte partout. */
+const pwPrint = e => e && e.pinHash ? sign('pw:' + e.pinHash).slice(0, 12) : '';
+function issue(id, long, db) {
+  const e = db.employees.find(x => x.id === id);
+  const body = Buffer.from([id, Date.now() + (long ? 30 * 864e5 : 3600e3), long ? 1 : 0, pwPrint(e)].join('.')).toString('base64url');
+  return body + '.' + sign(body);
+}
+function verify(token, db) {
   if (!token || !env.LSC_SECRET) return null;
   const [body, sig] = token.split('.');
   if (!body || !sig) return null;
   const expected = sign(body);
   if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-  const [id, exp] = Buffer.from(body, 'base64url').toString().split('.');
-  return +exp > Date.now() ? id : null;
+  const [id, exp, long, pw] = Buffer.from(body, 'base64url').toString().split('.');
+  if (!(+exp > Date.now())) return null;
+  if (pw !== undefined && pw !== pwPrint(db.employees.find(x => x.id === id))) return null;
+  return { id, long: long === '1' };
 }
 function safeEqual(a, b) { a = Buffer.from(String(a || '')); b = Buffer.from(String(b || '')); return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b); }
 
@@ -166,7 +174,8 @@ function actorOf(req, body, db) {
     return e ? e.id : null;
   }
   const auth = String(req.headers.authorization || '');
-  return verify(auth.startsWith('Bearer ') ? auth.slice(7) : '');
+  const t = verify(auth.startsWith('Bearer ') ? auth.slice(7) : '', db);
+  return t ? (req.longSession = t.long, t.id) : null;
 }
 
 module.exports = async (req, res) => {
@@ -216,7 +225,7 @@ module.exports = async (req, res) => {
         }
         if (r.changed) { const nv = await commit(version, core); if (nv < 0) continue; remember(core, nv); }
         if (!r.ok) return res.status(r.needNewPassword ? 200 : r.locked ? 423 : 401).json({ ok: false, error: r.error, locked: r.locked, needNewPassword: r.needNewPassword });
-        return res.json(Object.assign({ ok: true }, fivem ? { linked: true } : { token: issue(r.id) }));
+        return res.json(Object.assign({ ok: true }, fivem ? { linked: true } : { token: issue(r.id, payload.remember === true, core) }));
       }
 
       /* création de compte : demande en attente, validée ensuite par la direction */
@@ -232,7 +241,7 @@ module.exports = async (req, res) => {
       if (!actorId && fivem) return res.json({ ok: false, needLink: true, error: 'Reliez votre compte : connectez-vous une fois avec votre Char ID' });
       if (!actorId) return res.status(401).json({ ok: false, needLogin: true, error: 'Authentification requise' });
       const web = !(env.LSC_FIVEM_KEY && safeEqual(req.headers['x-lsc-server-key'], env.LSC_FIVEM_KEY));
-      const token = web ? { token: issue(actorId) } : {};
+      const token = web ? { token: issue(actorId, req.longSession, core) } : {};
       const now = Date.now();
 
       /* démarrage : document + 15 derniers jours (historique d'actions : 3 jours) + éléments en cours,
@@ -274,7 +283,8 @@ module.exports = async (req, res) => {
         remember(next, nv);
         await Server.runEffects(r.effects);
         /* réponse : document + lignes modifiées seulement (l'interface fusionne) */
-        return res.json(Object.assign(Server.view(Object.assign({}, next, d.changed), actorId), { data: r.data, merge: true, removed: d.removed }, token));
+        /* jeton refait après l'action : changer son mot de passe garde cette session, déconnecte les autres */
+        return res.json(Object.assign(Server.view(Object.assign({}, next, d.changed), actorId), { data: r.data, merge: true, removed: d.removed }, web ? { token: issue(actorId, req.longSession, next) } : {}));
       }
       /* conflit : un autre employé a écrit entre-temps -> on rejoue sur la version fraîche */
     }

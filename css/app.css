@@ -606,6 +606,7 @@ body.locked .app { visibility: hidden; }
 .login-card > p { margin: -8px 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
 .login-card .field { text-align: left; }
 .login-card .login-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.login-remember { justify-content: flex-start; font-size: 12.5px; margin: -2px 0 2px; }
 .login-note { display: flex; gap: 6px; align-items: flex-start; text-align: left; font-size: 11px; line-height: 1.4; color: var(--warn); }
 .login-note svg { width: 13px; height: 13px; flex: none; margin-top: 1px; }
 .alert.ok { color: var(--ok); background: var(--ok-soft); border-color: rgba(var(--okc), .25); }
