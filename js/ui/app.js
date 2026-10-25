@@ -41,7 +41,7 @@
     { title: 'Comptabilité', items: [
       { label: 'Bilan', icon: 'chart-pie', routes: ['bilan', 'declaration'] },
       { label: 'Ventes', icon: 'dollar-sign', routes: ['sales', 'byproduct'] },
-      { label: 'Factures', icon: 'receipt', routes: ['invoices'] },
+      { label: 'Partenaires', icon: 'handshake', routes: ['invoices'] },
       { label: 'Salaires & frais', icon: 'banknote', routes: ['payroll', 'expenses'] },
       { label: 'Compte bancaire', icon: 'landmark', routes: ['bank'] }] },
     { title: 'Ressources humaines', items: [
