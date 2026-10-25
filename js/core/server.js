@@ -474,7 +474,8 @@
       const pr = db.products.find(x => x.id === i.productId);
       if (pr && pr.inventoryId && db.inventory.some(x => x.id === pr.inventoryId)) c.stock(pr.inventoryId, i.qty * (pr.consume || 1), 'Annulation #' + s.ref, s.id);
     });
-    const regul = db.commissions.filter(x => x.saleId === s.id && x.payrollId && x.amount > 0);
+    const paidPay = new Set(db.payrolls.filter(r => r.status === 'paid').map(r => r.id)); // fiche annulée : rien n'a été versé, rien à reprendre
+    const regul = db.commissions.filter(x => x.saleId === s.id && x.payrollId && paidPay.has(x.payrollId) && x.amount > 0);
     db.commissions = db.commissions.filter(x => !(x.saleId === s.id && !x.payrollId));
     regul.forEach(x => db.commissions.push({ id: uid('com'), employeeId: x.employeeId, saleId: s.id, ref: s.ref, amount: -x.amount, rate: x.rate, createdAt: c.iso, payrollId: null, note: 'Régularisation annulation' }));
     if (s.invoiceId) {
@@ -488,6 +489,38 @@
     }
     stockWebhooks(c, s, true);
     c.audit('sale.cancel', `a annulé la vente #${s.ref} (${reason})`);
+  };
+
+  /* Retirer le partenaire d'une vente (partenaire choisi par erreur) : la vente redevient une vente normale,
+   * au prix normal et payée directement ; elle sort de sa facture partenaire si celle-ci n'est pas encore payée. */
+  A['sales.removePartner'] = (c, p) => {
+    c.need('invoices.manage');
+    const db = c.db, s = find(db.sales, p.id, 'Vente');
+    if (s.status === 'cancelled') fail('Vente annulée');
+    if (!s.partnerId) fail("Cette vente n'a pas de partenaire");
+    const inv = s.invoiceId ? db.invoices.find(i => i.id === s.invoiceId) : null;
+    if (inv && inv.status === 'paid') fail('La facture de cette vente est déjà payée');
+    if (db.commissions.some(x => x.saleId === s.id && x.payrollId)) fail('La commission de cette vente a déjà été versée');
+    const partnerName = s.partnerName, seller = db.employees.find(e => e.id === s.employeeId);
+    const rate = s.commissionRate != null ? s.commissionRate : (seller ? roleOf(db, seller).commission : 0);
+    const spec = a => a ? { type: a.type, value: a.value } : null;
+    const q = quote(db, { items: s.items.map(i => ({ productId: i.productId, qty: i.qty })), discount: spec(s.discount), markup: spec(s.markup), vehicleClass: (s.vehicle || {}).class }, rate);
+    if (!q.missing.length) Object.assign(s, { items: q.items, subtotal: q.subtotal, factory: q.factory, total: q.total, commissionRate: q.commissionRate, commission: q.commission, commissionBase: q.commissionBase });
+    [s.discount, s.markup].forEach(a => a && Object.assign(a, { original: s.subtotal, final: s.total }));
+    const mode = saleMode(db, null), method = (db.company.paymentMethods || []).find(m => m.id === mode.payment) || { id: mode.payment };
+    Object.assign(s, { partnerId: null, partnerName: null, customerName: 'Client', payment: method.id, status: method.id === 'invoice' ? 'pending' : 'paid', invoiceId: null, partnerRemovedBy: c.me.name, partnerRemovedAt: c.iso });
+    /* commission (pas encore versée) recalculée, à la date de la vente */
+    db.commissions = db.commissions.filter(x => !(x.saleId === s.id && !x.payrollId));
+    if (s.commission > 0) db.commissions.push({ id: uid('com'), employeeId: s.employeeId, saleId: s.id, ref: s.ref, amount: s.commission, rate: s.commissionRate, createdAt: s.createdAt, payrollId: null });
+    if (method.bank) c.bank('in', s.total, 'vente', `Vente #${s.ref}`, s.id);
+    if (inv && inv.saleIds) {
+      inv.saleIds = inv.saleIds.filter(x => x !== s.id);
+      inv.items = inv.items.filter(l => l.saleId !== s.id);
+      inv.total = c.r(inv.items.reduce((a, l) => a + l.price * l.qty, 0));
+      if (!inv.saleIds.length) inv.status = 'cancelled';
+    }
+    c.audit('sale.partner', `a retiré le partenaire ${partnerName} de la vente #${s.ref} (${money(s.total)})`);
+    return { sale: s };
   };
 
   /* =================== CLIENTS =================== */
@@ -1744,7 +1777,7 @@
     const q = [{ open: true }], day = DAY;
     if (action === 'bootstrap') q.push({ from: now - WINDOW, to: now + day });
     else if (action === 'vehicle.lookup') q.push({ kinds: ['sales'], plate: plateOf(p.plate), model: str(p.model, 40).toLowerCase() });
-    else if (action === 'sales.cancel') {
+    else if (action === 'sales.cancel' || action === 'sales.removePartner') {
       const inv = ((core && core.invoices) || []).find(i => i.saleId === p.id || (i.saleIds || []).includes(p.id));
       q.push({ kinds: ['sales'], ids: [String(p.id || '')] }, { kinds: ['commissions', 'bank'], refs: [String(p.id || '')].concat(inv ? [inv.id] : []) });
     } else if (action === 'week.close') { const a = openFrom(core, now); q.push({ kinds: ['sales'], from: a - day, to: now + day }); }

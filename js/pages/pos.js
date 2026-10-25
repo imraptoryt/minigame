@@ -413,7 +413,7 @@
     if (P.sel === id) P.sel = P.cart.length ? P.cart[P.cart.length - 1].productId : null;
     persist(); drawCart(); drawGrid();
   }
-  function reset() { P.cart = []; P.sel = null; P.seller = ''; P.discount = null; P.markup = null; P.customerId = null; P.cq = ''; P.vehicle = noVehicle(); persist(); }
+  function reset() { P.cart = []; P.sel = null; P.seller = ''; P.partnerId = ''; P.discount = null; P.markup = null; P.customerId = null; P.cq = ''; P.vehicle = noVehicle(); persist(); }
 
   /* ---------- modales ---------- */
   function adjustModal(kind) {

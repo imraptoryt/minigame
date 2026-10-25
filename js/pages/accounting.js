@@ -277,8 +277,15 @@
         ${s.note ? `<div class="section-title">Note</div><p class="muted" style="margin:0">${esc(s.note)}</p>` : ''}
         ${s.status === 'cancelled' ? `<div class="alert danger mt">${icon('ban')}<span>Annulée le ${U.fmtDT(s.cancelledAt)} par <b>${esc(s.cancelledBy)}</b> — ${esc(s.cancelReason)}</span></div>` : ''}`,
       foot: `${s.invoiceId && A().can('invoices.manage') ? `<button class="btn ghost" data-inv>${icon('file-text')}Voir la facture</button>` : ''}<span class="grow"></span>
+        ${s.partnerId && s.status !== 'cancelled' && A().can('invoices.manage') ? `<button class="btn" data-unpartner title="Partenaire choisi par erreur">${icon('user-x')}Retirer le partenaire</button>` : ''}
         ${s.status !== 'cancelled' && A().can('sales.cancel') ? `<button class="btn danger" data-cancel>${icon('ban')}Annuler la vente</button>` : ''}<button class="btn" data-close>Fermer</button>`
     });
+    const up = m.el.querySelector('[data-unpartner]');
+    if (up) up.onclick = async () => {
+      if (!await U.confirm(`Retirer ${s.partnerName} de la vente #${s.ref} ? Elle devient une vente normale (prix normal, payée directement) et sort de la facture du partenaire.`, { ok: 'Retirer le partenaire' })) return;
+      const r = await A().call('sales.removePartner', { id: s.id }, 'Partenaire retiré de la vente');
+      if (r.ok) m.close();
+    };
     const inv = m.el.querySelector('[data-inv]');
     if (inv) inv.onclick = () => { m.close(); LSC.open.invoice(s.invoiceId); };
     const c = m.el.querySelector('[data-cancel]');
