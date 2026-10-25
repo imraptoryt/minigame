@@ -426,8 +426,11 @@
             ${LSC.api.mode !== 'nui' ? U.field({ name: 'password', label: 'Nouveau mot de passe', type: 'password', placeholder: 'Laisser vide pour ne pas changer' }, '') + U.field({ name: 'password2', label: 'Confirmer le mot de passe', type: 'password' }, '') : ''}
           </form>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="accSave">${icon('save')}Enregistrer</button></div>
+          <div class="section-title">Préférences</div>
+          <label class="check" style="display:flex"><input type="checkbox" id="accHideAll" ${e.posHideAll ? 'checked' : ''}><span>Cacher l'onglet « Tous » au point de vente <small class="muted">(la 1re catégorie s'ouvre à la place)</small></span></label>
         </div></section>
       </div>`;
+    el.querySelector('#accHideAll').onchange = ev => A().call('account.update', { posHideAll: ev.target.checked }, ev.target.checked ? 'Onglet « Tous » caché' : 'Onglet « Tous » remis');
     const f = el.querySelector('#accForm');
     f.elements.photo.addEventListener('input', () => {
       const box = el.querySelector('.acc-photo'), u = f.elements.photo.value.trim(), img = box.querySelector('img');

@@ -1230,6 +1230,7 @@
     if (p.photo !== undefined) e.photo = cleanPhoto(p.photo);
     if (p.discordId !== undefined) { const d = str(p.discordId, 30); if (d && !/^\d{5,25}$/.test(d)) fail('Discord ID invalide (chiffres uniquement)'); e.discordId = d; }
     if (p.bankAccount !== undefined) e.bankAccount = str(p.bankAccount, 40);
+    if (p.posHideAll !== undefined) e.posHideAll = !!p.posHideAll; // réglage perso : onglet « Tous » du point de vente
     const pwd = p.password || p.pin;
     if (pwd) { if (String(pwd).length < PWD_MIN) fail(`Le mot de passe doit faire au moins ${PWD_MIN} caractères`); e.pinHash = config.hash(String(pwd)); }
     c.audit('account.update', 'a mis à jour son compte');
@@ -1644,7 +1645,6 @@
       if (!co.paymentMethods.some(m => m.enabled)) fail('Au moins un moyen de paiement doit être actif');
     }
     if (s.invoiceThreshold != null) co.invoiceThreshold = c.r(num(s.invoiceThreshold, 0, 1e9));
-    if (s.posHideAll != null) co.posHideAll = !!s.posHideAll; // onglet « Tous » du point de vente
     if (s.directPayment != null) co.directPayment = ['card', 'cash', 'company'].includes(s.directPayment) ? s.directPayment : 'card';
     if (Array.isArray(s.vehicleClasses)) co.vehicleClasses = [0, 1, 2, 3, 4].map(i => str(s.vehicleClasses[i], 40) || co.vehicleClasses[i] || 'Catégorie ' + (i + 1));
     if (s.payrollRules && typeof s.payrollRules === 'object') {

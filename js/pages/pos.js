@@ -75,8 +75,8 @@
       (!q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || app().catLabel(p.category).toLowerCase().includes(q)));
   }
   function drawTabs(list) {
-    /* onglet « Tous » masquable (Paramètres → Point de vente) : on ouvre alors la première catégorie */
-    const noAll = !!S().company.posHideAll && cats().length > 0, first = (cats()[0] || {}).id || 'all';
+    /* onglet « Tous » masquable par chaque employé (Mon compte → Préférences) : on ouvre alors la première catégorie */
+    const noAll = !!(app().meEmp() || {}).posHideAll && cats().length > 0, first = (cats()[0] || {}).id || 'all';
     if (P.cat !== 'all' && !cats().some(c => c.id === P.cat)) P.cat = noAll ? first : 'all';
     if (noAll && P.cat === 'all') P.cat = first;
     const all = (noAll ? [] : [{ id: 'all', label: 'Tous', icon: 'layout-grid' }]).concat(cats());
