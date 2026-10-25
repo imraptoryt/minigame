@@ -761,7 +761,7 @@
       const v = p.prices[k];
       if (v !== '' && v != null && c.db.products.some(x => x.id === k)) prices[k] = c.r(num(v));
     });
-    const data = { name: str(p.name, 60), type: str(p.type, 30) || 'entreprise', logo: str(p.logo, 500), contact: str(p.contact, 60), phone: str(p.phone, 20), rate: num(p.rate, 0, 100), notes: str(p.notes, 300), prices,
+    const data = { name: str(p.name, 60), type: str(p.type, 30) || 'entreprise', logo: str(p.logo, 500), contact: str(p.contact, 60), phone: str(p.phone, 20), bankAccount: str(p.bankAccount, 40), rate: num(p.rate, 0, 100), notes: str(p.notes, 300), prices,
       pingUser: str(p.pingUser, 25), pingRole: str(p.pingRole, 25) };
     if (!data.name) fail('Nom obligatoire');
     if (data.pingUser && !/^\d{5,25}$/.test(data.pingUser)) fail('ID Discord invalide (chiffres uniquement)');
@@ -800,24 +800,44 @@
     return { partnerId: pa.id, customerId: null, customerName: pa.name };
   }
   /* Message Discord du partenaire (ping utilisateur / rôle) */
+  /* n° de semaine ISO (lundi -> dimanche) */
+  function isoWeek(t) {
+    const d = new Date(t); d.setUTCHours(0, 0, 0, 0); d.setUTCDate(d.getUTCDate() + 3 - (d.getUTCDay() + 6) % 7);
+    const w1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    return { week: 1 + Math.round(((d - w1) / DAY - 3 + (w1.getUTCDay() + 6) % 7) / 7), year: d.getUTCFullYear() };
+  }
+  /* Message Discord envoyé au partenaire (webhook de sa fiche) : facture, période, produits, compte à débiter */
   function invoiceWebhook(c, inv, title) {
-    const pa = c.db.partners.find(x => x.id === inv.partnerId);
+    const pa = c.db.partners.find(x => x.id === inv.partnerId), co = c.db.company;
     if (!pa || !pa.webhook) return;
     const ping = [pa.pingUser ? `<@${pa.pingUser}>` : '', pa.pingRole ? `<@&${pa.pingRole}>` : ''].filter(Boolean).join(' ');
+    const a = isoWeek(Date.parse(inv.periodFrom || inv.createdAt)), b = isoWeek(Date.parse(inv.periodTo || inv.periodFrom || inv.createdAt));
+    const period = a.week === b.week && a.year === b.year ? `Semaine ${a.week} · ${a.year}` : `Semaines ${a.week} à ${b.week} · ${b.year}`;
+    const prods = inv.products && inv.products.length ? inv.products : inv.items.map(l => ({ name: l.label, qty: l.qty, total: l.price * l.qty }));
+    let list = '', shown = 0;
+    for (const x of prods) {
+      const line = `• **${x.name}** · x${x.qty} → ${money(x.total)}\n`;
+      if (list.length + line.length > 980) { list += `… ${prods.length - shown} autre(s)`; break; }
+      list += line; shown++;
+    }
+    const name = co.name || 'Los Santos Customs';
     c.effect({ type: 'discord', url: pa.webhook, body: {
-      username: (c.db.company.name || 'LS Customs') + ' · Facturation',
+      username: 'Facture · ' + pa.name,
+      avatar_url: /^https?:\/\//.test(co.logo || '') ? co.logo : 'https://lscustoms-compta.vercel.app/' + String(co.logo || 'img/logo.png').replace(/^\//, ''),
       content: ping || undefined,
       allowed_mentions: { users: pa.pingUser ? [pa.pingUser] : [], roles: pa.pingRole ? [pa.pingRole] : [] },
       embeds: [{
-        title: `${title} · ${inv.ref}`, color: 0x1fd1a5,
-        description: inv.items.slice(0, 15).map(l => `• ${l.label}${l.qty > 1 ? ' ×' + l.qty : ''} · ${money(l.price * l.qty)}`).join('\n') + (inv.items.length > 15 ? `\n… ${inv.items.length - 15} ligne(s) de plus` : ''),
+        title: `📄 ${title}`, color: 0x3b82f6,
+        description: `Facture de **${name}**`,
         fields: [
-          { name: 'Partenaire', value: pa.name, inline: true },
-          { name: 'Montant', value: money(inv.total), inline: true },
-          { name: 'Échéance', value: fmtD(inv.due), inline: true },
-          ...(inv.note ? [{ name: 'Note', value: inv.note }] : [])
+          { name: '🏢 Émetteur', value: name, inline: true },
+          { name: '📅 Période', value: period, inline: true },
+          { name: '💰 Montant total', value: money(inv.total), inline: true },
+          { name: '🛒 Produits', value: list.trim() || 'Aucun' },
+          { name: '💳 Compte à débiter', value: pa.bankAccount ? '`' + pa.bankAccount + '`' : 'Non renseigné' },
+          ...(inv.note ? [{ name: '📝 Note', value: inv.note.slice(0, 300) }] : [])
         ],
-        footer: { text: 'Émise par ' + c.me.name }, timestamp: c.iso
+        footer: { text: `💡 Pour obtenir le PDF de cette facture, contactez l'émetteur · ${inv.ref}` }, timestamp: c.iso
       }]
     } });
   }
@@ -863,7 +883,10 @@
     const from = sales[0].createdAt, to = sales[sales.length - 1].createdAt;
     const inv = createInvoice(c, { partnerId: pa.id, items: [], kind: 'auto', saleIds: sales.map(x => x.id), note: `${sales.length} vente(s) du ${fmtD(from)} au ${fmtD(to)}` }, 'sent', true, items);
     sales.forEach(x => { x.invoiceId = inv.id; });
-    invoiceWebhook(c, inv, 'Facture');
+    const byProd = {};
+    sales.forEach(x => x.items.forEach(i => { const k = byProd[i.productId || i.name] = byProd[i.productId || i.name] || { name: i.name, qty: 0, total: 0 }; k.qty += i.qty; k.total = c.r(k.total + i.total); }));
+    Object.assign(inv, { products: Object.values(byProd), periodFrom: from, periodTo: to });
+    invoiceWebhook(c, inv, 'Nouvelle facture');
     c.audit('invoice.generate', `a généré la facture ${inv.ref} pour ${pa.name} (${money(inv.total)}, ${sales.length} vente(s))`);
     return { id: inv.id };
   };
