@@ -66,7 +66,6 @@
     S.invoices.filter(i => ST.invoiceStatus(i) === 'overdue').forEach(i => out.push(['danger', 'file-warning', `Facture partenaire en retard : ${i.ref}`, `${i.customerName} · ${money(i.total)}`, 'invoices']));
     const drafts = S.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled').length;
     if (drafts && LSC.app.can('payroll.manage')) out.push(['info', 'banknote', `${drafts} fiche(s) de paie à traiter`, 'Valider puis payer', 'payroll']);
-    if (LSC.app.can('bank.view') && ST.bankBalance(S) < 5000) out.push(['danger', 'landmark', 'Trésorerie faible', money(ST.bankBalance(S)), 'bank']);
     if (!out.length) return U.empty({ icon: 'shield-check', title: 'Aucune alerte', text: 'Tout est en ordre.', hint: false });
     return `<div class="list">${out.slice(0, 7).map(a => `<div class="li ${LSC.app.allowed(a[4]) ? 'clickable' : ''}" ${LSC.app.allowed(a[4]) ? `data-go="${a[4]}"` : ''}><span class="li-ic ${a[0]}">${icon(a[1])}</span><div style="min-width:0"><b>${esc(a[2])}</b><small>${esc(a[3])}</small></div></div>`).join('')}</div>`;
   }

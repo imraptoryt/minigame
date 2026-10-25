@@ -253,7 +253,7 @@
     const plates = [...new Set(S().sales.filter(x => x.vehicle && x.vehicle.plate).map(x => x.vehicle.plate).reverse())].slice(0, 15);
     box.innerHTML = `<div class="veh-card ${!v.cls ? 'missing' : ''}">
       <div class="veh-top">
-        <label class="plate" title="Plaque d'immatriculation"><span>San Andreas</span><input id="vehPlate" maxlength="8" placeholder="PLAQUE" value="${esc(v.plate)}" list="plateList" autocomplete="off" spellcheck="false"></label>
+        <label class="plate" title="Plaque d'immatriculation"><span>San Andreas</span><input id="vehPlate" maxlength="10" placeholder="PLAQUE" value="${esc(v.plate)}" list="plateList" autocomplete="off" spellcheck="false"></label>
         <div class="veh-meta"><b>${v.cls ? 'Catégorie ' + v.cls + ' · ' + esc(classLabel(v.cls)) : 'Catégorie du véhicule à choisir'}</b>
           <small>${v.cls ? U.badge((SRC[v.source] || SRC.manual)[0], (SRC[v.source] || SRC.manual)[1]) : 'Obligatoire : le prix dépend de la catégorie'}</small>
           <small class="muted">${k ? (k.count ? `${k.count} intervention${k.count > 1 ? 's' : ''} · dernière le ${U.fmtDate(k.lastAt)}` : 'Jamais venu au garage') : v.plate ? 'Appuyez sur Entrée pour rechercher' : ''}</small></div>
@@ -503,7 +503,9 @@
     const right = root.querySelector('.pos-right');
     right.addEventListener('input', e => {
       if (e.target.id !== 'vehPlate') return;
-      P.vehicle.plate = e.target.value.toUpperCase(); P.vehicle.known = null; P.vehicle.info = null; P.vehicle.unlisted = null; persist();
+      const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 10); // 10 lettres / chiffres maximum
+      if (clean !== e.target.value) e.target.value = clean;
+      P.vehicle.plate = clean; P.vehicle.known = null; P.vehicle.info = null; P.vehicle.unlisted = null; persist();
       clearTimeout(plateTimer);
       if (P.vehicle.plate.trim().length >= 3) plateTimer = setTimeout(() => lookupPlate(true), 700);
     });

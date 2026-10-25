@@ -280,8 +280,7 @@
     if (!t) return;
     if (t.category === 'vente' && t.ref) return LSC.open.sale(t.ref);
     if (t.category === 'facture' && t.ref) return LSC.open.invoice(t.ref);
-    bst.q = t.label; bst.period = 'custom'; bst.from = U.toInputDate(Date.parse(t.at)); bst.to = bst.from;
-    A().go('bank');
+    U.toast(t.label);
   };
 
   /* =================== HISTORIQUE (AUDIT) =================== */

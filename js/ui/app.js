@@ -17,7 +17,6 @@
     { id: 'invoices', label: 'Factures partenaires', icon: 'receipt', perm: 'invoices.manage', badge: 'overdueInvoices' },
     { id: 'payroll', label: 'Salaires', icon: 'banknote', perm: 'payroll.manage' },
     { id: 'expenses', label: 'Commandes (frais)', icon: 'shopping-bag', perm: 'expenses.manage' },
-    { id: 'bank', label: 'Compte bancaire', icon: 'landmark', perm: 'bank.view' },
     { id: 'staff', label: 'Liste', icon: 'users', perm: 'staff.view', badge: 'signups' },
     { id: 'warnings', label: 'Avertissements', icon: 'megaphone', perm: ['warnings.manage', 'staff.view'] },
     { id: 'dismiss', label: 'Licenciement', icon: 'user-x', perm: 'staff.manage' },
@@ -42,8 +41,7 @@
       { label: 'Bilan', icon: 'chart-pie', routes: ['bilan', 'declaration'] },
       { label: 'Ventes', icon: 'dollar-sign', routes: ['sales', 'byproduct'] },
       { label: 'Partenaires', icon: 'handshake', routes: ['invoices'] },
-      { label: 'Salaires & frais', icon: 'banknote', routes: ['payroll', 'expenses'] },
-      { label: 'Compte bancaire', icon: 'landmark', routes: ['bank'] }] },
+      { label: 'Salaires & frais', icon: 'banknote', routes: ['payroll', 'expenses'] }] },
     { title: 'Ressources humaines', items: [
       { label: 'Personnel', icon: 'users', routes: ['staff', 'absences', 'warnings', 'archives'] },
       { label: 'Licenciement', icon: 'user-x', routes: ['dismiss'] },
@@ -418,7 +416,6 @@
     push('Factures', S.invoices.filter(i => has(i.ref, i.customerName)).map(i => ({ lead: lead('file-text'), title: `${i.ref} — ${money(i.total)}`, sub: i.customerName, open: () => LSC.open.invoice(i.id) })));
     push('Produits', S.products.filter(p => has(p.name, p.description)).map(p => ({ lead: lead(p.icon || 'wrench'), title: p.name, sub: `${App.catLabel(p.category)} · ${money(p.price)}`, open: () => LSC.open.product(p.id) })));
     push('Partenaires', S.partners.filter(p => has(p.name, p.contact)).map(p => ({ lead: lead('handshake'), title: p.name, sub: p.contact || p.type, open: () => App.go('invoices') })));
-    push('Transactions', S.bank.filter(t => has(t.label, String(t.amount))).slice().reverse().map(t => ({ lead: lead(t.type === 'in' ? 'arrow-down-left' : 'arrow-up-right'), title: `${t.type === 'in' ? '+' : '-'}${money(t.amount)} — ${t.label}`, sub: U.fmtDT(t.at), open: () => LSC.open.transaction(t.id) })));
     return out;
   }
 

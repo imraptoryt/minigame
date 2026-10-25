@@ -251,9 +251,7 @@
           { key: 'items', label: 'Articles', sortValue: x => x.items.length, render: x => `<span class="muted">${esc(x.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', ')).slice(0, 60)}</span>` },
           { key: 'total', label: 'Total', align: 'right', render: x => `<b>${money(x.total)}</b>${x.discount ? `<br><small class="warn-t">-${money(x.discount.amount)}</small>` : ''}` },
           ...(own ? [{ key: 'commission', label: 'Commission', align: 'right', sortValue: x => ST.comBase(x), render: x => money(ST.comBase(x)) }] : []),
-          { key: 'payment', label: 'Paiement', render: x => esc(A().payLabel(x.payment)) },
-          { key: 'createdAt', label: 'Date', render: x => `<span class="nowrap">${U.fmtDate(x.createdAt)} <span class="muted">${U.fmtTime(x.createdAt)}</span></span>` },
-          { key: 'status', label: 'Statut', render: x => U.status('sale', x.status) }]
+          { key: 'createdAt', label: 'Date', render: x => `<span class="nowrap">${U.fmtDate(x.createdAt)} <span class="muted">${U.fmtTime(x.createdAt)}</span></span>` }]
       });
     };
     el.querySelectorAll('[data-f]').forEach(i => i.addEventListener(i.tagName === 'SELECT' ? 'change' : 'input', () => { st[i.dataset.f] = i.value; draw(true); }));

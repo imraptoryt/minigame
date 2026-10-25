@@ -340,6 +340,8 @@
       }]
     } }));
   }
+  /* plaque : lettres, chiffres et espaces, 10 caractères maximum */
+  const plateOf = v => str(v, 30).toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 10);
   A['pos.createSale'] = (c, p) => {
     c.need('pos.use');
     const db = c.db;
@@ -373,7 +375,7 @@
     const markup = adjRecord(c, p.markup, q.markup, q.subtotal, 'markup');
     /* Catégorie du véhicule (1-5) : obligatoire pour les catégories « selon le véhicule » et les articles à prix par catégorie (ex. Révision) */
     const vcats = new Set(db.company.categories.filter(k => k.vehicleClass).map(k => k.id));
-    const pv = p.vehicle || {}, vClass = Math.floor(+pv.class), plate = str(pv.plate, 12).toUpperCase();
+    const pv = p.vehicle || {}, vClass = Math.floor(+pv.class), plate = plateOf(pv.plate);
     const needClass = q.items.some(i => vcats.has(i.category) || Array.isArray((db.products.find(x => x.id === i.productId) || {}).classPrices));
     if (needClass) {
       if (!(vClass >= 1 && vClass <= 5)) fail('Choisissez la catégorie du véhicule (1 à 5)');
@@ -426,7 +428,7 @@
    * connue dans l'historique des ventes. À brancher plus tard sur l'API véhicules. */
   A['vehicle.lookup'] = (c, p) => {
     c.need('pos.use');
-    const plate = str(p.plate, 12).toUpperCase();
+    const plate = plateOf(p.plate);
     if (!plate) fail('Plaque manquante');
     const all = c.db.sales.filter(x => x.vehicle && x.vehicle.plate === plate && x.status !== 'cancelled');
     const last = all[all.length - 1], model = str(p.model, 40).toLowerCase(), name = str(p.name, 60);
@@ -447,7 +449,7 @@
     if (!key || modelClass(c.db, model, name) != null) return { readonly: true };
     const u = c.db.meta.unlisted = c.db.meta.unlisted || {};
     if (u[key]) return { readonly: true }; // déjà signalé
-    u[key] = { model, name, plate: str(p.plate, 12).toUpperCase(), by: c.me.name, at: c.iso, hint: Math.floor(+p.hint) >= 1 && Math.floor(+p.hint) <= 5 ? Math.floor(+p.hint) : null };
+    u[key] = { model, name, plate: plateOf(p.plate), by: c.me.name, at: c.iso, hint: Math.floor(+p.hint) >= 1 && Math.floor(+p.hint) <= 5 ? Math.floor(+p.hint) : null };
     const co = c.db.company;
     if (co.unlistedWebhook) c.effect({ type: 'discord', url: co.unlistedWebhook, body: {
       username: (co.name || 'LS Customs') + ' — Véhicules',
@@ -1741,7 +1743,7 @@
     p = p || {}; now = now || Date.now();
     const q = [{ open: true }], day = DAY;
     if (action === 'bootstrap') q.push({ from: now - WINDOW, to: now + day });
-    else if (action === 'vehicle.lookup') q.push({ kinds: ['sales'], plate: str(p.plate, 12).toUpperCase(), model: str(p.model, 40).toLowerCase() });
+    else if (action === 'vehicle.lookup') q.push({ kinds: ['sales'], plate: plateOf(p.plate), model: str(p.model, 40).toLowerCase() });
     else if (action === 'sales.cancel') {
       const inv = ((core && core.invoices) || []).find(i => i.saleId === p.id || (i.saleIds || []).includes(p.id));
       q.push({ kinds: ['sales'], ids: [String(p.id || '')] }, { kinds: ['commissions', 'bank'], refs: [String(p.id || '')].concat(inv ? [inv.id] : []) });
