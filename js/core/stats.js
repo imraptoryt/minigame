@@ -119,7 +119,7 @@
   }
   function employee(S, empId, r) {
     const sales = salesIn(S, r, s => s.employeeId === empId);
-    const revenue = sales.reduce((a, s) => a + s.total, 0);
+    const revenue = sales.reduce((a, s) => a + LSCServer.saleCA(s), 0); // perfs / customisation : sans le prix usine
     const commissions = S.commissions.filter(c => c.employeeId === empId && within(r, c.createdAt)).reduce((a, c) => a + c.amount, 0);
     const services = sales.reduce((a, s) => a + s.items.reduce((b, i) => b + i.qty, 0), 0);
     const mins = minutes(S, empId, r);
@@ -132,7 +132,7 @@
   /* Prérequis de paie sur une période (règles dans Paramètres > Prérequis salaire) */
   function prereq(S, emp, from, to) {
     const R = S.company.payrollRules || {}, checks = [];
-    const ca = S.sales.filter(s => s.employeeId === emp.id && s.status !== 'cancelled' && ts(s.createdAt) >= from && ts(s.createdAt) <= to).reduce((a, s) => a + s.total, 0);
+    const ca = S.sales.filter(s => s.employeeId === emp.id && s.status !== 'cancelled' && ts(s.createdAt) >= from && ts(s.createdAt) <= to).reduce((a, s) => a + LSCServer.saleCA(s), 0);
     const abs = absencesIn(S, emp.id, from, to);
     const exempt = abs.length && R.absence === 'exempt';
     if (+R.quota > 0) checks.push({ label: `Quota de ventes (${'$' + Math.round(R.quota).toLocaleString('en-US')})`, ok: exempt || ca >= R.quota, detail: exempt ? 'Dispensé (absence)' : '$' + Math.round(ca).toLocaleString('en-US') });

@@ -508,7 +508,7 @@
     /* CA de la fiche : ventes dont la commission est versée avec cette paie (y compris celles d'avant non encore payées) */
     const ficheCA = p => { const ids = new Set(p.commissionIds || []), seen = new Set(); let t = 0;
       s.commissions.forEach(c => { if (!ids.has(c.id) || seen.has(c.saleId)) return; seen.add(c.saleId);
-        const sale = s.sales.find(x => x.id === c.saleId); t += sale ? (sale.status === 'cancelled' ? 0 : sale.total) : (c.rate ? c.amount * 100 / c.rate : 0); });
+        const sale = s.sales.find(x => x.id === c.saleId); t += sale ? LSCServer.saleCA(sale) : (c.rate ? c.amount * 100 / c.rate : 0); });
       return Math.round(t * 100) / 100; };
     const reason = `S${ST.weekNum(r.from)} ${s.company.payReason || 'Paye LS Customs'}`;
     /* vérification anti-fraude : une lecture de l'API pour la semaine affichée */

@@ -327,6 +327,7 @@
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="acc">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('shopping-cart')}Point de vente</h3></div><div class="panel-body">
           <div class="section-title">Catégories</div><div id="catRows">${co.categories.map(c => catRow(c)).join('')}</div><button class="btn sm" id="addCat">${icon('plus')}Ajouter une catégorie</button>
+          <label class="check" style="display:flex;margin:12px 0 0"><input type="checkbox" name="posHideAll" ${co.posHideAll ? 'checked' : ''}><span>Cacher l'onglet « Tous » au point de vente (la 1re catégorie s'ouvre à la place)</span></label>
           <div class="section-title">Paiement</div><p class="muted" style="margin:0 0 8px">Vente avec un partenaire : mise à facturer (page Factures). Sinon paiement direct.</p>
           <div class="form">${U.field({ name: 'directPayment', label: 'Paiement direct', type: 'select', options: [{ value: 'card', label: 'Carte (compte bancaire)' }, { value: 'company', label: 'Compte entreprise' }, { value: 'cash', label: 'Espèces (caisse)' }] }, co.directPayment || 'card')}</div>
           <div class="section-title">Catégories de véhicules (onglet Performances)</div>
@@ -434,7 +435,7 @@
         const categories = [...el.querySelectorAll('.cat-row')].map(r => ({ id: r.dataset.id || r.querySelector('[data-k=label]').value.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-'), label: r.querySelector('[data-k=label]').value, icon: r.querySelector('[data-k=icon]').value }));
         const split = n => el.querySelector(`[name=${n}]`).value.split(',').map(x => x.trim()).filter(Boolean);
         const fv = n => el.querySelector(`[name=${n}]`).value;
-        save({ categories, directPayment: fv('directPayment'), vehicleClasses: [0, 1, 2, 3, 4].map(i => fv('vc' + i)), discountReasons: split('discountReasons'), markupReasons: split('markupReasons') });
+        save({ categories, posHideAll: !!(el.querySelector('[name=posHideAll]') || {}).checked, directPayment: fv('directPayment'), vehicleClasses: [0, 1, 2, 3, 4].map(i => fv('vc' + i)), discountReasons: split('discountReasons'), markupReasons: split('markupReasons') });
       } else if (k === 'fees') {
         const list = [...el.querySelectorAll('#feeRows .cfg-row')].map(r => ({ id: r.dataset.id, label: r.querySelector('[data-k=label]').value, price: +r.querySelector('[data-k=price]').value || 0, deductible: r.querySelector('[data-k=ded]').checked }));
         save({ expenseCategories: list }, 'Types de commande enregistrés');

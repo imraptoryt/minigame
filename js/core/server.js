@@ -340,6 +340,14 @@
       }]
     } }));
   }
+  /* CA d'une vente pour l'employé (salaires, stats, objectifs, primes, récap) :
+   * les performances et la customisation sont comptées sans leur prix usine (kit). Le Bilan garde le montant encaissé. */
+  const NET_CA = ['performances', 'custom'];
+  function saleCA(s) {
+    if (!s || s.status === 'cancelled') return 0;
+    const usine = (s.items || []).filter(i => NET_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
+    return Math.max(0, Math.round(((+s.total || 0) - usine) * 100) / 100);
+  }
   /* plaque : lettres, chiffres et espaces, 10 caractères maximum */
   const plateOf = v => str(v, 30).toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 10);
   A['pos.createSale'] = (c, p) => {
@@ -987,7 +995,7 @@
     if (!p.closing && closeAt >= from && closeAt <= to) return { count: 0, closed: true }; // semaine clôturée : la suite compte pour la semaine prochaine
     if (closeAt && closeAt < from && closeAt > from - 7 * DAY) from = closeAt; // ce qui a été fait depuis la dernière clôture
     const caMap = {};
-    db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + s.total; });
+    db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + saleCA(s); });
     db.employees.forEach(e => { if (e.archived) delete caMap[e.id]; });
     let n = 0;
     db.employees.filter(e => !e.archived).forEach(e => {
@@ -1035,12 +1043,12 @@
     const db = c.db, co = db.company;
     const sales = db.sales.filter(s => s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to);
     const by = {};
-    sales.forEach(s => { const x = by[s.employeeId] = by[s.employeeId] || { ca: 0, n: 0 }; x.ca += s.total; x.n++; });
+    sales.forEach(s => { const x = by[s.employeeId] = by[s.employeeId] || { ca: 0, n: 0 }; x.ca += saleCA(s); x.n++; });
     const people = db.employees.filter(e => by[e.id] || fiches.some(f => f.employeeId === e.id)).map(e => {
       const f = fiches.find(x => x.employeeId === e.id) || {}, x = by[e.id] || { ca: 0, n: 0 };
       return { name: e.name, role: roleOf(db, e).name, ca: c.r(x.ca), n: x.n, pay: c.r(f.total || 0) };
     }).sort((a, b) => b.ca - a.ca);
-    const ca = c.r(sales.reduce((a, s) => a + s.total, 0)), pay = c.r(fiches.reduce((a, f) => a + (f.total || 0), 0));
+    const ca = c.r(sales.reduce((a, s) => a + saleCA(s), 0)), pay = c.r(fiches.reduce((a, f) => a + (f.total || 0), 0));
     const lines = people.slice(0, 25).map((p, i) => `${i < 3 && p.ca > 0 ? ['🥇', '🥈', '🥉'][i] : '•'} **${p.name}** (${p.role}) — CA ${money(p.ca)} · ${p.n} vente${p.n > 1 ? 's' : ''} · salaire ${money(p.pay)}`);
     return { ca, count: sales.length, pay, body: {
       username: (co.name || 'LS Customs') + ' — Semaine',
@@ -1636,6 +1644,7 @@
       if (!co.paymentMethods.some(m => m.enabled)) fail('Au moins un moyen de paiement doit être actif');
     }
     if (s.invoiceThreshold != null) co.invoiceThreshold = c.r(num(s.invoiceThreshold, 0, 1e9));
+    if (s.posHideAll != null) co.posHideAll = !!s.posHideAll; // onglet « Tous » du point de vente
     if (s.directPayment != null) co.directPayment = ['card', 'cash', 'company'].includes(s.directPayment) ? s.directPayment : 'card';
     if (Array.isArray(s.vehicleClasses)) co.vehicleClasses = [0, 1, 2, 3, 4].map(i => str(s.vehicleClasses[i], 40) || co.vehicleClasses[i] || 'Catégorie ' + (i + 1));
     if (s.payrollRules && typeof s.payrollRules === 'object') {
@@ -1872,7 +1881,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, saleCA, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });

@@ -75,8 +75,11 @@
       (!q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || app().catLabel(p.category).toLowerCase().includes(q)));
   }
   function drawTabs(list) {
-    if (P.cat !== 'all' && !cats().some(c => c.id === P.cat)) P.cat = 'all';
-    const all = [{ id: 'all', label: 'Tous', icon: 'layout-grid' }].concat(cats());
+    /* onglet « Tous » masquable (Paramètres → Point de vente) : on ouvre alors la première catégorie */
+    const noAll = !!S().company.posHideAll && cats().length > 0, first = (cats()[0] || {}).id || 'all';
+    if (P.cat !== 'all' && !cats().some(c => c.id === P.cat)) P.cat = noAll ? first : 'all';
+    if (noAll && P.cat === 'all') P.cat = first;
+    const all = (noAll ? [] : [{ id: 'all', label: 'Tous', icon: 'layout-grid' }]).concat(cats());
     root.querySelector('#posCats').innerHTML = all.map(c => `<button class="tab ${P.cat === c.id ? 'on' : ''}" data-cat="${c.id}" title="${esc(c.label)}" ${P.edit && c.id !== 'all' ? 'draggable="true"' : ''}>${P.edit && c.id !== 'all' ? icon('grip-vertical', 'xs') : ''}${icon(c.icon || 'package')}<span class="tab-l">${esc(c.label)}</span>${c.vehicleClass && P.vehicle.cls ? `<b class="tab-vc">Cat. ${P.vehicle.cls}</b>` : ''}</button>`).join('');
     /* sous-catégories de l'onglet sélectionné */
     const subs = P.cat === 'all' ? [] : subsOf(P.cat);
