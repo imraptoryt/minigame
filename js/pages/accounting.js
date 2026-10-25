@@ -350,15 +350,14 @@
   function invoices(el) {
     const s = S(), all = s.invoices.map(i => Object.assign({}, i, { st: ST.invoiceStatus(i) }));
     const count = k => all.filter(i => i.st === k).length;
-    const tabsList = [{ id: 'all', label: 'Toutes', count: all.length }, { id: 'draft', label: 'Brouillons', count: count('draft') }, { id: 'sent', label: 'Envoyées', count: count('sent') }, { id: 'overdue', label: 'En retard', count: count('overdue') }, { id: 'paid', label: 'Payées', count: count('paid') }, { id: 'cancelled', label: 'Annulées', count: count('cancelled') }];
-    const pending = all.filter(i => i.st === 'sent' || i.st === 'overdue');
+    const tabsList = [{ id: 'all', label: 'Toutes', count: all.length }, { id: 'draft', label: 'Brouillons', count: count('draft') }, { id: 'sent', label: 'Envoyées', count: count('sent') }, { id: 'cancelled', label: 'Annulées', count: count('cancelled') }];
+    const billed = r => all.filter(i => i.st !== 'draft' && i.st !== 'cancelled' && ST.within(ST.range(r), i.createdAt));
     const todo = s.sales.filter(x => x.partnerId && x.status === 'pending' && !x.invoiceId);
     el.innerHTML = `<div class="page-head"><div><h1>Factures partenaires</h1><div class="sub">Les ventes faites avec un partenaire sont mises « à facturer ». « Générer la facture » les regroupe et l'envoie sur le Discord du partenaire (avec ping).</div></div>
         <div class="actions">${A().can('partners.manage') ? `<button class="btn sm" data-newp>${icon('handshake')}Nouveau partenaire</button>` : ''}<button class="btn primary sm" data-new>${icon('file-pen')}Facture personnalisée</button></div></div>
       <div class="grid stats">${U.stat({ label: 'À facturer', value: money(todo.reduce((a, x) => a + x.total, 0)), sub: todo.length + ' vente(s) partenaire', icon: 'file-plus', tone: 'warn' })}
-        ${U.stat({ label: 'À encaisser', value: money(pending.reduce((a, i) => a + i.total, 0)), sub: pending.length + ' facture(s)', icon: 'hourglass', tone: 'info' })}
-        ${U.stat({ label: 'En retard', value: money(all.filter(i => i.st === 'overdue').reduce((a, i) => a + i.total, 0)), sub: count('overdue') + ' facture(s)', icon: 'clock-alert', tone: 'danger' })}
-        ${U.stat({ label: 'Encaissé ce mois', value: money(all.filter(i => i.st === 'paid' && ST.within(ST.range('month'), i.paidAt)).reduce((a, i) => a + i.total, 0)), icon: 'circle-check' })}
+        ${U.stat({ label: 'Facturé cette semaine', value: money(billed('week').reduce((a, i) => a + i.total, 0)), sub: billed('week').length + ' facture(s)', icon: 'send', tone: 'info' })}
+        ${U.stat({ label: 'Facturé ce mois', value: money(billed('month').reduce((a, i) => a + i.total, 0)), sub: billed('month').length + ' facture(s)', icon: 'circle-check' })}
       </div>
       <div class="section-title" style="margin-top:18px">Partenaires (${s.partners.length})</div><div id="pCards"></div>
       <div class="panel mt"><div class="panel-head"><h3>${icon('history')}Historique des factures</h3></div><div class="panel-body"><div class="filters">${U.tabs(tabsList, ist.tab)}<span class="grow"></span><div class="search">${icon('search')}<input class="input" id="invq" placeholder="N°, partenaire..." value="${esc(ist.q)}"></div></div><div id="invTable"></div></div></div>`;
@@ -371,9 +370,8 @@
         { key: 'customerName', label: 'Partenaire', render: x => esc(x.customerName) },
         { key: 'total', label: 'Montant', align: 'right', render: x => `<b>${money(x.total)}</b>` },
         { key: 'createdAt', label: 'Émise le', render: x => U.fmtDate(x.createdAt) },
-        { key: 'due', label: 'Échéance', render: x => `<span class="${x.st === 'overdue' ? 'danger-t' : ''}">${U.fmtDate(x.due)}</span>` },
         { key: 'st', label: 'Statut', render: x => U.status('invoice', x.st) },
-        { key: 'a', label: '', sortable: false, align: 'right', render: x => idCell(x.id, (x.st === 'draft' ? act('send', 'Envoyer', 'send') : '') + (x.st === 'sent' || x.st === 'overdue' || x.st === 'draft' ? act('pay', 'Encaisser', 'circle-dollar-sign') : '') + (x.st === 'draft' ? act('edit', 'Modifier', 'pencil') : '')) }]
+        { key: 'a', label: '', sortable: false, align: 'right', render: x => idCell(x.id, (x.st === 'draft' ? act('send', 'Envoyer', 'send') : '') + (x.st === 'draft' ? act('edit', 'Modifier', 'pencil') : '')) }]
     });
     el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { ist.tab = b.dataset.tab; invoices(el); });
     el.querySelector('#invq').oninput = e => { ist.q = e.target.value; draw(true); };
@@ -381,14 +379,8 @@
     const np = el.querySelector('[data-newp]');
     if (np) np.onclick = () => LSC.forms.partner(null);
     LSC.partnerCards(el.querySelector('#pCards'));
-    onActs(el.querySelector('#invTable'), { send: id => A().call('invoices.send', { id }, 'Facture envoyée'), pay: id => payInvoice(id), edit: id => invoiceEditor(id) });
+    onActs(el.querySelector('#invTable'), { send: id => A().call('invoices.send', { id }, 'Facture envoyée'), edit: id => invoiceEditor(id) });
     draw();
-  }
-  function payInvoice(id) {
-    const i = S().invoices.find(x => x.id === id);
-    U.form({ title: 'Encaisser ' + i.ref, icon: 'circle-dollar-sign', size: 'sm', submit: 'Confirmer le paiement', intro: `<p class="lead" style="margin-bottom:12px">${esc(i.customerName)} · <b class="ok-t">${money(i.total)}</b></p>`,
-      fields: [{ name: 'method', label: 'Mode de règlement', type: 'select', full: true, options: [{ value: 'bank', label: 'Virement / carte (compte bancaire)' }, { value: 'cash', label: 'Espèces (caisse)' }] }],
-      onSubmit: v => A().call('invoices.pay', { id, method: v.method }, 'Paiement effectué') });
   }
   LSC.open.invoice = id => {
     const i = S().invoices.find(x => x.id === id);
@@ -396,20 +388,19 @@
     const st = ST.invoiceStatus(i);
     const m = U.modal({ title: 'Facture ' + i.ref, icon: 'file-text', size: 'lg',
       body: `<div class="grid cols-2"><dl class="kv"><dt>Partenaire</dt><dd>${esc(i.customerName)}</dd><dt>Émise le</dt><dd>${U.fmtDate(i.createdAt)}</dd><dt>Par</dt><dd>${esc(i.createdByName || '·')}</dd></dl>
-        <dl class="kv"><dt>Échéance</dt><dd>${U.fmtDate(i.due)}</dd><dt>Statut</dt><dd>${U.status('invoice', st)}</dd>${i.paidAt ? `<dt>Payée le</dt><dd>${U.fmtDT(i.paidAt)}</dd>` : ''}</dl></div>
+        <dl class="kv"><dt>Statut</dt><dd>${U.status('invoice', st)}</dd>${i.paidAt ? `<dt>Payée le</dt><dd>${U.fmtDT(i.paidAt)}</dd>` : ''}</dl></div>
         <div class="section-title">Lignes</div><table class="tbl compact"><thead><tr><th>Désignation</th><th class="right">Prix</th><th class="right">Qté</th><th class="right">Total</th></tr></thead>
         <tbody>${i.items.map(l => `<tr><td>${esc(l.label)}</td><td class="right">${money(l.price)}</td><td class="right">${l.qty}</td><td class="right">${money(l.price * l.qty)}</td></tr>`).join('')}
         <tr><td colspan="3" class="right"><b>Total</b></td><td class="right ok-t"><b>${money(i.total)}</b></td></tr></tbody></table>
         ${i.note ? `<div class="section-title">Note</div><p class="muted" style="margin:0">${esc(i.note)}</p>` : ''}`,
       foot: `${i.saleId ? `<button class="btn ghost" data-sale>${icon('receipt')}Voir la vente</button>` : ''}<span class="grow"></span>
         ${st === 'draft' ? `<button class="btn danger" data-del>${icon('trash-2')}Supprimer</button><button class="btn" data-edit>${icon('pencil')}Modifier</button><button class="btn" data-send>${icon('send')}Envoyer</button>` : ''}
-        ${(st === 'sent' || st === 'overdue') && !i.saleId ? `<button class="btn danger" data-cancel>${icon('ban')}Annuler</button>` : ''}
-        ${st === 'sent' || st === 'overdue' || st === 'draft' ? `<button class="btn primary" data-pay>${icon('circle-dollar-sign')}Encaisser</button>` : `<button class="btn" data-close>Fermer</button>`}` });
+        ${st === 'sent' && !i.saleId ? `<button class="btn danger" data-cancel>${icon('ban')}Annuler</button>` : ''}
+        <button class="btn" data-close>Fermer</button>` });
     const on = (sel, fn) => { const b = m.el.querySelector(sel); if (b) b.onclick = fn; };
     on('[data-sale]', () => { m.close(); LSC.open.sale(i.saleId); });
     on('[data-edit]', () => { m.close(); invoiceEditor(i.id); });
     on('[data-send]', async () => { if ((await A().call('invoices.send', { id: i.id }, 'Facture envoyée')).ok) m.close(); });
-    on('[data-pay]', () => { m.close(); payInvoice(i.id); });
     on('[data-cancel]', async () => { if (await U.confirm(`Annuler la facture ${i.ref} ?`, { danger: true, ok: 'Annuler la facture' })) { if ((await A().call('invoices.cancel', { id: i.id }, 'Facture annulée')).ok) m.close(); } });
     on('[data-del]', async () => { if (await U.confirm(`Supprimer le brouillon ${i.ref} ?`, { danger: true, ok: 'Supprimer' })) { if ((await A().call('invoices.delete', { id: i.id }, 'Brouillon supprimé')).ok) m.close(); } });
   };

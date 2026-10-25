@@ -143,7 +143,7 @@
   }
 
   function bankBalance(S) { return S.meta && typeof S.meta.balance === 'number' ? S.meta.balance : S.bank.reduce((a, b) => a + (b.type === 'in' ? b.amount : -b.amount), 0); }
-  const invoiceStatus = i => i.status === 'sent' && ts(i.due) < Date.now() ? 'overdue' : i.status;
+  const invoiceStatus = i => i.status === 'overdue' ? 'sent' : i.status; // partenaires débités directement : jamais « en retard »
   const billStatus = b => b.status === 'pending' && ts(b.due) < Date.now() ? 'overdue' : b.status;
 
   window.LSC = window.LSC || {};

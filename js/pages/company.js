@@ -195,11 +195,11 @@
     const s = S(), mng = A().can('partners.manage'), inv = A().can('invoices.manage');
     el.innerHTML = s.partners.length ? `<div class="partner-grid">${s.partners.map(p => {
       const todo = s.sales.filter(x => x.partnerId === p.id && x.status === 'pending' && !x.invoiceId), due = todo.reduce((a, x) => a + x.total, 0);
-      const open = s.invoices.filter(i => i.partnerId === p.id && (i.status === 'sent' || i.status === 'draft'));
+      const open = s.invoices.filter(i => i.partnerId === p.id && (i.status === 'sent' || i.status === 'paid') && LSC.stats.within(LSC.stats.range('month'), i.createdAt));
       return `<section class="panel" data-id="${p.id}"><div class="panel-body"><div class="who">${logo(p)}<div><b style="font-size:14px">${esc(p.name)}</b><small>${esc(typeLabel(p.type))}${p.contact ? ' · ' + esc(p.contact) : ''}</small></div></div>
         <div class="chips" style="margin:12px 0">${p.rate ? U.badge(`Remise ${p.rate}%`, 'ok') : ''}${p.hasWebhook ? U.badge('Discord relié', 'info') : U.badge('Pas de webhook', 'warn')}${p.pingUser || p.pingRole ? U.badge('Ping actif', 'info') : ''}</div>
         <dl class="kv"><dt>À facturer</dt><dd class="${due ? 'warn-t' : ''}"><b>${money(due)}</b> <small class="muted">(${todo.length} vente${todo.length > 1 ? 's' : ''})</small></dd>
-          <dt>Factures en attente</dt><dd>${open.length ? money(open.reduce((a, i) => a + i.total, 0)) + ` <small class="muted">(${open.length})</small>` : '·'}</dd></dl>
+          <dt>Facturé ce mois</dt><dd>${open.length ? money(open.reduce((a, i) => a + i.total, 0)) + ` <small class="muted">(${open.length})</small>` : '·'}</dd></dl>
         <div class="row" style="margin-top:12px">${inv ? `<button class="btn primary sm" data-a="gen" ${todo.length ? '' : 'disabled'}>${icon('file-plus')}Générer la facture</button>` : ''}<span class="grow"></span>${act('hist', 'Historique des ventes', 'history')}${mng ? act('edit', 'Modifier', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger') : ''}</div></div></section>`;
     }).join('')}</div>` : `<div class="panel">${U.empty({ icon: 'handshake', title: 'Aucun partenaire', text: 'Ajoutez un partenaire : ses ventes au POS seront mises à facturer.', hint: false })}</div>`;
     onActs(el, {
