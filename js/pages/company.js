@@ -187,7 +187,7 @@
   };
 
   /* =================== PARTENAIRES =================== */
-  const TYPES = [{ value: 'garage', label: 'Garage' }, { value: 'assurance', label: 'Assurance' }, { value: 'concessionnaire', label: 'Concessionnaire' }, { value: 'entreprise', label: 'Entreprise RP' }, { value: 'fourriere', label: 'Fourrière' }, { value: 'transporteur', label: 'Transporteur' }];
+  const TYPES = [{ value: 'garage', label: 'Garage' }, { value: 'assurance', label: 'Assurance' }, { value: 'concessionnaire', label: 'Concessionnaire' }, { value: 'entreprise', label: 'Entreprise RP' }, { value: 'fourriere', label: 'Fourrière' }, { value: 'transporteur', label: 'Transporteur' }, { value: 'police', label: 'Police' }, { value: 'ems', label: 'EMS' }];
   const typeLabel = t => (TYPES.find(x => x.value === t) || { label: t }).label;
   const logo = p => `<span class="partner-logo">${p.logo ? `<img src="${esc(p.logo)}" alt="" onerror="this.remove()">` : esc(p.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span>`;
   /* Tous les partenaires, avec ce qu'il reste à facturer. Affiché dans la page Factures. */
