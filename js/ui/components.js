@@ -225,7 +225,7 @@
   }
   function empty(o) {
     o = o || {};
-    return `<div class="empty">${icon(o.icon || 'inbox')}<h4>${esc(o.title || 'Aucune donnée')}</h4><p>${esc(o.text || 'Aucune donnée disponible pour cette période.')}</p>${o.hint ? `<small>${esc(o.hint)}</small>` : ''}${o.action || ''}</div>`;
+    return `<div class="empty">${icon(o.icon || 'inbox')}<h4>${esc(o.title || 'Aucune donnée')}</h4>${o.text ? `<p>${esc(o.text)}</p>` : ''}${o.hint ? `<small>${esc(o.hint)}</small>` : ''}${o.action || ''}</div>`;
   }
   function skeleton(kind) {
     const line = w => `<div class="sk" style="width:${w};height:12px"></div>`;

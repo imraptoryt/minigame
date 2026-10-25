@@ -185,6 +185,10 @@
   }
   function renderChrome() {
     const S = App.state, co = S.company, me = App.meEmp(), role = App.myRole(), b = badges();
+    /* fond d'écran perso de la zone centrale */
+    const bg = me && me.bgImage && /^https:\/\/[^\s"'()<>\\]+$/.test(me.bgImage) ? me.bgImage : '';
+    document.body.classList.toggle('has-bg', !!bg);
+    document.documentElement.style.setProperty('--user-bg', bg ? `url("${bg}")` : 'none');
     $('#brandName').textContent = co.name;
     $('#brandSub').textContent = co.subtitle;
     $('#brandLogo').innerHTML = co.logo ? `<img src="${esc(co.logo)}" alt="${esc(co.name)}" onerror="this.parentNode.classList.remove('img');this.parentNode.textContent='LS'">` : 'LS';

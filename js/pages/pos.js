@@ -115,7 +115,7 @@
         ${P.edit ? `<span class="grow"></span><button class="btn sm ghost" data-subnew="${c.id}">${icon('folder-plus', 'xs')}Sous-catégorie</button><button class="icon-btn sm" data-catedit="${c.id}" title="Renommer / icône / option véhicule">${icon('pencil', 'xs')}</button><button class="icon-btn sm danger" data-catdel="${c.id}" title="Supprimer la catégorie">${icon('trash-2', 'xs')}</button>` : ''}</div>`;
       /* Performances : rien n'est proposé tant que la catégorie du véhicule n'est pas choisie */
       if (c.vehicleClass && !P.edit) {
-        if (!P.vehicle.cls) return `<div class="cat-sec" data-sec="${c.id}">${head}<div class="vc-pick"><span>${icon('car')}Choisissez la catégorie du véhicule pour afficher les performances :</span><div class="vc-cards">${vcButtons(true)}</div></div></div>`;
+        if (!P.vehicle.cls) return `<div class="cat-sec" data-sec="${c.id}">${head}<div class="vc-pick"><span>${icon('car')}Choisissez la catégorie du véhicule</span><div class="vc-cards">${vcButtons(true)}</div></div></div>`;
         items = items.filter(p => classOk(p, P.vehicle.cls));
       }
       const groups = [{ sub: null, items: items.filter(p => !p.sub || !(c.subs || []).some(s => s.id === p.sub)) }]
@@ -297,8 +297,21 @@
     if (!u) return '';
     return `<div class="alert warn veh-alert">${icon('triangle-alert', 'sm')}<span><b>Véhicule non recensé</b> (${esc(u.name || u.model)}) : vérifiez bien sa catégorie <b>en jeu</b> avant de la choisir.${u.hint ? ` <small>Dernière fois : catégorie ${u.hint}.</small>` : ''} La direction a été prévenue.</span></div>`;
   }
-  /* signale un modèle non recensé (une seule fois par modèle, côté serveur) */
-  const reportVehicle = u => LSC.api.call('vehicle.report', { model: u.model, name: u.name, plate: P.vehicle.plate, hint: u.hint }).catch(() => {});
+  /* signale un modèle non recensé (une seule fois par modèle, côté serveur) + popup pour l'employé */
+  const reportVehicle = u => { unlistedPopup(u); LSC.api.call('vehicle.report', { model: u.model, name: u.name, plate: P.vehicle.plate, hint: u.hint }).catch(() => {}); };
+  const warned = new Set();
+  function unlistedPopup(u) {
+    if (!u || u.none || P.vehicle.cls) return;
+    const key = (u.model || u.name || '') + '|' + P.vehicle.plate;
+    if (warned.has(key)) return;
+    warned.add(key);
+    const m = U.modal({ title: 'Véhicule non recensé', icon: 'triangle-alert', size: 'sm',
+      body: `<p style="margin:0 0 8px"><b>${esc(u.name || u.model || 'Ce véhicule')}</b>${u.model && u.name ? ` <small class="muted">${esc(u.model)}</small>` : ''} n'est pas dans la liste des véhicules.</p>
+        <p class="warn-t" style="margin:0 0 12px"><b>Vérifiez bien sa catégorie en jeu</b> avant de la choisir : le prix en dépend.${u.hint ? ` <small class="muted">Dernière fois : catégorie ${u.hint}.</small>` : ''}</p>
+        <div class="vc-cards vc-modal">${[1, 2, 3, 4, 5].map(n => `<button class="vc-card big" data-pick="${n}"><b>${n}</b><small>${esc(classLabel(n))}</small></button>`).join('')}</div>`,
+      foot: '<button class="btn ghost" data-close>Choisir plus tard</button>' });
+    m.el.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; m.close(); setClass(+b.dataset.pick, 'manual'); });
+  }
   /* Appel direct de l'API publique GLife (CORS ouvert). Renvoie une liste (une plaque peut être partagée). */
   async function glifeVehicle(plate) {
     const url = (window.LSC_CONFIG || {}).vehicleApi;

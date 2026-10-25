@@ -428,8 +428,14 @@
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="accSave">${icon('save')}Enregistrer</button></div>
           <div class="section-title">Préférences</div>
           <label class="check" style="display:flex"><input type="checkbox" id="accHideAll" ${e.posHideAll ? 'checked' : ''}><span>Cacher l'onglet « Tous » au point de vente <small class="muted">(la 1re catégorie s'ouvre à la place)</small></span></label>
+          <div class="row" style="gap:8px;margin-top:12px;align-items:flex-end">${U.field({ name: 'bgImage', label: "Fond d'écran (lien direct .png)", placeholder: 'https://i.imgur.com/xxxx.png' }, e.bgImage || '')}
+            <button class="btn" id="accBgSave">${icon('image')}Appliquer</button>${e.bgImage ? `<button class="btn ghost" id="accBgDel">${icon('x')}Retirer</button>` : ''}</div>
         </div></section>
       </div>`;
+    const bgIn = el.querySelector('[name=bgImage]');
+    el.querySelector('#accBgSave').onclick = () => A().call('account.update', { bgImage: bgIn.value.trim() }, bgIn.value.trim() ? "Fond d'écran appliqué" : "Fond d'écran retiré");
+    const bgDel = el.querySelector('#accBgDel');
+    if (bgDel) bgDel.onclick = () => A().call('account.update', { bgImage: '' }, "Fond d'écran retiré");
     el.querySelector('#accHideAll').onchange = ev => A().call('account.update', { posHideAll: ev.target.checked }, ev.target.checked ? 'Onglet « Tous » caché' : 'Onglet « Tous » remis');
     const f = el.querySelector('#accForm');
     f.elements.photo.addEventListener('input', () => {

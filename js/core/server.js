@@ -1254,6 +1254,11 @@
     if (p.discordId !== undefined) { const d = str(p.discordId, 30); if (d && !/^\d{5,25}$/.test(d)) fail('Discord ID invalide (chiffres uniquement)'); e.discordId = d; }
     if (p.bankAccount !== undefined) e.bankAccount = str(p.bankAccount, 40);
     if (p.posHideAll !== undefined) e.posHideAll = !!p.posHideAll; // réglage perso : onglet « Tous » du point de vente
+    if (p.bgImage !== undefined) { // réglage perso : fond d'écran de la zone centrale (lien direct vers une image)
+      const u = str(p.bgImage, 500);
+      if (u && !/^https:\/\/[^\s"'()<>\\]+\.(png|jpe?g|webp|gif)(\?[^\s"'()<>\\]*)?$/i.test(u)) fail("Fond d'écran : lien direct vers une image (https://....png)");
+      e.bgImage = u;
+    }
     const pwd = p.password || p.pin;
     if (pwd) { if (String(pwd).length < PWD_MIN) fail(`Le mot de passe doit faire au moins ${PWD_MIN} caractères`); e.pinHash = config.hash(String(pwd)); }
     c.audit('account.update', 'a mis à jour son compte');

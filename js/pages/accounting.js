@@ -224,8 +224,7 @@
         <div class="filters">
           <div class="search">${icon('search')}<input class="input" data-f="q" placeholder="N°, client, employé..." value="${esc(st.q)}"></div>
           ${own ? '' : `<select class="input" data-f="emp" data-combo><option value="">Tous les employés</option>${U.opts(emps.map(e => ({ value: e.id, label: e.name })), st.emp)}</select>`}
-          <select class="input" data-f="pay"><option value="">Tous paiements</option>${U.opts(s.company.paymentMethods.map(m => ({ value: m.id, label: m.label })), st.pay)}</select>
-          <select class="input" data-f="status"><option value="">Tous statuts</option>${U.opts([{ value: 'paid', label: 'Payée' }, { value: 'pending', label: 'En attente' }, { value: 'cancelled', label: 'Annulée' }], st.status)}</select>
+          ${own ? '' : `<select class="input" data-f="status"><option value="">Tous statuts</option>${U.opts([{ value: 'paid', label: 'Payée' }, { value: 'pending', label: 'En attente' }, { value: 'cancelled', label: 'Annulée' }], st.status)}</select>`}
           ${own ? '' : `<input class="input" style="width:110px;min-width:0" type="number" data-f="min" placeholder="Min $" value="${esc(st.min)}"><input class="input" style="width:110px;min-width:0" type="number" data-f="max" placeholder="Max $" value="${esc(st.max)}">`}
         </div><div id="salesTable"></div></div></div>`;
     const draw = reset => {
@@ -235,11 +234,15 @@
         && (!q || ('#' + x.num + ' ' + x.ref + ' ' + x.customerName + ' ' + x.employeeName).toLowerCase().includes(q)));
       const ok = rows.filter(x => x.status !== 'cancelled'), tot = ok.reduce((a, x) => a + x.total, 0);
       const com = ok.reduce((a, x) => a + ST.comBase(x), 0);
+      /* employé : sa vraie commission (celle de sa paie), pas la base à 100 % */
+      const myCom = {}; if (own) s.commissions.forEach(c => { if (c.employeeId === me && c.saleId) myCom[c.saleId] = (myCom[c.saleId] || 0) + c.amount; });
+      const mine = ok.reduce((a, x) => a + (myCom[x.id] || 0), 0);
       el.querySelector('#salesStats').innerHTML = `<div class="grid stats">
         ${U.stat({ label: 'Total des ventes', value: money(tot), icon: 'dollar-sign' })}
         ${U.stat({ label: 'Nombre de ventes', value: ok.length, sub: rows.length - ok.length ? `${rows.length - ok.length} annulée(s)` : '', icon: 'receipt', tone: 'info' })}
         ${U.stat({ label: 'Panier moyen', value: money(ok.length ? tot / ok.length : 0), icon: 'shopping-basket' })}
-        ${U.stat({ label: 'Commissions (100 %)', value: money(com), sub: 'le % du grade s\'applique au salaire', icon: 'percent', tone: 'info' })}</div>`;
+        ${own ? U.stat({ label: 'Ma commission', value: money(mine), icon: 'percent', tone: 'info' })
+          : U.stat({ label: 'Base des commissions', value: money(com), sub: 'avant le % de chaque grade', icon: 'percent', tone: 'info' })}</div>`;
       U.table(el.querySelector('#salesTable'), {
         id: own ? 'mysales' : 'sales', rows, sort: 'createdAt', resetPage: reset, onRow: x => LSC.open.sale(x.id),
         empty: { icon: 'receipt', title: 'Aucune transaction', text: 'Aucune vente pour ces filtres.' },
@@ -250,7 +253,7 @@
           ...(own ? [] : [{ key: 'employeeName', label: 'Employé', render: x => esc(x.employeeName) }]),
           { key: 'items', label: 'Articles', sortValue: x => x.items.length, render: x => `<span class="muted">${esc(x.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', ')).slice(0, 60)}</span>` },
           { key: 'total', label: 'Total', align: 'right', render: x => `<b>${money(x.total)}</b>${x.discount ? `<br><small class="warn-t">-${money(x.discount.amount)}</small>` : ''}` },
-          ...(own ? [{ key: 'commission', label: 'Commission', align: 'right', sortValue: x => ST.comBase(x), render: x => money(ST.comBase(x)) }] : []),
+          ...(own ? [{ key: 'commission', label: 'Commission', align: 'right', sortValue: x => myCom[x.id] || 0, render: x => x.status === 'cancelled' ? '<span class="faint">·</span>' : money(myCom[x.id] || 0) }] : []),
           { key: 'createdAt', label: 'Date', render: x => `<span class="nowrap">${U.fmtDate(x.createdAt)} <span class="muted">${U.fmtTime(x.createdAt)}</span></span>` }]
       });
     };
