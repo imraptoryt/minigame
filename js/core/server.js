@@ -834,7 +834,7 @@
           { name: '📅 Période', value: period, inline: true },
           { name: '💰 Montant total', value: money(inv.total), inline: true },
           { name: '🛒 Produits', value: list.trim() || 'Aucun' },
-          { name: '💳 Compte à débiter', value: pa.bankAccount ? '`' + pa.bankAccount + '`' : 'Non renseigné' },
+          { name: '💳 Compte à débiter', value: (pa.bankAccount || co.partnerBankAccount) ? '`' + (pa.bankAccount || co.partnerBankAccount) + '`' : 'Non renseigné' },
           ...(inv.note ? [{ name: '📝 Note', value: inv.note.slice(0, 300) }] : [])
         ],
         footer: { text: `💡 Pour obtenir le PDF de cette facture, contactez l'émetteur · ${inv.ref}` }, timestamp: c.iso
@@ -1627,6 +1627,7 @@
     if (Array.isArray(s.glifeAutoCats)) co.glifeAutoCats = s.glifeAutoCats.filter(id => co.categories.some(k => k.id === id) && !['custom', 'performances'].includes(id));
     if (s.commissionBase != null) co.commissionBase = s.commissionBase === 'revenue' ? 'revenue' : 'margin';
     if (s.payReason != null) co.payReason = str(s.payReason, 60);
+    if (s.partnerBankAccount != null) co.partnerBankAccount = str(s.partnerBankAccount, 40);
     if (Array.isArray(s.taxBrackets)) {
       const b = s.taxBrackets.slice(0, 3).map((x, i, a) => ({ upTo: i === a.length - 1 ? null : c.r(num(x.upTo, 0, 1e9)), rate: num(x.rate, 0, 100) }));
       if (b.some((x, i) => i && b[i - 1].upTo != null && x.upTo != null && x.upTo <= b[i - 1].upTo)) fail('Les seuils des tranches doivent être croissants');
