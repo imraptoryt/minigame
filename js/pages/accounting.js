@@ -517,7 +517,8 @@
       A().call('payroll.generate', { auto: true, from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
     }
     const cp = (txt, title) => `<button class="icon-btn sm" data-copy="${esc(txt)}" title="${esc(title)}">${icon('copy', 'sm')}</button>`;
-    el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + commissions (% du bénéfice) − retenues. Les primes sont comptées à part.</div></div>
+    const auto = (s.meta || {}).payrollAutoAt;
+    el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Salaire = fixe + commissions (% du bénéfice) − retenues. Les primes sont comptées à part.<br>Recalcul automatique tous les jours et le dimanche à 23h59${auto ? ` · dernier : ${U.fmtDT(auto)}` : ''}.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
           <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
           ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>

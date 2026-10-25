@@ -1017,6 +1017,17 @@
         footer: { text: `Clôturée par ${c.me.name} · ce qui est fait ensuite compte pour la semaine suivante` }, timestamp: new Date(to).toISOString() }]
     } };
   }
+  /* Recalcul automatique des salaires (tâche planifiée : tous les jours + dimanche 23h59, heure de Paris).
+   * Même calcul que la page Salaires, fait au nom du compte de direction. Rien n'est recalculé tant que
+   * la semaine passée n'est pas payée : ses fiches (calculées le dimanche 23h59) restent affichées telles quelles. */
+  function payrollPlan(db, now) {
+    if (!db || !Array.isArray(db.employees)) return null;
+    const actor = db.employees.find(e => !e.archived && hasPerm(roleOf(db, e), '*'));
+    if (!actor) return { skip: 'aucun compte de direction' };
+    const mon = parisMonday(now);
+    if ((db.payrolls || []).some(x => x.status !== 'paid' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d’abord' };
+    return { actorId: actor.id, payload: { auto: true, from: new Date(mon).toISOString(), to: new Date(now).toISOString() } };
+  }
   A['week.close'] = (c, p) => {
     c.need('payroll.manage');
     const db = c.db, from = openFrom(db, c.now), to = c.now;
@@ -1818,7 +1829,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });
