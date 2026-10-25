@@ -15,9 +15,9 @@
     return (v < 0 ? '-' : signed && v > 0 ? '+' : '') + cur + s;
   }
   const short = n => { const a = Math.abs(n); return (n < 0 ? '-' : '') + (a >= 1e6 ? (a / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : a >= 1e3 ? (a / 1e3).toFixed(a >= 1e4 ? 0 : 1).replace(/\.0$/, '') + 'k' : Math.round(a)); };
-  const fmtDate = iso => { if (!iso) return '—'; const d = new Date(iso); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); };
-  const fmtTime = iso => { if (!iso) return '—'; const d = new Date(iso); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-  const fmtDT = iso => iso ? fmtDate(iso) + ' - ' + fmtTime(iso) : '—';
+  const fmtDate = iso => { if (!iso) return '·'; const d = new Date(iso); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); };
+  const fmtTime = iso => { if (!iso) return '·'; const d = new Date(iso); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const fmtDT = iso => iso ? fmtDate(iso) + ' à ' + fmtTime(iso) : '·';
   const fmtDur = m => pad(Math.floor((m || 0) / 60)) + 'h' + pad(Math.round((m || 0) % 60));
   const toInputDate = t => { const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
   function ago(iso) {
@@ -42,7 +42,7 @@
     const inp = document.createElement('input');
     inp.className = sel.className.replace(/\binput\b/, '') + ' input combo';
     inp.setAttribute('list', id); inp.autocomplete = 'off'; inp.spellcheck = false;
-    inp.placeholder = blank ? blank.text.replace(/\.\.\.$/, '') + ' — tapez un nom' : 'Tapez un nom...';
+    inp.placeholder = blank ? blank.text.replace(/\.\.\.$/, '') + ' · tapez un nom' : 'Tapez un nom...';
     inp.required = sel.required; sel.required = false;
     const label = () => { const o = sel.selectedOptions[0]; return o && o.value ? o.text : ''; };
     inp.value = label();
@@ -207,7 +207,7 @@
   function pager(page, pages, total, size) {
     const nums = [];
     for (let p = 1; p <= pages; p++) if (p === 1 || p === pages || Math.abs(p - page) <= 1) nums.push(p); else if (nums[nums.length - 1] !== '…') nums.push('…');
-    return `<div class="pager"><span class="muted">${(page - 1) * size + 1}–${Math.min(page * size, total)} sur ${total}</span><span class="grow"></span>
+    return `<div class="pager"><span class="muted">${(page - 1) * size + 1} à ${Math.min(page * size, total)} sur ${total}</span><span class="grow"></span>
       <button class="icon-btn sm" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">${icon('chevron-left')}</button>
       ${nums.map(p => p === '…' ? '<span class="muted">…</span>' : `<button class="pg ${p === page ? 'on' : ''}" data-page="${p}">${p}</button>`).join('')}
       <button class="icon-btn sm" ${page >= pages ? 'disabled' : ''} data-page="${page + 1}">${icon('chevron-right')}</button></div>`;
@@ -321,7 +321,7 @@
           + `<linearGradient id="${gid}n" x1="0" y1="1" x2="0" y2="0"><stop offset="0" style="stop-color:var(--danger)"/><stop offset="1" style="stop-color:var(--danger);stop-opacity:.45"/></linearGradient>`;
         se.values.forEach((v, i) => {
           const bx = x(i) - (bw * k) / 2 + bw * si, y0 = y(0), yv = y(v), neg = v < 0 && k === 1;
-          s += `<rect class="bar" x="${bx + 1}" y="${Math.min(y0, yv)}" width="${bw - 2}" height="${Math.max(1, Math.abs(y0 - yv))}" rx="3" fill="url(#${gid}${neg ? 'n' : ''})"><title>${esc(o.labels[i])} — ${esc(se.name)} : ${fmt(v)}</title></rect>`;
+          s += `<rect class="bar" x="${bx + 1}" y="${Math.min(y0, yv)}" width="${bw - 2}" height="${Math.max(1, Math.abs(y0 - yv))}" rx="3" fill="url(#${gid}${neg ? 'n' : ''})"><title>${esc(o.labels[i])} · ${esc(se.name)} : ${fmt(v)}</title></rect>`;
         });
       } else {
         const pts = se.values.map((v, i) => `${x(i)},${y(v)}`).join(' ');
@@ -331,7 +331,7 @@
         }
         s += `<polyline class="line" points="${pts}" fill="none" style="stroke:${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" ${se.dash ? 'stroke-dasharray="5 5"' : ''}/>`;
         const dots = n <= 40;
-        se.values.forEach((v, i) => { s += `<circle class="pt" cx="${x(i)}" cy="${y(v)}" r="${dots ? 3 : 6}" style="stroke:${col}" ${dots ? '' : 'fill="transparent" stroke-width="0"'}><title>${esc(o.labels[i])} — ${esc(se.name)} : ${o.money === false ? v : money(v)}</title></circle>`; });
+        se.values.forEach((v, i) => { s += `<circle class="pt" cx="${x(i)}" cy="${y(v)}" r="${dots ? 3 : 6}" style="stroke:${col}" ${dots ? '' : 'fill="transparent" stroke-width="0"'}><title>${esc(o.labels[i])} · ${esc(se.name)} : ${o.money === false ? v : money(v)}</title></circle>`; });
       }
     });
     box.innerHTML = `<svg class="chart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img"><defs>${defs}</defs>${g}${s}</svg>`;

@@ -138,7 +138,7 @@
     if (+R.quota > 0) checks.push({ label: `Quota de ventes (${'$' + Math.round(R.quota).toLocaleString('en-US')})`, ok: exempt || ca >= R.quota, detail: exempt ? 'Dispensé (absence)' : '$' + Math.round(ca).toLocaleString('en-US') });
     if (R.absence === 'block') checks.push({ label: 'Aucune absence', ok: !abs.length, detail: abs.length ? abs.length + ' absence(s)' : 'Présent' });
     if (+R.minDays > 0) { const days = Math.floor((to - ts(emp.hiredAt)) / DAY); checks.push({ label: `Ancienneté (${R.minDays} j min.)`, ok: days >= R.minDays, detail: days + ' j' }); }
-    if ((R.roles || []).length) { const role = S.roles.find(r => r.id === emp.roleId); checks.push({ label: 'Grade éligible', ok: R.roles.includes(emp.roleId), detail: role ? role.name : '—' }); }
+    if ((R.roles || []).length) { const role = S.roles.find(r => r.id === emp.roleId); checks.push({ label: 'Grade éligible', ok: R.roles.includes(emp.roleId), detail: role ? role.name : '·' }); }
     return { ok: checks.every(c => c.ok), checks, absences: abs, ca };
   }
 

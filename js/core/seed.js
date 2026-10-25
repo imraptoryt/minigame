@@ -1,5 +1,5 @@
 /* =====================================================================
- * LS Customs — catalogue de base + données de démonstration
+ * LS Customs · catalogue de base + données de démonstration
  * Les données de démo sont produites en rejouant de vraies actions
  * (handle) : ventes, paies, stock et banque sont donc cohérents entre eux.
  * ===================================================================== */
@@ -231,8 +231,8 @@
       const r = run('emp_thomas', 'invoices.save', { [to.startsWith('par_') ? 'partnerId' : 'customerId']: to, items: [{ label, price, qty: 1 }], due: iso(due), note: '' }, t);
       if (r.ok && then) then.forEach(a => run('emp_thomas', a, { id: r.data.id, method: 'bank' }, t + DAY));
     };
-    inv('par_postop', 'Entretien flotte — 3 utilitaires', 1350, today + 5 * DAY, now - 2 * DAY, ['invoices.send']);
-    inv('par_mors', 'Sinistres pris en charge — septembre', 2400, today - 3 * DAY, now - 12 * DAY, ['invoices.send']);
+    inv('par_postop', 'Entretien flotte · 3 utilitaires', 1350, today + 5 * DAY, now - 2 * DAY, ['invoices.send']);
+    inv('par_mors', 'Sinistres pris en charge · septembre', 2400, today - 3 * DAY, now - 12 * DAY, ['invoices.send']);
     inv('par_pdm', 'Préparation véhicules de démonstration', 800, today - 8 * DAY, now - 16 * DAY, ['invoices.send', 'invoices.pay']);
     inv('cus_2402', 'Customisation complète (grosse commande)', 4200, today + 10 * DAY, now - 3 * HOUR, null);
 
@@ -288,7 +288,7 @@
       notif('service', 'Fin de service', 'Jessy Ramos a terminé son service (03h12)', 'info', 'service', 26 * HOUR, true),
       notif('payment', 'Paiement reçu', 'Facture FAC-0003 réglée par Kim Park', 'ok', 'invoices', 15 * DAY, true),
       lastBig ? Object.assign(lastBig, { read: true }) : null,
-      notif('overdue', 'Facture en retard', 'Parts LS #INV-43 — $2,300 échue', 'danger', 'bills', 2 * HOUR, false),
+      notif('overdue', 'Facture en retard', 'Parts LS #INV-43 · $2,300 échue', 'danger', 'bills', 2 * HOUR, false),
       notif('lowStock', 'Stock faible', 'Pneus : 8 restants (minimum 10)', 'warn', 'inventory', 45 * MIN, false),
       notif('signup', 'Demande de compte', 'Jordan Blake (Char ID 3102) attend une validation', 'info', 'staff', 20 * MIN, false)
     ].filter(Boolean);
@@ -340,7 +340,7 @@
       const mo = db.products.find(x => x.id === 'prd_moteur'); if (mo && !mo.cost) mo.cost = 300;
       if ((db.meta.pricesV || 0) >= 2) { db.meta.pricesV = 4; changed = true; }
     }
-    /* tarifs v2 : coût de l'effet de couleur (300 $) — seulement s'il n'a pas été saisi */
+    /* tarifs v2 : coût de l'effet de couleur (300 $) · seulement s'il n'a pas été saisi */
     if (db && db.meta && Array.isArray(db.products) && (db.meta.pricesV || 0) === 1) {
       const n = db.products.find(x => x.id === 'prd_nacrage'); if (n && !n.cost) n.cost = 300;
       const rc = db.products.find(x => x.id === 'prd_repa_complete'); if (rc && rc.cost === 90) rc.cost = 0;

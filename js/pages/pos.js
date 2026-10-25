@@ -1,4 +1,4 @@
-/* Point de vente — module prioritaire.
+/* Point de vente · module prioritaire.
  * Le panier est local à l'écran ; à l'enregistrement, seuls les ID produits,
  * quantités, client, partenaire, paiement et réduction/majoration demandées
  * sont envoyés. Le serveur recalcule tout et vérifie les permissions. */
@@ -48,7 +48,7 @@
         <div class="page-head"><h1>Point de vente - ${esc(S().company.name)}</h1>
           <div class="actions">${canEdit() ? `${P.edit ? `<button class="btn sm" data-act="newCat">${icon('folder-plus')}Nouvelle catégorie</button>` : ''}<button class="btn sm" data-act="newProduct">${icon('plus')}Nouveau produit</button>
             <button class="btn sm ${P.edit ? 'primary' : ''}" data-act="edit">${icon(P.edit ? 'check' : 'layout-grid')}${P.edit ? 'Terminer' : 'Modifier / ranger'}</button>` : ''}</div></div>
-        ${P.edit ? `<div class="alert info edit-hint">${icon('move')}<span><b>Mode édition</b> — glissez une carte pour la ranger (sur une carte, une sous-catégorie ou un onglet), glissez les onglets et les sous-catégories pour les réordonner. Cliquez sur une carte pour modifier son prix, son image...</span></div>` : ''}
+        ${P.edit ? `<div class="alert info edit-hint">${icon('move')}<span><b>Mode édition</b> · glissez une carte pour la ranger (sur une carte, une sous-catégorie ou un onglet), glissez les onglets et les sous-catégories pour les réordonner. Cliquez sur une carte pour modifier son prix, son image...</span></div>` : ''}
         <div class="cat-tabs" id="posCats"></div>
         <div class="sub-tabs" id="posSubs"></div>
         <div class="panel"><div class="prod-scroll" id="posGrid"></div></div>
@@ -160,7 +160,7 @@
   }
   function subForm(catId, id) {
     const s = id ? subsOf(catId).find(x => x.id === id) : null;
-    U.form({ title: (s ? 'Renommer la sous-catégorie' : 'Nouvelle sous-catégorie') + ' — ' + app().catLabel(catId), icon: 'folder-plus', size: 'sm', values: s || {},
+    U.form({ title: (s ? 'Renommer la sous-catégorie' : 'Nouvelle sous-catégorie') + ' · ' + app().catLabel(catId), icon: 'folder-plus', size: 'sm', values: s || {},
       fields: [{ name: 'label', label: 'Nom', required: true, full: true, placeholder: 'Ex. Moteur, Freins, Transmission...' }],
       onSubmit: v => app().call('catalog.arrange', { categories: withSubs(catId, subs => s ? subs.map(x => x.id === id ? Object.assign({}, x, v) : x) : subs.concat([{ id: '', label: v.label }])) }, s ? 'Sous-catégorie renommée' : 'Sous-catégorie créée') });
   }
@@ -182,7 +182,7 @@
     U.form({ title: c ? 'Modifier la catégorie' : 'Nouvelle catégorie', icon: 'folder-plus', size: 'sm', values: c || { icon: 'package' },
       fields: [{ name: 'label', label: 'Nom', required: true, full: true, placeholder: 'Ex. Services, Ventes, Pièces...' },
         { name: 'icon', label: 'Icône (Lucide)', full: true, hint: 'Ex. wrench, truck, palette, sparkles, package, shopping-bag, car, gauge' },
-        { name: 'vehicleClass', label: 'Articles selon la catégorie du véhicule (1 à 5) — demandée dans le panier', type: 'checkbox', full: true }],
+        { name: 'vehicleClass', label: 'Articles selon la catégorie du véhicule (1 à 5) · demandée dans le panier', type: 'checkbox', full: true }],
       onSubmit: v => {
         const list = cats().map(x => x.id === id ? Object.assign({}, x, v) : x);
         if (!c) list.push({ id: '', label: v.label, icon: v.icon, vehicleClass: v.vehicleClass, subs: [] });
@@ -247,7 +247,7 @@
 
   /* ---------- véhicule : plaque + catégorie 1 à 5 (onglets « selon le véhicule ») ---------- */
   const classLabel = n => ((S().company.vehicleClasses || [])[n - 1]) || 'Catégorie ' + n;
-  const vcButtons = big => [1, 2, 3, 4, 5].map(n => `<button class="vc-card ${big ? 'big' : ''} ${P.vehicle.cls === n ? 'on' : ''}" data-vclass="${n}" title="Catégorie ${n} — ${esc(classLabel(n))}"><b>${n}</b><small>${esc(classLabel(n))}</small></button>`).join('');
+  const vcButtons = big => [1, 2, 3, 4, 5].map(n => `<button class="vc-card ${big ? 'big' : ''} ${P.vehicle.cls === n ? 'on' : ''}" data-vclass="${n}" title="Catégorie ${n} · ${esc(classLabel(n))}"><b>${n}</b><small>${esc(classLabel(n))}</small></button>`).join('');
   const SRC = { auto: ['Détectée en jeu', 'ok'], table: ['Catégorie du modèle', 'ok'], history: ['Historique de la plaque', 'info'], model: ['Même modèle déjà vu', 'info'], manual: ['Choix manuel', 'muted'] };
   function drawVehicle() {
     const box = root.querySelector('#cartVehicle');
@@ -286,7 +286,7 @@
     if (g.error) return `<div class="veh-info muted">${icon('wifi-off', 'sm')}API véhicules injoignable</div>`;
     if (!Array.isArray(g.list)) return '';
     const x = vehSel(v), many = g.list.length > 1;
-    const pick = many ? `<select class="input sm" id="vehModel"><option value="">${g.list.length} véhicules avec cette plaque — choisir le modèle...</option>${g.list.map((o, i) => `<option value="${i}" ${g.sel === i ? 'selected' : ''}>${esc(o.name || o.model)} (${esc(o.model)})</option>`).join('')}</select>` : '';
+    const pick = many ? `<select class="input sm" id="vehModel"><option value="">${g.list.length} véhicules avec cette plaque · choisir le modèle...</option>${g.list.map((o, i) => `<option value="${i}" ${g.sel === i ? 'selected' : ''}>${esc(o.name || o.model)} (${esc(o.model)})</option>`).join('')}</select>` : '';
     if (many || !x) return `<div class="veh-info">${pick}</div>`;
     return `<div class="veh-info"><div>${icon('car', 'sm')} <b>${esc(x.name || x.model || 'Véhicule')}</b>${x.model ? ` <small class="muted">${esc(x.model)}</small>` : ''}${x.illegal ? ' ' + U.badge('Concession illégale', 'danger') : ''}</div></div>`;
   }

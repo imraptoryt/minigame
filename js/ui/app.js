@@ -87,10 +87,10 @@
     can(p) { const ps = Array.isArray(p) ? p : [p]; return this.perms.includes('*') || ps.some(x => this.perms.includes(x)); },
     allowed(route) { const r = ROUTES[route]; return !!r && (!r.perm || this.can(r.perm)); },
     meEmp() { return this.state.employees.find(e => e.id === this.me.id); },
-    myRole() { return this.state.roles.find(r => r.id === this.me.roleId) || { name: '—', commission: 0 }; },
+    myRole() { return this.state.roles.find(r => r.id === this.me.roleId) || { name: '·', commission: 0 }; },
     emp(id) { return this.state.employees.find(e => e.id === id); },
-    empName(id) { const e = this.emp(id); return e ? e.name : '—'; },
-    roleName(id) { const r = this.state.roles.find(x => x.id === id); return r ? r.name : '—'; },
+    empName(id) { const e = this.emp(id); return e ? e.name : '·'; },
+    roleName(id) { const r = this.state.roles.find(x => x.id === id); return r ? r.name : '·'; },
     customer(id) { return this.state.customers.find(c => c.id === id); },
     product(id) { return this.state.products.find(p => p.id === id); },
     catLabel(id) { const c = this.state.company.categories.find(x => x.id === id); return c ? c.label : 'Autres'; },
@@ -257,7 +257,7 @@
   }
   async function serviceClick() {
     const s = mySession();
-    if (!s) { await App.call('service.start', {}, 'Service commencé — le minuteur tourne'); return; }
+    if (!s) { await App.call('service.start', {}, 'Service commencé · le minuteur tourne'); return; }
     const paused = isPaused(s);
     const p = U.popover($('#svcBtn'), `<div class="pop-head"><span>${paused ? 'En pause' : 'En service'} depuis ${U.fmtTime(s.start)}</span></div>
       <button class="pop-item" data-svc="pause">${icon(paused ? 'play' : 'pause')}<span><b>${paused ? 'Reprendre le service' : 'Faire une pause'}</b><small>Le temps de pause n'est pas compté</small></span></button>
@@ -269,7 +269,7 @@
       U.closePopover();
       if (a.dataset.svc === 'page') App.go('service');
       else if (a.dataset.svc === 'pause') App.call('service.pause', {}, paused ? 'Service repris' : 'Pause commencée');
-      else App.call('service.end', {}, 'Service terminé — heures enregistrées');
+      else App.call('service.end', {}, 'Service terminé · heures enregistrées');
     });
   }
 
@@ -295,7 +295,7 @@
       const a = list[i];
       const fields = a ? [['Titre', a.title], ['Image', a.image], ['Message', a.message]] : [];
       m.el.querySelector('#advBody').innerHTML = (list.length > 1 ? `<div class="sub-tabs">${list.map((x, k) => `<button class="chip ${k === i ? 'on' : ''}" data-advtab="${k}">${esc(x.label || 'Annonce ' + (k + 1))}</button>`).join('')}</div>` : '')
-        + (a ? fields.map((f, k) => `<div class="adv-box"><div><b>${f[0]}:</b> ${esc(f[1] || '—')}</div><button class="icon-btn" data-copy="${k}" title="Copier">${icon('copy')}</button></div>`).join('')
+        + (a ? fields.map((f, k) => `<div class="adv-box"><div><b>${f[0]}:</b> ${esc(f[1] || '·')}</div><button class="icon-btn" data-copy="${k}" title="Copier">${icon('copy')}</button></div>`).join('')
           : U.empty({ icon: 'megaphone', title: 'Aucune annonce', text: 'Créez une annonce publicitaire.', hint: false }));
       paint();
       m.copy = k => copyText(fields[k][1] || '');
@@ -371,7 +371,7 @@
     const pref = Theme.pref(), co = THEMES.find(t => t.id === Theme.company()) || THEMES[0];
     const opt = (id, name, t) => `<button class="theme-opt ${id === 'auto' ? 'auto' : ''} ${pref === id ? 'on' : ''}" data-th="${id}"><i style="background:linear-gradient(135deg, ${t.b} 50%, ${t.c} 50%)"></i><span>${esc(name)}</span></button>`;
     const p = U.popover($('#userBtn'), `<div class="pop-head"><span>Thème</span></div>
-      <div class="theme-list">${opt('auto', 'Auto — ' + co.name + ' (thème de l\'entreprise)', co)}${THEMES.map(t => opt(t.id, t.name, t)).join('')}</div>
+      <div class="theme-list">${opt('auto', 'Auto · ' + co.name + ' (thème de l\'entreprise)', co)}${THEMES.map(t => opt(t.id, t.name, t)).join('')}</div>
       <label class="check" style="padding:2px 12px 12px"><input type="checkbox" data-deco ${Theme.deco() ? 'checked' : ''}><span>Décorations (Halloween, Noël)</span></label>`, 'narrow');
     p.addEventListener('click', e => { const b = e.target.closest('[data-th]'); if (!b) return; Theme.set(b.dataset.th); p.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
     p.addEventListener('change', e => { if (e.target.matches('[data-deco]')) Theme.toggleDeco(); });
@@ -411,9 +411,9 @@
     const S = App.state, out = [], has = (...v) => v.some(x => String(x || '').toLowerCase().includes(q));
     const lead = n => `<span class="li-ic">${icon(n)}</span>`;
     const push = (group, list, max) => list.slice(0, max || 5).forEach(x => out.push(Object.assign({ group }, x)));
-    push('Employés', S.employees.filter(e => has(e.name, e.charId, e.discordId, e.bankAccount)).map(e => ({ lead: U.avatar(e.name), title: e.name, sub: `${App.roleName(e.roleId)} · Char ID ${e.charId || '—'}${e.archived ? ' · archivé' : ''}`, open: () => LSC.open.employee(e.id) })));
-    push('Ventes', S.sales.filter(s => has('#' + s.num, s.ref, s.customerName, s.employeeName)).slice().reverse().map(s => ({ lead: lead('receipt'), title: `#${s.ref} — ${money(s.total)}`, sub: `${s.customerName} · ${s.employeeName} · ${U.fmtDT(s.createdAt)}`, open: () => LSC.open.sale(s.id) })));
-    push('Factures', S.invoices.filter(i => has(i.ref, i.customerName)).map(i => ({ lead: lead('file-text'), title: `${i.ref} — ${money(i.total)}`, sub: i.customerName, open: () => LSC.open.invoice(i.id) })));
+    push('Employés', S.employees.filter(e => has(e.name, e.charId, e.discordId, e.bankAccount)).map(e => ({ lead: U.avatar(e.name), title: e.name, sub: `${App.roleName(e.roleId)} · Char ID ${e.charId || '·'}${e.archived ? ' · archivé' : ''}`, open: () => LSC.open.employee(e.id) })));
+    push('Ventes', S.sales.filter(s => has('#' + s.num, s.ref, s.customerName, s.employeeName)).slice().reverse().map(s => ({ lead: lead('receipt'), title: `#${s.ref} · ${money(s.total)}`, sub: `${s.customerName} · ${s.employeeName} · ${U.fmtDT(s.createdAt)}`, open: () => LSC.open.sale(s.id) })));
+    push('Factures', S.invoices.filter(i => has(i.ref, i.customerName)).map(i => ({ lead: lead('file-text'), title: `${i.ref} · ${money(i.total)}`, sub: i.customerName, open: () => LSC.open.invoice(i.id) })));
     push('Produits', S.products.filter(p => has(p.name, p.description)).map(p => ({ lead: lead(p.icon || 'wrench'), title: p.name, sub: `${App.catLabel(p.category)} · ${money(p.price)}`, open: () => LSC.open.product(p.id) })));
     push('Partenaires', S.partners.filter(p => has(p.name, p.contact)).map(p => ({ lead: lead('handshake'), title: p.name, sub: p.contact || p.type, open: () => App.go('invoices') })));
     return out;

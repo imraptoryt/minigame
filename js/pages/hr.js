@@ -57,7 +57,7 @@
     const list = s.employees.filter(e => !e.archived);
     const rows = list.map(e => {
       const z = ST.employee(s, e.id, r), last = s.sessions.filter(x => x.employeeId === e.id).pop();
-      return Object.assign({}, e, { role: s.roles.find(x => x.id === e.roleId) || { name: '—', rank: 0 }, z, last: e.lastLogin || (last && last.start) || null });
+      return Object.assign({}, e, { role: s.roles.find(x => x.id === e.roleId) || { name: '·', rank: 0 }, z, last: e.lastLogin || (last && last.start) || null });
     });
     const count = k => list.filter(e => e.status === k).length;
     el.innerHTML = `<div class="page-head"><div><h1>Liste du personnel</h1><div class="sub">${list.length} employés · statistiques de la semaine en cours</div></div>
@@ -76,9 +76,9 @@
       columns: [
         { key: 'name', label: 'Nom Prénom', render: e => `<div class="who">${U.avatar(e.name)}<div><b>${esc(e.name)}</b><small>${ident(e)}</small></div></div>` },
         { key: 'rank', label: 'Grade', sortValue: e => e.role.rank, render: e => canRank(e) ? `<span class="row nowrap" data-id="${e.id}"><select class="input sm" data-rank="${e.id}">${U.opts(rankRoles(e).map(r => ({ value: r.id, label: r.name })), e.roleId)}</select>${act('up', 'Promouvoir', 'chevron-up')}${act('down', 'Rétrograder', 'chevron-down')}</span>` : esc(e.role.name) },
-        { key: 'bankAccount', label: 'Compte bancaire', render: e => e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)}</span>` : '<span class="faint">—</span>' },
+        { key: 'bankAccount', label: 'Compte bancaire', render: e => e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)}</span>` : '<span class="faint">·</span>' },
         { key: 'status', label: 'Statut', render: e => (e.dismissal ? U.badge('Licenciement en cours', 'warn') + ' ' : '') + (locked(e) ? U.badge('Bloqué', 'danger') + ' ' : '') + (e.mustReset || !e.hasPassword ? U.badge(e.tempUntil && Date.parse(e.tempUntil) > Date.now() ? 'Mot de passe provisoire' : 'Mot de passe à recréer', 'warn') + ' ' : '') + (mng && e.id !== A().me.id ? `<select class="input sm" data-status="${e.id}">${U.opts([{ value: 'on', label: 'En service' }, { value: 'off', label: 'Hors service' }, { value: 'pause', label: 'En pause' }, { value: 'suspended', label: 'Suspendu' }], e.status)}</select>` : U.status('staff', e.status)) + (ST.absentNow(s, e.id) ? ' ' + U.badge('En absence', 'warn') : '') },
-        { key: 'last', label: 'Dernière connexion', render: e => e.last ? `${U.fmtDate(e.last)} <span class="muted">${U.fmtTime(e.last)}</span>` : '<span class="faint">—</span>' },
+        { key: 'last', label: 'Dernière connexion', render: e => e.last ? `${U.fmtDate(e.last)} <span class="muted">${U.fmtTime(e.last)}</span>` : '<span class="faint">·</span>' },
         { key: 'hours', label: 'Heures', align: 'right', sortValue: e => e.z.minutes, render: e => U.fmtDur(e.z.minutes) },
         { key: 'ca', label: 'CA généré', align: 'right', sortValue: e => e.z.revenue, render: e => `<b>${money(e.z.revenue)}</b>` },
         { key: 'com', label: 'Commission', align: 'right', sortValue: e => e.z.commissions, render: e => money(e.z.commissions) },
@@ -135,7 +135,7 @@
     const myRank = (A().myRole().rank || 0), full = A().can('*');
     const roles = s.roles.filter(r => full || r.rank < myRank || (e && r.id === e.roleId)).sort((a, b) => a.rank - b.rank);
     const def = roles.find(r => r.id === 'apprenti') || roles[0];
-    U.form({ title: e ? 'Compte — ' + e.name : 'Nouveau compte employé', icon: 'user-plus', values: e ? Object.assign({}, e, { hiredAt: U.toInputDate(e.hiredAt) }) : { roleId: def && def.id, hiredAt: U.toInputDate(Date.now()) },
+    U.form({ title: e ? 'Compte · ' + e.name : 'Nouveau compte employé', icon: 'user-plus', values: e ? Object.assign({}, e, { hiredAt: U.toInputDate(e.hiredAt) }) : { roleId: def && def.id, hiredAt: U.toInputDate(Date.now()) },
       fields: [{ name: 'firstName', label: 'Prénom', required: true }, { name: 'lastName', label: 'Nom', required: true },
         { name: 'charId', label: 'Char ID', required: true, placeholder: 'ex. 1487' }, { name: 'discordId', label: 'Discord ID', placeholder: 'ex. 284019374512330000', hint: 'Identifiant numérique Discord.' },
         { name: 'bankAccount', label: 'N° compte bancaire', placeholder: 'ex. LSB-1487-4410', hint: 'Compte sur lequel le salaire est versé.' },
@@ -150,7 +150,7 @@
       } });
   };
   /* identité courte affichée sous le nom */
-  const ident = e => `Char ID ${esc(e.charId || '—')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}`;
+  const ident = e => `Char ID ${esc(e.charId || '·')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}`;
   function archive(id, reason) {
     const e = S().employees.find(x => x.id === id);
     U.form({ title: (reason === 'Licenciement' ? 'Licencier ' : 'Archiver ') + e.name, icon: 'archive', size: 'sm', danger: true, submit: reason === 'Licenciement' ? 'Licencier' : 'Archiver', values: { reason: reason || 'Démission' },
@@ -176,13 +176,13 @@
     };
     const ongoing = s.employees.filter(e => !e.archived && e.dismissal);
     const rows = s.employees.filter(e => !e.archived && !e.dismissal).map(e => {
-      const role = s.roles.find(x => x.id === e.roleId) || { name: '—', rank: 0 };
+      const role = s.roles.find(x => x.id === e.roleId) || { name: '·', rank: 0 };
       const p2 = pay(e, w2), p1 = pay(e, w1), q2 = ST.prereq(s, e, w2.from, w2.to), q1 = ST.prereq(s, e, w1.from, w1.to);
       return Object.assign({}, e, { role, p2, p1, total: p2.v + p1.v, q2, q1, ok: q1.ok && q2.ok, days: Math.floor((Date.now() - Date.parse(e.hiredAt)) / ST.DAY) });
     });
     const ko = rows.filter(r => !r.ok).length;
-    const money1 = p => p.none ? '<span class="faint" title="Pas encore arrivé">—</span>' : `<span title="${p.est ? 'Estimation (paie non calculée)' : p.paid ? 'Payé' : 'Fiche de paie'}">${p.est ? '~' : ''}${money(p.v)}</span>`;
-    const req = (q, r) => `<span class="req ${q.ok ? 'ok' : 'ko'}" title="${esc(ST.weekLabel(r))} — ${esc(q.checks.map(c => (c.ok ? '✔ ' : '✘ ') + c.label + ' : ' + c.detail).join(' | ') || 'Aucun prérequis')}"></span>`;
+    const money1 = p => p.none ? '<span class="faint" title="Pas encore arrivé">·</span>' : `<span title="${p.est ? 'Estimation (paie non calculée)' : p.paid ? 'Payé' : 'Fiche de paie'}">${p.est ? '~' : ''}${money(p.v)}</span>`;
+    const req = (q, r) => `<span class="req ${q.ok ? 'ok' : 'ko'}" title="${esc(ST.weekLabel(r))} · ${esc(q.checks.map(c => (c.ok ? '✔ ' : '✘ ') + c.label + ' : ' + c.detail).join(' | ') || 'Aucun prérequis')}"></span>`;
     el.innerHTML = `<div class="page-head"><div><h1>Licenciement</h1><div class="sub">Aide à la décision : salaire et prérequis des deux dernières semaines terminées (${esc(ST.weekLabel(w2).replace('Semaine ', 'S'))} et ${esc(ST.weekLabel(w1).replace('Semaine ', 'S'))}).</div></div>
         <div class="actions"><label class="check"><input type="checkbox" id="dsOnly" ${dsst.only ? 'checked' : ''}><span>Prérequis non atteints uniquement</span></label></div></div>
       <div class="grid stats">${U.stat({ label: 'Employés', value: rows.length, icon: 'users' })}${U.stat({ label: 'Prérequis atteints', value: rows.length - ko, icon: 'circle-check' })}${U.stat({ label: 'Prérequis non atteints', value: ko, icon: 'circle-x', tone: 'danger' })}
@@ -190,20 +190,20 @@
       ${ongoing.length ? `<div class="panel mt"><div class="panel-head"><h3>${icon('user-x')}Licenciements en cours (${ongoing.length})</h3><span class="muted">Le compte est supprimé de la compta à la confirmation</span></div>
         <div class="panel-body"><div class="list">${ongoing.map(e => { const d = e.dismissal, n = (s.company.dismissChecklist || []).length, k = (d.checks || []).length;
           const st = U.badge(`Étapes ${k}/${n}`, k === n ? 'ok' : 'warn');
-          return `<div class="li" data-id="${e.id}">${U.avatar(e.name)}<div style="min-width:0"><b>${esc(e.name)}</b><small>${esc(A().roleName(e.roleId))} · Char ID ${esc(e.charId || '—')} · commencé par ${esc(d.by)} le ${U.fmtDate(d.at)}${d.reason ? ' · ' + esc(d.reason) : ''}</small></div>
+          return `<div class="li" data-id="${e.id}">${U.avatar(e.name)}<div style="min-width:0"><b>${esc(e.name)}</b><small>${esc(A().roleName(e.roleId))} · Char ID ${esc(e.charId || '·')} · commencé par ${esc(d.by)} le ${U.fmtDate(d.at)}${d.reason ? ' · ' + esc(d.reason) : ''}</small></div>
             <span class="row nowrap" style="margin-left:auto">${st}<button class="btn sm" data-a="steps">${icon('list-checks')}Continuer</button><button class="btn sm ghost" data-a="undo">${icon('undo-2')}Annuler</button></span></div>`; }).join('')}</div></div></div>` : ''}
       <div class="panel mt"><div class="panel-body"><div id="dsTable"></div></div></div>`;
     U.table(el.querySelector('#dsTable'), {
       id: 'dismiss', sort: 'ok', rows: rows.filter(r => !dsst.only || !r.ok), rowClass: r => r.ok ? 'row-ok' : 'row-ko',
       empty: { icon: 'users', title: 'Aucun employé', text: 'Personne ne correspond.', hint: false },
       columns: [
-        { key: 'name', label: 'Nom Prénom', render: e => `<div class="who">${U.avatar(e.name)}<div><b>${esc(e.name)}</b><small>Char ID ${esc(e.charId || '—')}</small></div></div>` },
+        { key: 'name', label: 'Nom Prénom', render: e => `<div class="who">${U.avatar(e.name)}<div><b>${esc(e.name)}</b><small>Char ID ${esc(e.charId || '·')}</small></div></div>` },
         { key: 'rank', label: 'Grade', sortValue: e => e.role.rank, render: e => esc(e.role.name) },
         { key: 'p2', label: 'Salaire S-2', align: 'right', sortValue: e => e.p2.v, render: e => money1(e.p2) },
         { key: 'p1', label: 'Salaire S-1', align: 'right', sortValue: e => e.p1.v, render: e => money1(e.p1) },
         { key: 'total', label: 'Total 2 sem.', align: 'right', render: e => `<b>${money(e.total)}</b>` },
         { key: 'hiredAt', label: 'Arrivée', sortValue: e => Date.parse(e.hiredAt), render: e => `${U.fmtDate(e.hiredAt)}<br><small class="muted">${e.days} j</small>` },
-        { key: 'discordId', label: 'Discord ID', render: e => e.discordId ? `<span class="nowrap">${esc(e.discordId)}</span>` : '<span class="faint">—</span>' },
+        { key: 'discordId', label: 'Discord ID', render: e => e.discordId ? `<span class="nowrap">${esc(e.discordId)}</span>` : '<span class="faint">·</span>' },
         { key: 'ok', label: 'Prérequis', sortValue: e => (e.q1.ok ? 1 : 0) + (e.q2.ok ? 1 : 0), render: e => `<span class="row nowrap">${req(e.q2, w2)}${req(e.q1, w1)}${U.badge(e.ok ? 'Atteints' : 'Non atteints', e.ok ? 'ok' : 'danger')}</span>` },
         { key: 'a', label: '', sortable: false, align: 'right', render: e => e.id !== A().me.id && (full || e.role.rank < myRk) ? idCell(e.id, `<button class="btn sm danger" data-a="fire">${icon('user-x')}Licencier</button>`) : '' }]
     });
@@ -217,11 +217,11 @@
   /* Fenêtre de licenciement : cocher chaque étape ; confirmation possible quand tout est fait */
   function dismissSteps(id) {
     const s = S(), e = s.employees.find(x => x.id === id), d = e.dismissal || {}, steps = s.company.dismissChecklist || [];
-    const role = s.roles.find(x => x.id === e.roleId) || { name: '—' }, days = Math.max(0, Math.floor((Date.now() - Date.parse(e.hiredAt)) / ST.DAY));
+    const role = s.roles.find(x => x.id === e.roleId) || { name: '·' }, days = Math.max(0, Math.floor((Date.now() - Date.parse(e.hiredAt)) / ST.DAY));
     const stepIc = l => /company|entreprise|job/i.test(l) ? 'building-2' : /discord/i.test(l) ? 'message-circle' : /compta|salaire|paie/i.test(l) ? 'banknote' : 'square-check';
     const REASONS = ['Absences répétées', 'Inactivité', 'Comportement', 'Faute grave', 'Fin de période d’essai', 'Démission'];
     const m = U.modal({ title: 'Licencier ' + e.name, icon: 'user-x', size: 'lg',
-      body: `<div class="ds-card">${U.avatar(e.name, 'lg')}<div class="ds-who"><b>${esc(e.name)}</b><span>${esc(role.name)} · Char ID ${esc(e.charId || '—')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}</span>
+      body: `<div class="ds-card">${U.avatar(e.name, 'lg')}<div class="ds-who"><b>${esc(e.name)}</b><span>${esc(role.name)} · Char ID ${esc(e.charId || '·')}${e.discordId ? ' · Discord ' + esc(e.discordId) : ''}</span>
           <span>Arrivé le ${U.fmtDate(e.hiredAt)} · ${days} jour(s)</span></div><div class="ds-pay">${icon('banknote', 'sm')}<span>${salaryInfo(s, e)}</span></div></div>
         <div class="ds-progress"><div class="ds-bar"><i id="dsBar"></i></div><b id="dsCount"></b></div>
         <div class="ds-steps" id="dsChecks">${steps.map((x, i) => { const [t, ...rest] = x.label.split(' : ');
@@ -267,18 +267,18 @@
       empty: { icon: 'archive', title: 'Aucune archive', text: "Aucun employé n'a quitté l'entreprise.", hint: false },
       columns: [{ key: 'name', label: 'Nom', render: e => `<div class="who">${U.avatar(e.name)}<div><b>${esc(e.name)}</b><small>${ident(e)}</small></div></div>` },
         { key: 'lastRoleName', label: 'Ancien grade' }, { key: 'hiredAt', label: 'Arrivée', render: e => U.fmtDate(e.hiredAt) }, { key: 'leftAt', label: 'Départ', render: e => U.fmtDate(e.leftAt) },
-        { key: 'leaveReason', label: 'Motif', render: e => U.badge(e.leaveReason || '—') }, { key: 'ca', label: 'CA total', align: 'right', sortValue: e => e.z.revenue, render: e => money(e.z.revenue) },
+        { key: 'leaveReason', label: 'Motif', render: e => U.badge(e.leaveReason || '·') }, { key: 'ca', label: 'CA total', align: 'right', sortValue: e => e.z.revenue, render: e => money(e.z.revenue) },
         { key: 'h', label: 'Heures', align: 'right', sortValue: e => e.z.minutes, render: e => U.fmtDur(e.z.minutes) }, { key: 'warns', label: 'Avert.', align: 'right' },
         { key: 'a', label: '', sortable: false, align: 'right', render: e => A().can('staff.manage') ? idCell(e.id, act('restore', 'Réintégrer', 'undo-2')) : '' }] });
     onActs(el, { restore: async id => { if (await U.confirm('Réintégrer cet employé ?', { ok: 'Réintégrer' })) A().call('staff.restore', { id }, 'Employé réintégré'); } });
     function detail(e) {
       const s2 = S();
-      U.modal({ title: e.name + ' — archives', icon: 'archive', size: 'lg',
+      U.modal({ title: e.name + ' · archives', icon: 'archive', size: 'lg',
         body: `<div class="grid stats">${U.stat({ label: 'CA total', value: money(e.z.revenue), sub: e.z.count + ' ventes', icon: 'dollar-sign' })}${U.stat({ label: 'Commissions', value: money(e.z.commissions), icon: 'percent', tone: 'info' })}
           ${U.stat({ label: 'Salaires versés', value: money(e.paid), icon: 'banknote', tone: 'info' })}${U.stat({ label: 'Heures', value: U.fmtDur(e.z.minutes), icon: 'timer', tone: 'warn' })}</div>
           <div class="grid cols-2 mt"><dl class="kv"><dt>Ancien grade</dt><dd>${esc(e.lastRoleName)}</dd><dt>Arrivée</dt><dd>${U.fmtDate(e.hiredAt)}</dd><dt>Départ</dt><dd>${U.fmtDate(e.leftAt)}</dd><dt>Motif</dt><dd>${esc(e.leaveReason)}</dd></dl>
           <div>${(e.promotions || []).map(p => `<div class="li"><span class="li-ic ok">${icon('arrow-up-right')}</span><div><b>${esc(p.from)} → ${esc(p.to)}</b><small>${U.fmtDate(p.at)} par ${esc(p.by)}</small></div></div>`).join('') || '<p class="muted" style="margin:0">Aucune promotion.</p>'}</div></div>
-          <div class="section-title">Avertissements</div>${s2.warnings.filter(w => w.employeeId === e.id).map(w => `<div class="li"><span class="li-ic warn">${icon('megaphone')}</span><div><b>#${w.num} · ${esc(w.type)}</b><small>${esc(w.reason)} — ${U.fmtDate(w.at)}</small></div></div>`).join('') || '<p class="muted" style="margin:0">Aucun.</p>'}`,
+          <div class="section-title">Avertissements</div>${s2.warnings.filter(w => w.employeeId === e.id).map(w => `<div class="li"><span class="li-ic warn">${icon('megaphone')}</span><div><b>#${w.num} · ${esc(w.type)}</b><small>${esc(w.reason)} · ${U.fmtDate(w.at)}</small></div></div>`).join('') || '<p class="muted" style="margin:0">Aucun.</p>'}`,
         foot: `<button class="btn ghost" data-stats>${icon('chart-column')}Bilan détaillé</button><span class="grow"></span><button class="btn" data-close>Fermer</button>` })
         .el.querySelector('[data-stats]').onclick = () => { U.modal.top().close(); LSC.open.employee(e.id); };
     }
@@ -323,7 +323,7 @@
     if (se) se.onchange = () => { svst.emp = se.value || me.id; service(el); };
     el.querySelectorAll('[data-sv]').forEach(b => b.onclick = () => {
       const a = b.dataset.sv;
-      A().call('service.' + a, {}, a === 'start' ? 'Service commencé' : a === 'end' ? 'Service terminé — heures enregistrées' : paused ? 'Service repris' : 'Pause commencée');
+      A().call('service.' + a, {}, a === 'start' ? 'Service commencé' : a === 'end' ? 'Service terminé · heures enregistrées' : paused ? 'Service repris' : 'Pause commencée');
     });
     onActs(el, { force: async id => { if (await U.confirm(`Clôturer le service de ${A().empName(id)} ?`, { danger: true, ok: 'Clôturer' })) A().call('service.end', { employeeId: id }, 'Service clôturé'); } });
     A().onTick = () => {
@@ -352,7 +352,7 @@
     el.querySelector('#wEmp').onchange = e => { wst.emp = e.target.value; warnings(el); };
     const nb = el.querySelector('[data-new]');
     if (nb) nb.onclick = () => U.form({ title: 'Nouvel avertissement', icon: 'megaphone',
-      fields: [{ name: 'employeeId', label: 'Employé', type: 'select', full: true, attrs: 'data-combo', options: [{ value: '', label: 'Choisir...' }].concat(s.employees.filter(e => !e.archived && e.id !== A().me.id).map(e => ({ value: e.id, label: `${e.name} — ${A().roleName(e.roleId)}` }))) },
+      fields: [{ name: 'employeeId', label: 'Employé', type: 'select', full: true, attrs: 'data-combo', options: [{ value: '', label: 'Choisir...' }].concat(s.employees.filter(e => !e.archived && e.id !== A().me.id).map(e => ({ value: e.id, label: `${e.name} · ${A().roleName(e.roleId)}` }))) },
         { name: 'type', label: 'Type', type: 'select', full: true, options: ['Retard', 'Absence', 'Comportement', 'Non-respect des procédures', 'Faute grave', 'Autre'] },
         { name: 'reason', label: 'Motif', type: 'textarea', required: true, full: true }],
       onSubmit: v => A().call('warnings.save', v, 'Avertissement enregistré') });
@@ -415,7 +415,7 @@
           <div class="acc-grid">
             ${ro('Nom Prénom', esc(e.name), 'user-round')}
             ${ro('Grade', esc(role.name) + ` <small class="muted">· commission ${role.commission || 0}%</small>`, 'shield-check')}
-            ${ro('Char ID', esc(e.charId || '—'), 'fingerprint')}
+            ${ro('Char ID', esc(e.charId || '·'), 'fingerprint')}
             ${ro('Date d’arrivée', U.fmtDate(e.hiredAt) + ` <small class="muted">· ${days} jour${days > 1 ? 's' : ''}</small>`, 'calendar-check')}
           </div>
           <div class="section-title">Modifiable par vous</div>

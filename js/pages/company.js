@@ -22,7 +22,7 @@
           <div style="min-width:0"><b>${esc(x.name)}</b><small>Rang ${x.rank} · ${x.commission}% du bénéfice · fixe ${money(x.salary)}</small></div>
           <span class="badge" style="margin-left:auto">${s.employees.filter(e => !e.archived && e.roleId === x.id).length}</span></div>`).join('')}</div>`, { icon: 'shield-check', bodyCls: '' })}
         <section class="panel span-2">${r ? `<div class="panel-head"><h3>${icon('key-round')}${esc(r.name)}</h3><div class="row">${editable ? `<button class="btn sm" data-edit>${icon('pencil')}Commission & salaire</button><button class="btn sm danger" data-del>${icon('trash-2')}</button>` : ''}</div></div>
-          <div class="panel-body">${r.perms.includes('*') ? `<div class="alert info">${icon('crown')}<span><b>Accès complet</b> — ce grade possède toutes les permissions.</span></div>` : ''}
+          <div class="panel-body">${r.perms.includes('*') ? `<div class="alert info">${icon('crown')}<span><b>Accès complet</b> · ce grade possède toutes les permissions.</span></div>` : ''}
           ${!editable && !r.perms.includes('*') ? `<div class="alert warn" style="margin-bottom:12px">${icon('lock')}<span>Vous ne pouvez pas modifier un grade égal ou supérieur au vôtre.</span></div>` : ''}
           ${r.perms.includes('*') ? '' : `<div class="perm-grid" id="permGrid">${Object.keys(groups).map(g => `<div class="perm-group"><h4>${esc(g)}</h4>${groups[g].map(p => `<label class="perm"><input type="checkbox" value="${p[0]}" ${r.perms.includes(p[0]) ? 'checked' : ''} ${editable ? '' : 'disabled'}><span>${esc(p[1])}</span></label>`).join('')}</div>`).join('')}</div>
           ${editable ? `<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn primary" data-saveperms>${icon('save')}Enregistrer les permissions</button></div>` : ''}`}</div>` : U.empty({ title: 'Aucun grade' })}</section>
@@ -36,7 +36,7 @@
   }
   function roleForm(id) {
     const r = id ? S().roles.find(x => x.id === id) : null;
-    U.form({ title: r ? 'Grade — ' + r.name : 'Nouveau grade', icon: 'shield', values: r || { rank: 15, commission: 60, salary: 0, hourly: 0 },
+    U.form({ title: r ? 'Grade · ' + r.name : 'Nouveau grade', icon: 'shield', values: r || { rank: 15, commission: 60, salary: 0, hourly: 0 },
       fields: [{ name: 'name', label: 'Nom', required: true, full: true }, { name: 'rank', label: 'Rang (hiérarchie)', type: 'number', min: 1, max: 99, hint: 'Plus le rang est élevé, plus le grade est haut.' },
         { name: 'commission', label: 'Commission (% du bénéfice)', type: 'number', min: 0, max: 100, step: '0.5' }, { name: 'salary', label: 'Salaire fixe par paie', type: 'money' }],
       onSubmit: async v => { const res = await A().call('roles.save', Object.assign({ id, perms: r ? r.perms : ['pos.use', 'sales.view_own', 'stats.own', 'service.self'] }, v), r ? 'Grade modifié' : 'Grade créé'); if (res.ok && res.data) rst.sel = res.data.id; return res; } });
@@ -57,7 +57,7 @@
     const moves = s.inventoryTx.filter(t => itemIds.has(t.itemId));
     const linked = id => s.products.filter(p => p.inventoryId === id).map(p => p.name);
     const lastMove = id => { for (let i = s.inventoryTx.length - 1; i >= 0; i--) if (s.inventoryTx[i].itemId === id) return s.inventoryTx[i]; return null; };
-    el.innerHTML = `<div class="page-head"><div><h1>Stock — entrées / sorties</h1><div class="sub">Chaque entrée ou sortie est enregistrée et publiée sur le webhook Discord de sa catégorie (les sorties dues aux ventes aussi).</div></div>
+    el.innerHTML = `<div class="page-head"><div><h1>Stock · entrées / sorties</h1><div class="sub">Chaque entrée ou sortie est enregistrée et publiée sur le webhook Discord de sa catégorie (les sorties dues aux ventes aussi).</div></div>
         <div class="actions">${mng ? `<button class="btn sm" data-x="newcat">${icon('folder-plus')}Nouvelle catégorie</button>` : ''}${mng && ivst.cat ? `<button class="btn primary sm" data-x="newitem">${icon('plus')}Nouvel article</button>` : ''}</div></div>
       <div class="stock-layout">
         <aside class="panel"><div class="panel-head"><h3>${icon('folders')}Catégories</h3></div><div class="panel-body list">
@@ -81,7 +81,7 @@
         columns: [
           { key: 'name', label: 'Article', render: i => `<b>${esc(i.name)}</b>${linked(i.id).length ? `<br><small class="muted">Vendu au POS : ${esc(linked(i.id).join(', '))}</small>` : ''}` },
           { key: 'qty', label: 'Quantité', align: 'right', render: i => `<b class="big-qty ${i.qty <= 0 ? 'danger-t' : i.min && i.qty <= i.min ? 'warn-t' : ''}">${i.qty}</b>` },
-          { key: 'last', label: 'Dernier mouvement', sortValue: i => (lastMove(i.id) || {}).at || '', render: i => { const t = lastMove(i.id); return t ? `<span class="${t.delta < 0 ? 'danger-t' : 'ok-t'}">${t.delta > 0 ? '+' : ''}${t.delta}</span> <small class="muted">${esc(A().empName(t.by))} · ${U.ago(t.at)}</small>` : '<span class="faint">—</span>'; } },
+          { key: 'last', label: 'Dernier mouvement', sortValue: i => (lastMove(i.id) || {}).at || '', render: i => { const t = lastMove(i.id); return t ? `<span class="${t.delta < 0 ? 'danger-t' : 'ok-t'}">${t.delta > 0 ? '+' : ''}${t.delta}</span> <small class="muted">${esc(A().empName(t.by))} · ${U.ago(t.at)}</small>` : '<span class="faint">·</span>'; } },
           { key: 'a', label: '', sortable: false, align: 'right', render: i => idCell(i.id, `<button class="btn sm" data-a="in">${icon('arrow-down-to-line', 'xs')}Entrée</button><button class="btn sm" data-a="out">${icon('arrow-up-from-line', 'xs')}Sortie</button>${mng ? act('edit', 'Modifier', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger') : ''}`) }] });
       U.table(el.querySelector('#mvTable'), { id: 'moves', sort: 'at', pageSize: 10, rows: moves,
         empty: { icon: 'arrow-left-right', title: 'Aucun mouvement', text: 'Aucune entrée ni sortie pour cette catégorie.', hint: false },
@@ -102,7 +102,7 @@
         const r = await LSC.api.call('stock.cat.test', { id: cat.id });
         if (!r.ok) return U.toast(r.error, 'error');
         const d = (r.delivery || [])[0];
-        U.toast(d && d.ok ? 'Message de test envoyé sur Discord' : `Discord a refusé l'envoi${d && d.status ? ' (' + d.status + ')' : ''} — vérifiez l'URL`, d && d.ok ? 'ok' : 'error');
+        U.toast(d && d.ok ? 'Message de test envoyé sur Discord' : `Discord a refusé l'envoi${d && d.status ? ' (' + d.status + ')' : ''} · vérifiez l'URL`, d && d.ok ? 'ok' : 'error');
       }
     });
     onActs(el, {
@@ -114,7 +114,7 @@
   function moveForm(id, type) {
     const s = S(), i = s.inventory.find(x => x.id === id), k = (s.stockCats || []).find(c => c.id === i.categoryId);
     const isIn = type === 'in';
-    U.form({ title: (isIn ? 'Entrée — ' : 'Sortie — ') + i.name, icon: isIn ? 'arrow-down-to-line' : 'arrow-up-from-line', size: 'sm', submit: isIn ? 'Enregistrer l’entrée' : 'Enregistrer la sortie',
+    U.form({ title: (isIn ? 'Entrée · ' : 'Sortie · ') + i.name, icon: isIn ? 'arrow-down-to-line' : 'arrow-up-from-line', size: 'sm', submit: isIn ? 'Enregistrer l’entrée' : 'Enregistrer la sortie',
       intro: `<p class="lead" style="margin-bottom:12px">Stock actuel : <b>${i.qty}</b>${k && k.hasWebhook ? ` · <span class="ok-t">publié sur Discord (${esc(k.name)})</span>` : ''}</p>`,
       values: { qty: 1 },
       fields: [{ name: 'qty', label: 'Quantité', type: 'number', min: 1, step: '1', required: true, full: true, attrs: 'autofocus' },
@@ -125,7 +125,7 @@
     const s = S(), i = id ? s.inventory.find(x => x.id === id) : null;
     U.form({ title: i ? 'Modifier ' + i.name : 'Nouvel article', icon: 'package', size: 'sm', values: i ? Object.assign({}, i, { categoryId: i.categoryId || '' }) : { categoryId: catId && catId !== NONE ? catId : '' },
       fields: [{ name: 'name', label: 'Nom', required: true, full: true },
-        { name: 'categoryId', label: 'Catégorie', type: 'select', full: true, options: [{ value: '', label: '— Sans catégorie —' }].concat((s.stockCats || []).map(k => ({ value: k.id, label: k.name }))) },
+        { name: 'categoryId', label: 'Catégorie', type: 'select', full: true, options: [{ value: '', label: 'Sans catégorie' }].concat((s.stockCats || []).map(k => ({ value: k.id, label: k.name }))) },
         ...(i ? [] : [{ name: 'qty', label: 'Quantité initiale', type: 'number', min: 0 }]),
         { name: 'min', label: 'Seuil d’alerte', type: 'number', min: 0, hint: 'Facultatif : alerte « stock faible ».' }],
       onSubmit: v => A().call('inventory.save', Object.assign({ id }, v), i ? 'Article modifié' : 'Article créé') });
@@ -133,7 +133,7 @@
   function stockCatForm(id) {
     const k = id ? (S().stockCats || []).find(x => x.id === id) : null;
     const cur = k && k.webhook ? k.webhook.replace(/(\/webhooks\/\d+\/).{6,}/, '$1••••••') : '';
-    U.form({ title: k ? 'Catégorie — ' + k.name : 'Nouvelle catégorie de stock', icon: 'folder-plus', values: k ? { name: k.name, icon: k.icon } : { icon: 'package' },
+    U.form({ title: k ? 'Catégorie · ' + k.name : 'Nouvelle catégorie de stock', icon: 'folder-plus', values: k ? { name: k.name, icon: k.icon } : { icon: 'package' },
       fields: [{ name: 'name', label: 'Nom', required: true, placeholder: 'Pièces, Coffre, Outillage...' }, { name: 'icon', label: 'Icône (Lucide)', placeholder: 'package, wrench, vault...' },
         { name: 'webhook', label: 'Webhook Discord', full: true, placeholder: k && k.webhook ? 'Laisser vide pour garder l’actuel · « - » pour le retirer' : 'https://discord.com/api/webhooks/...',
           hint: (cur ? 'Actuel : ' + cur + '. ' : '') + 'Discord › Paramètres du salon › Intégrations › Webhooks › Copier l’URL.' }],
@@ -146,7 +146,7 @@
     const vals = p ? Object.assign({}, p, { sub: p.sub || '', webhook: '', stock: it ? it.qty : '', margin: p.price ? Math.round((p.price - p.cost) / p.price * 100) : 0 })
       : Object.assign({ category: s.company.categories[0].id, sub: '', icon: 'wrench', visible: true, active: true, consume: 1, inventoryId: '' }, defaults || {});
     const catOf = cid => s.company.categories.find(c => c.id === cid) || {};
-    const subOpts = cid => [{ value: '', label: '— Aucune —' }].concat((catOf(cid).subs || []).map(x => ({ value: x.id, label: x.label })));
+    const subOpts = cid => [{ value: '', label: '· Aucune ·' }].concat((catOf(cid).subs || []).map(x => ({ value: x.id, label: x.label })));
     const classes = (p && p.classes) || [];
     const cp = (p && p.classPrices) || [], cc = (p && p.classCosts) || [];
     const tierHtml = `<div id="pfTiers" class="tier-grid"><span></span>${[1, 2, 3, 4, 5].map(n => `<b>Cat. ${n}</b>`).join('')}
@@ -154,7 +154,7 @@
       <span>Usine</span>${[0, 1, 2, 3, 4].map(i => `<input class="input sm" type="number" min="0" data-tc="${i}" value="${cc[i] != null ? cc[i] : ''}">`).join('')}
       <small class="hint" style="grid-column:1/-1">Rempli = le prix suit la catégorie du véhicule choisie au point de vente (tarif fixe, sans remise partenaire). Vide = prix unique ci-dessous.</small></div>`;
     const classHtml = `<div id="pfClasses" class="row" style="gap:14px;flex-wrap:wrap">${[1, 2, 3, 4, 5].map(n => `<label class="check"><input type="checkbox" data-vc="${n}" ${classes.includes(n) ? 'checked' : ''}><span>Cat. ${n}</span></label>`).join('')}<small class="hint">Aucune case = disponible pour toutes les catégories.</small></div>`;
-    U.form({ title: p ? 'Modifier — ' + p.name : 'Nouveau produit', icon: 'tag', size: 'lg', values: vals,
+    U.form({ title: p ? 'Modifier · ' + p.name : 'Nouveau produit', icon: 'tag', size: 'lg', values: vals,
       fields: [{ name: 'name', label: 'Nom', required: true }, { name: 'category', label: 'Catégorie', type: 'select', options: s.company.categories.map(c => ({ value: c.id, label: c.label })) },
         { name: 'sub', label: 'Sous-catégorie', type: 'select', options: subOpts(vals.category) },
         { name: 'classes', label: 'Catégories de véhicule concernées', type: 'html', html: classHtml },
@@ -163,7 +163,7 @@
         { name: 'image', label: 'Image', placeholder: 'img/products/... ou https://...', hint: 'Choisir dans la liste, coller une URL, ou laisser vide pour l’icône.', attrs: 'list="imgList"' }, { name: 'icon', label: 'Icône (Lucide)', placeholder: 'wrench, car, cog...' },
         { name: 'cost', label: "Prix d'achat / usine", type: 'money' }, { name: 'price', label: 'Prix de vente', type: 'money', required: true },
         { name: 'margin', label: 'Marge (%)', type: 'number', step: '1', hint: 'Modifier la marge recalcule le prix de vente.' },
-        { name: 'webhook', label: 'Webhook Discord des sorties de stock', full: true, placeholder: p && p.hasWebhook ? 'Webhook enregistré — laisser vide pour le garder' : 'https://discord.com/api/webhooks/...', hint: `Chaque vente envoie une sortie de stock sur ce salon (annulation = retour). Vide = webhook par défaut des Paramètres${S().company.hasStockWebhook ? '' : ' (non défini)'}. « - » pour retirer.` },
+        { name: 'webhook', label: 'Webhook Discord des sorties de stock', full: true, placeholder: p && p.hasWebhook ? 'Webhook enregistré · laisser vide pour le garder' : 'https://discord.com/api/webhooks/...', hint: `Chaque vente envoie une sortie de stock sur ce salon (annulation = retour). Vide = webhook par défaut des Paramètres${S().company.hasStockWebhook ? '' : ' (non défini)'}. « - » pour retirer.` },
         { name: 'consume', label: 'Quantité sortie par vente', type: 'number', min: 1 },
         { name: 'visible', label: 'Visible dans le point de vente', type: 'checkbox' }, { name: 'active', label: 'Produit actif', type: 'checkbox' }],
       extraFoot: p ? `<button class="btn danger" data-delprod>${icon('trash-2')}Supprimer</button>` : '',
@@ -199,7 +199,7 @@
       return `<section class="panel" data-id="${p.id}"><div class="panel-body"><div class="who">${logo(p)}<div><b style="font-size:14px">${esc(p.name)}</b><small>${esc(typeLabel(p.type))}${p.contact ? ' · ' + esc(p.contact) : ''}</small></div></div>
         <div class="chips" style="margin:12px 0">${p.rate ? U.badge(`Remise ${p.rate}%`, 'ok') : ''}${p.hasWebhook ? U.badge('Discord relié', 'info') : U.badge('Pas de webhook', 'warn')}${p.pingUser || p.pingRole ? U.badge('Ping actif', 'info') : ''}</div>
         <dl class="kv"><dt>À facturer</dt><dd class="${due ? 'warn-t' : ''}"><b>${money(due)}</b> <small class="muted">(${todo.length} vente${todo.length > 1 ? 's' : ''})</small></dd>
-          <dt>Factures en attente</dt><dd>${open.length ? money(open.reduce((a, i) => a + i.total, 0)) + ` <small class="muted">(${open.length})</small>` : '—'}</dd></dl>
+          <dt>Factures en attente</dt><dd>${open.length ? money(open.reduce((a, i) => a + i.total, 0)) + ` <small class="muted">(${open.length})</small>` : '·'}</dd></dl>
         <div class="row" style="margin-top:12px">${inv ? `<button class="btn primary sm" data-a="gen" ${todo.length ? '' : 'disabled'}>${icon('file-plus')}Générer la facture</button>` : ''}<span class="grow"></span>${act('hist', 'Historique des ventes', 'history')}${mng ? act('edit', 'Modifier', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger') : ''}</div></div></section>`;
     }).join('')}</div>` : `<div class="panel">${U.empty({ icon: 'handshake', title: 'Aucun partenaire', text: 'Ajoutez un partenaire : ses ventes au POS seront mises à facturer.', hint: false })}</div>`;
     onActs(el, {
@@ -216,7 +216,7 @@
   LSC.forms.partner = id => partnerForm(id);
   function partnerForm(id) {
     const s = S(), p = id ? s.partners.find(x => x.id === id) : null, prices = (p && p.prices) || {};
-    const grid = `<div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px 10px">${s.products.filter(x => x.active).map(x => `<div class="row" style="padding:4px 0"><span style="flex:1">${esc(x.name)} <small class="muted">${money(x.price)}</small></span><input class="input sm" style="width:110px" type="number" step="0.01" min="0" data-price="${x.id}" placeholder="—" value="${prices[x.id] != null ? prices[x.id] : ''}"></div>`).join('')}</div>`;
+    const grid = `<div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px 10px">${s.products.filter(x => x.active).map(x => `<div class="row" style="padding:4px 0"><span style="flex:1">${esc(x.name)} <small class="muted">${money(x.price)}</small></span><input class="input sm" style="width:110px" type="number" step="0.01" min="0" data-price="${x.id}" placeholder="·" value="${prices[x.id] != null ? prices[x.id] : ''}"></div>`).join('')}</div>`;
     U.form({ title: p ? 'Modifier ' + p.name : 'Nouveau partenaire', icon: 'handshake', size: 'lg', values: p || { type: 'entreprise', rate: 0 },
       fields: [{ name: 'name', label: 'Nom', required: true }, { name: 'type', label: 'Type', type: 'select', options: TYPES }, { name: 'contact', label: 'Contact' }, { name: 'phone', label: 'Téléphone' },
         { name: 'logo', label: 'Logo (URL)' }, { name: 'rate', label: 'Commission / remise (%)', type: 'number', min: 0, max: 100, hint: 'Appliquée sur tous les produits sans prix spécifique.' },
@@ -230,7 +230,7 @@
     const s = S(), p = s.partners.find(x => x.id === id);
     if (!p) return;
     const sales = s.sales.filter(x => x.partnerId === id);
-    const m = U.modal({ title: p.name, icon: 'handshake', size: 'lg', body: `<div class="who" style="margin-bottom:12px">${logo(p)}<div><b>${esc(typeLabel(p.type))}</b><small>${esc(p.contact || '—')} · ${esc(p.phone || '—')}${p.notes ? ' · ' + esc(p.notes) : ''}</small></div></div><div id="phist"></div>`, foot: '<span class="grow"></span><button class="btn" data-close>Fermer</button>' });
+    const m = U.modal({ title: p.name, icon: 'handshake', size: 'lg', body: `<div class="who" style="margin-bottom:12px">${logo(p)}<div><b>${esc(typeLabel(p.type))}</b><small>${esc(p.contact || '·')} · ${esc(p.phone || '·')}${p.notes ? ' · ' + esc(p.notes) : ''}</small></div></div><div id="phist"></div>`, foot: '<span class="grow"></span><button class="btn" data-close>Fermer</button>' });
     U.table(m.el.querySelector('#phist'), { id: 'phist', rows: sales, sort: 'createdAt', pageSize: 8, resetPage: true, compact: true, onRow: x => { m.close(); LSC.open.sale(x.id); },
       empty: { icon: 'receipt', title: 'Aucune vente', text: 'Aucune vente avec ce partenaire.', hint: false },
       columns: [{ key: 'num', label: 'Vente', render: x => '#' + x.num }, { key: 'createdAt', label: 'Date', render: x => U.fmtDT(x.createdAt) }, { key: 'employeeName', label: 'Employé' }, { key: 'total', label: 'Total', align: 'right', render: x => money(x.total) }, { key: 'status', label: 'Statut', render: x => U.status('sale', x.status) }] });
@@ -294,7 +294,7 @@
       const rows = s.audit.filter(a => (!ast.actor || a.actorId === ast.actor) && (!ast.q || a.text.toLowerCase().includes(ast.q.toLowerCase()))).slice(-300).reverse();
       if (!rows.length) { el.querySelector('#auList').innerHTML = U.empty({ icon: 'history', title: 'Aucune action', text: 'Aucune entrée ne correspond.', hint: false }); U.paint(); return; }
       let day = '';
-      el.querySelector('#auList').innerHTML = `<div class="list timeline">${rows.map(a => { const d = U.fmtDate(a.at), h = d !== day ? `<div class="day-sep">${d}</div>` : ''; day = d; return h + `<div class="li"><time>${U.fmtTime(a.at)}</time>${U.avatar(a.actor)}<div>${esc(a.text)}</div></div>`; }).join('')}</div>${rows.length === 300 ? '<p class="muted" style="margin:10px 0 0">300 dernières entrées affichées — affinez la recherche.</p>' : ''}`;
+      el.querySelector('#auList').innerHTML = `<div class="list timeline">${rows.map(a => { const d = U.fmtDate(a.at), h = d !== day ? `<div class="day-sep">${d}</div>` : ''; day = d; return h + `<div class="li"><time>${U.fmtTime(a.at)}</time>${U.avatar(a.actor)}<div>${esc(a.text)}</div></div>`; }).join('')}</div>${rows.length === 300 ? '<p class="muted" style="margin:10px 0 0">300 dernières entrées affichées · affinez la recherche.</p>' : ''}`;
       U.paint();
     };
     el.querySelector('#auq').oninput = e => { ast.q = e.target.value; draw(); };
@@ -316,7 +316,7 @@
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="co">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('calculator')}Comptabilité</h3></div><div class="panel-body"><form class="form" id="fAcc">
           ${U.field({ name: 'currency', label: 'Devise (symbole)' }, co.currency)}${U.field({ name: 'rounding', label: 'Arrondis', type: 'select', options: [{ value: 1, label: "À l'unité ($1)" }, { value: 0.01, label: 'Au centime ($0.01)' }] }, co.rounding)}
-          ${U.field({ name: 'commissionBase', label: 'Commission des employés', type: 'select', options: [{ value: 'margin', label: '% du bénéfice (prix − coût) — règle mairie' }, { value: 'revenue', label: '% du chiffre d’affaires' }] }, co.commissionBase || 'margin')}
+          ${U.field({ name: 'commissionBase', label: 'Commission des employés', type: 'select', options: [{ value: 'margin', label: '% du bénéfice (prix − coût) · règle mairie' }, { value: 'revenue', label: '% du chiffre d’affaires' }] }, co.commissionBase || 'margin')}
           ${U.field({ name: 'payReason', label: 'Motif du virement de paie', hint: 'Précédé du n° de semaine : « S40 Paye LS Customs ».' }, co.payReason || 'Paye LS Customs')}${U.field({ name: 'invoiceDays', label: 'Échéance factures (jours)', type: 'number', min: 1 }, co.invoiceDays)}
           ${U.field({ name: 'largeSale', label: 'Seuil « vente importante »', type: 'money' }, co.largeSale)}${U.field({ name: 'maxDiscountPct', label: 'Plafond réduction sans permission étendue (%)', type: 'number', min: 0, max: 100 }, co.maxDiscountPct)}</form>
           <p class="hint" style="margin:10px 0 0">Les taux de commission sont définis par grade dans « Gestion des rôles ».</p>
@@ -339,7 +339,7 @@
           ${s.roles.slice().sort((a, b) => b.rank - a.rank).map(r => { const lock = !A().can('roles.manage') || (!A().can('*') && r.rank >= A().myRole().rank);
             return `<tr data-rate="${r.id}"><td>${esc(r.name)}</td><td class="right"><input class="input sm" type="number" min="0" max="100" step="0.5" data-k="com" value="${r.commission}" ${lock ? 'disabled' : ''}></td><td class="right"><input class="input sm" type="number" min="0" step="1" data-k="sal" value="${r.salary || 0}" ${lock ? 'disabled' : ''}></td><td class="right">${s.employees.filter(e => !e.archived && e.roleId === r.id).length}</td></tr>`; }).join('')}</tbody></table>
           <div class="row" style="margin-top:12px">${A().allowed('roles') ? `<button class="btn sm ghost" data-go="roles">${icon('shield-check')}Permissions</button>` : ''}<span class="grow"></span>${A().can('roles.manage') ? `<button class="btn primary sm" data-save="rates">${icon('save')}Enregistrer</button>` : ''}</div></div></section>
-        <section class="panel"><div class="panel-head"><h3>${icon('shopping-bag')}Frais — types de commande</h3></div><div class="panel-body" id="fFees">
+        <section class="panel"><div class="panel-head"><h3>${icon('shopping-bag')}Frais · types de commande</h3></div><div class="panel-body" id="fFees">
           <p class="muted" style="margin:0 0 10px">Les seuls frais de l'entreprise. Le prix unitaire pré-remplit chaque nouvelle commande.</p>
           <div class="cfg-head fee"><span>Nom</span><span>Prix unitaire</span><span title="Déductible des impôts">Déd.</span><span></span></div>
           <div id="feeRows">${co.expenseCategories.map(feeRow).join('')}</div>
@@ -397,7 +397,7 @@
           <p class="hint" style="margin:10px 0 0">Chaque employé est reconnu par son Char ID : ce qu'il saisit au point de vente dans ces catégories est comparé à ses factures en jeu.</p>
           <div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn primary sm" data-save="auto">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('database')}Données</h3></div><div class="panel-body">
-          <p class="muted" style="margin:0 0 12px">Mode actuel : <b style="color:var(--text)">${{ local: 'Démo locale (navigateur)', http: 'Serveur (Vercel + Supabase)', nui: 'FiveM NUI' }[LSC.api.mode]}</b>${local ? ' — les données sont stockées dans ce navigateur uniquement.' : ''}</p>
+          <p class="muted" style="margin:0 0 12px">Mode actuel : <b style="color:var(--text)">${{ local: 'Démo locale (navigateur)', http: 'Serveur (Vercel + Supabase)', nui: 'FiveM NUI' }[LSC.api.mode]}</b>${local ? ' · les données sont stockées dans ce navigateur uniquement.' : ''}</p>
           <div class="row">${local ? `<button class="btn sm" id="exp">${icon('download')}Exporter (JSON)</button>` : ''}${local && A().can('*') ? `<button class="btn sm danger" id="reset">${icon('rotate-ccw')}Tout effacer (sauf comptes)</button>` : ''}</div>
           ${A().can('*') ? archiveBlock(s) : ''}</div></section>
       </div>`;
@@ -480,11 +480,11 @@
     return `<div class="section-title">${icon('triangle-alert', 'xs')} À recenser (${keys.length})</div><div class="list" style="margin-bottom:10px">${keys.map(k => { const x = u[k]; return `<div class="li" data-k="${esc(k)}"><span class="li-ic warn">${icon('car')}</span><div style="min-width:0"><b>${esc(x.name || x.model)}</b><small>${esc(x.model || '')}${x.plate ? ' · ' + esc(x.plate) : ''} · ${esc(x.by || '')} · ${U.fmtDate(x.at)}${x.chosen ? ' · vendu en cat. ' + x.chosen : ''}</small></div>
       <span class="row nowrap" style="margin-left:auto"><select class="input sm">${vcOpts(co, x.chosen || x.hint || 1)}</select><button class="btn sm primary" data-addun>${icon('plus')}Ajouter</button></span></div>`; }).join('')}</div>`;
   }
-  /* import : une ligne par véhicule — « nom⇥modèle⇥Catégorie 3 », « Nom — modèle — Catégorie 3 », « modèle;3 », « modèle = 3 »... */
+  /* import : une ligne par véhicule · « nom⇥modèle⇥Catégorie 3 », « Nom · modèle · Catégorie 3 », « modèle;3 », « modèle = 3 »... */
   function parseModels(text) {
     const out = {};
     text.split(/\r?\n/).forEach(line => {
-      const parts = line.split(/\t|;|\s[—–]\s|\s\|\s/).map(x => x.trim()).filter(Boolean);
+      const parts = line.split(/\t|;|\s[· à ]\s|\s\|\s/).map(x => x.trim()).filter(Boolean);
       let model, cat;
       if (parts.length >= 3) { model = parts[1]; cat = parts[2]; }
       else if (parts.length === 2) { model = parts[0]; cat = parts[1]; }
@@ -496,7 +496,7 @@
   }
   function importModels(co) {
     U.form({ title: 'Importer une liste de véhicules', icon: 'upload', size: 'lg', submit: 'Importer',
-      intro: '<p class="lead" style="margin-bottom:10px">Collez la liste (copiée d’un tableur : nom, modèle, catégorie — ou « modèle ; catégorie » par ligne). Les modèles déjà présents sont mis à jour.</p>',
+      intro: '<p class="lead" style="margin-bottom:10px">Collez la liste (copiée d’un tableur : nom, modèle, catégorie · ou « modèle ; catégorie » par ligne). Les modèles déjà présents sont mis à jour.</p>',
       fields: [{ name: 'text', label: 'Liste', type: 'textarea', rows: 12, full: true, required: true }],
       onSubmit: v => {
         const add = parseModels(v.text || ''), n = Object.keys(add).length;

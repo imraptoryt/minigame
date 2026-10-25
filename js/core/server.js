@@ -1,5 +1,5 @@
 /* =====================================================================
- * LS Customs — logique métier « serveur » (source de vérité)
+ * LS Customs · logique métier « serveur » (source de vérité)
  * ---------------------------------------------------------------------
  * Toutes les écritures passent par handle() : permissions vérifiées,
  * montants recalculés depuis la base (jamais depuis l'UI).
@@ -193,7 +193,7 @@
   const firstName = n => String(n || '').split(' ')[0];
   function fail(msg) { const e = new Error(msg); e.userError = true; throw e; }
   function find(list, id, label) { const x = list.find(i => i.id === id); if (!x) fail(label + ' introuvable'); return x; }
-  const roleOf = (db, emp) => db.roles.find(r => r.id === emp.roleId) || { id: null, name: '—', perms: [], commission: 0, rank: 0, salary: 0, hourly: 0 };
+  const roleOf = (db, emp) => db.roles.find(r => r.id === emp.roleId) || { id: null, name: '·', perms: [], commission: 0, rank: 0, salary: 0, hourly: 0 };
   const hasPerm = (role, p) => role.perms.includes('*') || role.perms.includes(p);
   const customerName = c => c ? (c.firstName + ' ' + c.lastName).trim() : 'Client de passage';
 
@@ -329,9 +329,9 @@
     });
     const v = sale.vehicle;
     Object.keys(groups).forEach(url => c.effect({ type: 'discord', url, body: {
-      username: (c.db.company.name || 'LS Customs') + ' — Stock',
+      username: (c.db.company.name || 'LS Customs') + ' · Stock',
       embeds: [{
-        title: `${back ? '📥 Retour en stock — annulation' : '📤 Sortie de stock — vente'} #${sale.ref}`, color: back ? 0x1fd1a5 : 0xef5d5d,
+        title: `${back ? '📥 Retour en stock · annulation' : '📤 Sortie de stock · vente'} #${sale.ref}`, color: back ? 0x1fd1a5 : 0xef5d5d,
         description: groups[url].join('\n'),
         fields: [{ name: 'Employé', value: c.me.name + (c.me.charId ? ` (Char ID ${c.me.charId})` : ''), inline: true },
           ...(v && (v.plate || v.name) ? [{ name: 'Véhicule', value: `${v.name || v.model || ''} ${v.plate ? '(' + v.plate + ')' : ''}${v.class ? ' · Cat. ' + v.class : ''}`.trim(), inline: true }] : []),
@@ -418,16 +418,16 @@
       if (u) { u.chosen = vehicle.class; u.sales = (u.sales || 0) + 1; }
     }
     if (sale.total >= (+db.company.largeSale || Infinity) && db.company.saleWebhook) c.effect({ type: 'discord', url: db.company.saleWebhook, body: {
-      username: (db.company.name || 'LS Customs') + ' — Ventes',
-      embeds: [{ title: `💰 Grosse vente #${ref} — ${money(sale.total)}`, color: 0x1fd1a5,
-        description: sale.items.map(i => `• ${i.name} ×${i.qty} — ${money(i.total)}`).join('\n'),
+      username: (db.company.name || 'LS Customs') + ' · Ventes',
+      embeds: [{ title: `💰 Grosse vente #${ref} · ${money(sale.total)}`, color: 0x1fd1a5,
+        description: sale.items.map(i => `• ${i.name} ×${i.qty} · ${money(i.total)}`).join('\n'),
         fields: [{ name: 'Employé', value: seller.name + (seller.charId ? ` (Char ID ${seller.charId})` : '') + (sale.addedBy ? ` · ajoutée par ${sale.addedBy}` : ''), inline: true },
           ...(vehicle && (vehicle.plate || vehicle.name) ? [{ name: 'Véhicule', value: `${vehicle.name || vehicle.model || ''} ${vehicle.plate ? '(' + vehicle.plate + ')' : ''}${vehicle.class ? ' · Cat. ' + vehicle.class : ''}`.trim(), inline: true }] : []),
           ...(partner ? [{ name: 'Partenaire', value: partner.name, inline: true }] : []),
-          ...(discount ? [{ name: 'Réduction', value: `${money(discount.amount)} — ${discount.reason}` }] : [])],
+          ...(discount ? [{ name: 'Réduction', value: `${money(discount.amount)} · ${discount.reason}` }] : [])],
         timestamp: c.iso }]
     } });
-    if (sale.total >= (+db.company.largeSale || Infinity)) c.notify('largeSale', 'Vente importante', `#${ref} — ${money(sale.total)} par ${seller.name}`, 'ok', 'sales');
+    if (sale.total >= (+db.company.largeSale || Infinity)) c.notify('largeSale', 'Vente importante', `#${ref} · ${money(sale.total)} par ${seller.name}`, 'ok', 'sales');
     c.audit('sale.create', sale.addedBy ? `a ajouté la vente #${ref} (${money(sale.total)}) pour ${seller.name}${vehLabel(vehicle)}` : `a créé la vente #${ref} (${money(sale.total)})${vehLabel(vehicle)}`);
     return { sale };
   };
@@ -460,9 +460,9 @@
     u[key] = { model, name, plate: plateOf(p.plate), by: c.me.name, at: c.iso, hint: Math.floor(+p.hint) >= 1 && Math.floor(+p.hint) <= 5 ? Math.floor(+p.hint) : null };
     const co = c.db.company;
     if (co.unlistedWebhook) c.effect({ type: 'discord', url: co.unlistedWebhook, body: {
-      username: (co.name || 'LS Customs') + ' — Véhicules',
+      username: (co.name || 'LS Customs') + ' · Véhicules',
       embeds: [{ title: `❓ Véhicule non recensé : ${name || model}`, color: 0xf0b43c,
-        fields: [{ name: 'Modèle', value: model || '—', inline: true }, { name: 'Plaque', value: u[key].plate || '—', inline: true },
+        fields: [{ name: 'Modèle', value: model || '·', inline: true }, { name: 'Plaque', value: u[key].plate || '·', inline: true },
           { name: 'Signalé par', value: c.me.name + (c.me.charId ? ` (Char ID ${c.me.charId})` : ''), inline: true },
           { name: 'À faire', value: 'Ajouter sa catégorie : Paramètres → Catégories de véhicules → À recenser' }],
         timestamp: c.iso }]
@@ -653,15 +653,15 @@
   function stockEmbed(db, cat, it, delta, reason, me, at) {
     const isIn = delta > 0;
     return {
-      username: (db.company.name || 'LS Customs') + ' — Stock',
+      username: (db.company.name || 'LS Customs') + ' · Stock',
       embeds: [{
-        title: `${isIn ? '📥 Entrée' : '📤 Sortie'} — ${it.name}`,
+        title: `${isIn ? '📥 Entrée' : '📤 Sortie'} · ${it.name}`,
         color: isIn ? 0x1fd1a5 : 0xef5d5d,
         fields: [
           { name: 'Quantité', value: (isIn ? '+' : '−') + Math.abs(delta) + (it.unit && it.unit !== 'u' ? ' ' + it.unit : ''), inline: true },
           { name: 'Stock restant', value: String(it.qty), inline: true },
           { name: 'Employé', value: me.name + (me.charId ? ` (Char ID ${me.charId})` : ''), inline: true },
-          { name: 'Motif', value: reason || '—' }
+          { name: 'Motif', value: reason || '·' }
         ],
         footer: { text: 'Catégorie : ' + cat.name },
         timestamp: at
@@ -695,7 +695,7 @@
     c.need('inventory.manage');
     const k = find(c.db.stockCats, p.id, 'Catégorie');
     if (!k.webhook) fail('Aucun webhook configuré pour cette catégorie');
-    c.effect({ type: 'discord', url: k.webhook, body: { username: (c.db.company.name || 'LS Customs') + ' — Stock', embeds: [{ title: '✅ Webhook connecté', description: `Les entrées et sorties de la catégorie **${k.name}** seront publiées ici.`, color: 0x1fd1a5, footer: { text: 'Test envoyé par ' + c.me.name }, timestamp: c.iso }] } });
+    c.effect({ type: 'discord', url: k.webhook, body: { username: (c.db.company.name || 'LS Customs') + ' · Stock', embeds: [{ title: '✅ Webhook connecté', description: `Les entrées et sorties de la catégorie **${k.name}** seront publiées ici.`, color: 0x1fd1a5, footer: { text: 'Test envoyé par ' + c.me.name }, timestamp: c.iso }] } });
     return { readonly: true };
   };
   /* Entrée / sortie manuelle d'un article (coffre, pièces, outillage...) */
@@ -738,10 +738,10 @@
     if (kind === 'perte') delta = -Math.abs(delta);
     if (kind === 'achat' || kind === 'production' || kind === 'retour') delta = Math.abs(delta);
     if (it.qty + delta < 0) fail('Le stock ne peut pas être négatif');
-    c.stock(it.id, delta, kinds[kind] + (p.reason ? ' — ' + str(p.reason, 100) : ''));
+    c.stock(it.id, delta, kinds[kind] + (p.reason ? ' · ' + str(p.reason, 100) : ''));
     if (kind === 'achat') {
       const unit = p.cost != null && p.cost !== '' ? num(p.cost) : it.cost;
-      c.bank('out', c.r(unit * delta), 'achat', `Achat stock — ${it.name} x${delta}`, it.id);
+      c.bank('out', c.r(unit * delta), 'achat', `Achat stock · ${it.name} x${delta}`, it.id);
     }
     c.audit('inventory.adjust', `a ${delta > 0 ? 'ajouté' : 'retiré'} ${Math.abs(delta)} ${it.unit} de ${it.name} (${kinds[kind]})`);
   };
@@ -805,12 +805,12 @@
     if (!pa || !pa.webhook) return;
     const ping = [pa.pingUser ? `<@${pa.pingUser}>` : '', pa.pingRole ? `<@&${pa.pingRole}>` : ''].filter(Boolean).join(' ');
     c.effect({ type: 'discord', url: pa.webhook, body: {
-      username: (c.db.company.name || 'LS Customs') + ' — Facturation',
+      username: (c.db.company.name || 'LS Customs') + ' · Facturation',
       content: ping || undefined,
       allowed_mentions: { users: pa.pingUser ? [pa.pingUser] : [], roles: pa.pingRole ? [pa.pingRole] : [] },
       embeds: [{
-        title: `${title} — ${inv.ref}`, color: 0x1fd1a5,
-        description: inv.items.slice(0, 15).map(l => `• ${l.label}${l.qty > 1 ? ' ×' + l.qty : ''} — ${money(l.price * l.qty)}`).join('\n') + (inv.items.length > 15 ? `\n… ${inv.items.length - 15} ligne(s) de plus` : ''),
+        title: `${title} · ${inv.ref}`, color: 0x1fd1a5,
+        description: inv.items.slice(0, 15).map(l => `• ${l.label}${l.qty > 1 ? ' ×' + l.qty : ''} · ${money(l.price * l.qty)}`).join('\n') + (inv.items.length > 15 ? `\n… ${inv.items.length - 15} ligne(s) de plus` : ''),
         fields: [
           { name: 'Partenaire', value: pa.name, inline: true },
           { name: 'Montant', value: money(inv.total), inline: true },
@@ -851,15 +851,15 @@
     c.audit('invoice.create', `a créé la facture ${inv.ref} (${money(inv.total)})`);
     return { id: inv.id };
   };
-  /* « — Blista (ALMADA) · Cat. 2 » : véhicule de la vente, pour les factures et l'historique */
-  const vehLabel = v => v && (v.plate || v.name) ? ` — ${v.name || v.model || 'Véhicule'}${v.plate ? ' (' + v.plate + ')' : ''}${v.class ? ' · Cat. ' + v.class : ''}` : '';
+  /* « · Blista (ALMADA) · Cat. 2 » : véhicule de la vente, pour les factures et l'historique */
+  const vehLabel = v => v && (v.plate || v.name) ? ` · ${v.name || v.model || 'Véhicule'}${v.plate ? ' (' + v.plate + ')' : ''}${v.class ? ' · Cat. ' + v.class : ''}` : '';
   /* Facture automatique : regroupe toutes les ventes du partenaire pas encore facturées */
   A['invoices.generate'] = (c, p) => {
     c.need('invoices.manage');
     const pa = find(c.db.partners, p.partnerId, 'Partenaire');
     const sales = c.db.sales.filter(x => x.partnerId === pa.id && x.status === 'pending' && !x.invoiceId);
     if (!sales.length) fail(`Aucune vente à facturer pour ${pa.name}`);
-    const items = sales.map(x => ({ saleId: x.id, label: `Vente #${x.ref} (${fmtD(x.createdAt)})${vehLabel(x.vehicle)} — ${x.items.map(i => i.name + (i.qty > 1 ? ' ×' + i.qty : '')).join(', ')}`.slice(0, 200), price: x.total, qty: 1 }));
+    const items = sales.map(x => ({ saleId: x.id, label: `Vente #${x.ref} (${fmtD(x.createdAt)})${vehLabel(x.vehicle)} · ${x.items.map(i => i.name + (i.qty > 1 ? ' ×' + i.qty : '')).join(', ')}`.slice(0, 200), price: x.total, qty: 1 }));
     const from = sales[0].createdAt, to = sales[sales.length - 1].createdAt;
     const inv = createInvoice(c, { partnerId: pa.id, items: [], kind: 'auto', saleIds: sales.map(x => x.id), note: `${sales.length} vente(s) du ${fmtD(from)} au ${fmtD(to)}` }, 'sent', true, items);
     sales.forEach(x => { x.invoiceId = inv.id; });
@@ -880,9 +880,9 @@
     const inv = find(c.db.invoices, p.id, 'Facture');
     if (inv.status !== 'sent' && inv.status !== 'draft') fail('Cette facture ne peut pas être encaissée');
     inv.status = 'paid'; inv.paidAt = c.iso; inv.paidBy = c.me.name; inv.method = p.method === 'cash' ? 'cash' : 'bank';
-    if (inv.method === 'bank') c.bank('in', inv.total, 'facture', `Facture ${inv.ref} — ${inv.customerName}`, inv.id);
+    if (inv.method === 'bank') c.bank('in', inv.total, 'facture', `Facture ${inv.ref} · ${inv.customerName}`, inv.id);
     (inv.saleIds || (inv.saleId ? [inv.saleId] : [])).forEach(id => { const s = c.db.sales.find(x => x.id === id); if (s && s.status === 'pending') s.status = 'paid'; });
-    c.notify('payment', 'Paiement reçu', `Facture ${inv.ref} — ${money(inv.total)} (${inv.customerName})`, 'ok', 'invoices');
+    c.notify('payment', 'Paiement reçu', `Facture ${inv.ref} · ${money(inv.total)} (${inv.customerName})`, 'ok', 'invoices');
     c.audit('invoice.pay', `a validé le paiement de la facture ${inv.ref}`);
   };
   A['invoices.cancel'] = (c, p) => {
@@ -924,7 +924,7 @@
     const b = find(c.db.bills, p.id, 'Facture fournisseur');
     if (b.status === 'paid') fail('Facture déjà payée');
     b.status = 'paid'; b.paidAt = c.iso; b.paidBy = c.me.name;
-    c.bank('out', b.amount, 'fournisseur', `Fournisseur — ${b.supplier} #${b.ref}`, b.id);
+    c.bank('out', b.amount, 'fournisseur', `Fournisseur · ${b.supplier} #${b.ref}`, b.id);
     c.audit('bill.pay', `a payé la facture fournisseur ${b.supplier} #${b.ref} (${money(b.amount)})`);
   };
   A['bills.delete'] = (c, p) => {
@@ -948,18 +948,18 @@
       date: p.date ? new Date(p.date).toISOString() : c.iso, recurring: 'none'
     };
     if (!(data.amount > 0)) fail('Montant invalide');
-    const label = cat.label + (data.description ? ' — ' + data.description : '');
+    const label = cat.label + (data.description ? ' · ' + data.description : '');
     if (p.id) {
       const e = find(c.db.expenses, p.id, 'Charge');
       const diff = c.r(data.amount - e.amount);
       Object.assign(e, data);
-      if (diff) c.bank(diff > 0 ? 'out' : 'in', Math.abs(diff), 'charge', 'Ajustement charge — ' + label, e.id);
+      if (diff) c.bank(diff > 0 ? 'out' : 'in', Math.abs(diff), 'charge', 'Ajustement charge · ' + label, e.id);
       c.audit('expense.update', `a modifié la charge ${label}`);
       return { id: e.id };
     }
     const e = Object.assign({ id: uid('exp'), createdBy: c.me.id, createdAt: c.iso }, data);
     c.db.expenses.push(e);
-    c.bank('out', e.amount, 'charge', 'Charge — ' + label, e.id);
+    c.bank('out', e.amount, 'charge', 'Charge · ' + label, e.id);
     c.audit('expense.create', `a enregistré la charge ${label} (${money(e.amount)})`);
     return { id: e.id };
   };
@@ -967,7 +967,7 @@
     c.need('expenses.manage');
     const e = find(c.db.expenses, p.id, 'Charge');
     c.db.expenses = c.db.expenses.filter(x => x.id !== e.id);
-    c.bank('in', e.amount, 'charge', 'Annulation charge — ' + e.description, e.id);
+    c.bank('in', e.amount, 'charge', 'Annulation charge · ' + e.description, e.id);
     c.audit('expense.delete', `a supprimé une charge de ${money(e.amount)}`);
   };
 
@@ -1049,10 +1049,10 @@
       return { name: e.name, role: roleOf(db, e).name, ca: c.r(x.ca), n: x.n, pay: c.r(f.total || 0) };
     }).sort((a, b) => b.ca - a.ca);
     const ca = c.r(sales.reduce((a, s) => a + saleCA(s), 0)), pay = c.r(fiches.reduce((a, f) => a + (f.total || 0), 0));
-    const lines = people.slice(0, 25).map((p, i) => `${i < 3 && p.ca > 0 ? ['🥇', '🥈', '🥉'][i] : '•'} **${p.name}** (${p.role}) — CA ${money(p.ca)} · ${p.n} vente${p.n > 1 ? 's' : ''} · salaire ${money(p.pay)}`);
+    const lines = people.slice(0, 25).map((p, i) => `${i < 3 && p.ca > 0 ? ['🥇', '🥈', '🥉'][i] : '•'} **${p.name}** (${p.role}) · CA ${money(p.ca)} · ${p.n} vente${p.n > 1 ? 's' : ''} · salaire ${money(p.pay)}`);
     return { ca, count: sales.length, pay, body: {
-      username: (co.name || 'LS Customs') + ' — Semaine',
-      embeds: [{ title: `📊 Semaine clôturée — ${fmtD(from)} → ${fmtD(to)}`, color: 0x5aa9ef,
+      username: (co.name || 'LS Customs') + ' · Semaine',
+      embeds: [{ title: `📊 Semaine clôturée · ${fmtD(from)} → ${fmtD(to)}`, color: 0x5aa9ef,
         description: lines.join('\n') || 'Aucune vente ni salaire sur la période.',
         fields: [{ name: 'CA total', value: money(ca), inline: true }, { name: 'Ventes', value: String(sales.length), inline: true },
           { name: 'Salaires à verser', value: money(pay), inline: true },
@@ -1135,7 +1135,7 @@
     db.sessions.forEach(s => { if ((pr.sessionIds || []).includes(s.id) && !s.payrollId) s.payrollId = pr.id; });
     const pids = (pr.primes || []).map(x => x.primeId).filter(Boolean);
     (db.primes || []).forEach(x => { if (pids.includes(x.id) && !x.payrollId) x.payrollId = pr.id; });
-    c.bank('out', pr.total, 'salaire', `Salaire — ${pr.employeeName}`, pr.id);
+    c.bank('out', pr.total, 'salaire', `Salaire · ${pr.employeeName}`, pr.id);
     c.audit('payroll.pay', `a payé le salaire de ${pr.employeeName} (${money(pr.total)})`);
   };
   /* « Supprimer » une fiche = l'annuler : elle reste visible (Annulée) et n'est jamais recréée ;
@@ -1366,11 +1366,11 @@
     if (!c.db.company.fireWebhook) return;
     const days = Math.floor((c.now - Date.parse(e.hiredAt)) / DAY);
     c.effect({ type: 'discord', url: c.db.company.fireWebhook, body: {
-      username: (c.db.company.name || 'LS Customs') + ' — Personnel',
-      embeds: [{ title: `🚫 Licenciement — ${e.name}`, color: 0xef5d5d,
+      username: (c.db.company.name || 'LS Customs') + ' · Personnel',
+      embeds: [{ title: `🚫 Licenciement · ${e.name}`, color: 0xef5d5d,
         description: (reason ? 'Motif : ' + reason + '\n' : '') + 'Compte supprimé de la compta.',
-        fields: [{ name: 'Grade', value: roleOf(c.db, e).name || '—', inline: true }, { name: 'Char ID', value: e.charId || '—', inline: true },
-          { name: 'Discord', value: e.discordId ? `<@${e.discordId}>` : '—', inline: true },
+        fields: [{ name: 'Grade', value: roleOf(c.db, e).name || '·', inline: true }, { name: 'Char ID', value: e.charId || '·', inline: true },
+          { name: 'Discord', value: e.discordId ? `<@${e.discordId}>` : '·', inline: true },
           { name: 'Arrivée', value: `${fmtD(e.hiredAt)} (${days} j)`, inline: true }, { name: 'Par', value: `${c.me.name} (${c.role.name})`, inline: true },
           { name: 'Étapes', value: (c.db.company.dismissChecklist || []).map(x => '✅ ' + x.label.split(' :')[0]).join('  '), inline: false }],
         timestamp: c.iso }],
@@ -1733,7 +1733,7 @@
     const label = new Date(month + '-15T12:00:00Z').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' }), co = db.company;
     db.notifications.push({ id: uid('ntf'), type: 'archive', title: 'Archive du mois', body: `Téléchargez l'archive de ${label} (Paramètres → Données)`, level: 'info', route: 'settings', at: d.toISOString(), read: false });
     const effects = co.archiveWebhook ? [{ type: 'discord', url: co.archiveWebhook, body: {
-      username: (co.name || 'LS Customs') + ' — Comptabilité',
+      username: (co.name || 'LS Customs') + ' · Comptabilité',
       content: co.archiveRole ? `<@&${co.archiveRole}>` : undefined,
       allowed_mentions: { roles: co.archiveRole ? [co.archiveRole] : [] },
       embeds: [{ title: `🗄️ Archive de ${label} à télécharger`, color: 0x5aa9ef,
@@ -1764,10 +1764,10 @@
     db.meta.glifeRecapAt = new Date(now).toISOString();
     const emp = id => db.employees.find(e => !e.archived && e.charId === id);
     const total = rows.reduce((a, x) => a + x.revenue, 0), n = rows.reduce((a, x) => a + x.count, 0);
-    const lines = rows.slice(0, 25).map((x, i) => `${i < 3 ? ['🥇', '🥈', '🥉'][i] : '•'} **${x.name}**${emp(x.charId) ? '' : ' ⚠️'} — ${x.count} facture${x.count > 1 ? 's' : ''} · ${money(x.revenue)}`);
+    const lines = rows.slice(0, 25).map((x, i) => `${i < 3 ? ['🥇', '🥈', '🥉'][i] : '•'} **${x.name}**${emp(x.charId) ? '' : ' ⚠️'} · ${x.count} facture${x.count > 1 ? 's' : ''} · ${money(x.revenue)}`);
     return { effects: [{ type: 'discord', url: co.glifeWebhook, body: {
-      username: (co.name || 'LS Customs') + ' — Factures en jeu',
-      embeds: [{ title: `🧾 Factures en jeu — ${fmtD(since)} → ${fmtD(now)}`, color: 0x5aa9ef,
+      username: (co.name || 'LS Customs') + ' · Factures en jeu',
+      embeds: [{ title: `🧾 Factures en jeu · ${fmtD(since)} → ${fmtD(now)}`, color: 0x5aa9ef,
         description: (lines.join('\n') || 'Aucune facture sur la période.') + (rows.some(x => !emp(x.charId)) ? '\n\n⚠️ = Char ID absent de la liste du personnel' : ''),
         fields: [{ name: 'Total facturé', value: money(total), inline: true }, { name: 'Factures', value: String(n), inline: true }, { name: 'Employés', value: String(rows.length), inline: true }],
         footer: { text: 'Source : API GLife (entreprise ' + co.glifeCompanyId + ')' }, timestamp: new Date(now).toISOString() }]

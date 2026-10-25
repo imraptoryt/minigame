@@ -36,7 +36,7 @@
       ${li('Déductible :', 'salaires, achats fournisseurs (kits, stock), loyers.')}
       ${li('Non déductible :', 'achat de locaux ou de véhicules, customs de véhicules, achats de confort (nourriture).')}
       ${li('Salaires :', "un % du bénéfice de l'employé (prix − coût du kit), pas de son CA.")}
-      ${li('Impôt :', 'par tranches — 10 % jusqu’à 20 000 $, 20 % de 20 000 à 50 000 $, 30 % au-delà.')}
+      ${li('Impôt :', 'par tranches · 10 % jusqu’à 20 000 $, 20 % de 20 000 à 50 000 $, 30 % au-delà.')}
       ${li('Après impôt :', 'dividendes (obligatoires), primes (facultatives), trésorerie à laisser en banque (obligatoire).')}
     </ul><a class="btn sm ghost" href="${SLIDES}" target="_blank" rel="noopener" style="margin-top:8px">${icon('external-link')}Bases de la comptabilité (mairie)</a>`;
   }
@@ -84,7 +84,7 @@
     el.querySelectorAll('[data-dw]').forEach(b => b.onclick = () => go(dst.wk + +b.dataset.dw));
     el.querySelector('#dWeek').onchange = e => { const n = Math.round(+e.target.value); if (n >= 1 && n <= 53) go(dst.wk + n - wn); };
     el.querySelector('.decl').onclick = e => { const b = e.target.closest('[data-copy]'); if (b) U.copy(b.dataset.copy); };
-    el.querySelector('#dCopy').onclick = () => U.copy([`Déclaration S${wn} — ${co.name}`, `Chiffre d'affaires : ${money(z.revenue)}`, `Ventes clients : ${money(clients)} · partenaires : ${money(partners)}`,
+    el.querySelector('#dCopy').onclick = () => U.copy([`Déclaration S${wn} · ${co.name}`, `Chiffre d'affaires : ${money(z.revenue)}`, `Ventes clients : ${money(clients)} · partenaires : ${money(partners)}`,
       `Salaires et commissions : ${money(salaries)}`, `Charges déductibles : ${money(ded)}`, `Charges non déductibles : ${money(z.chargesND)}`, `Bénéfice brut imposable : ${money(z.taxable)}`,
       `Impôts : ${money(z.tax)}`, `Bénéfice net : ${money(net)}`, `Primes : ${money(part('primes'))} · Dividendes : ${money(part('dividends'))} · Trésorerie : ${money(part('treasury'))}`].join('\n'));
   }
@@ -119,21 +119,21 @@
   async function checkDetail(e, from, to) {
     const s = S(), co = s.company, d = declared(s, e.id, from, to), days = [];
     for (let t = ST.sod(from); t <= to; t = ST.sod(t + ST.DAY * 1.5)) days.push({ from: Math.max(t, from), to: Math.min(ST.sod(t + ST.DAY * 1.5) - 1, to) });
-    const m = U.modal({ title: 'Contrôle — ' + e.name, icon: 'shield-check', size: 'lg', body: U.skeleton('table') });
+    const m = U.modal({ title: 'Contrôle · ' + e.name, icon: 'shield-check', size: 'lg', body: U.skeleton('table') });
     let rows;
     try { rows = await Promise.all(days.map(x => LSCServer.glifeInvoices(co.glifeCompanyId, x.from, x.to).then(r => r.find(y => y.charId === String(e.charId)) || { revenue: 0, count: 0 }))); }
     catch (err) { m.el.querySelector('.modal-body').innerHTML = U.empty({ icon: 'wifi-off', title: 'API GLife injoignable', text: 'Réessayez dans un instant.', hint: false }); paint(); return; }
     const inv = rows.reduce((a, r) => a + r.revenue, 0), n = rows.reduce((a, r) => a + r.count, 0), v = verdict(d.total, inv);
     const dayDecl = x => d.list.filter(l => { const at = Date.parse(l.sale.createdAt); return at >= x.from && at <= x.to; }).reduce((a, l) => a + l.amount, 0);
     m.el.querySelector('.modal-body').innerHTML = `
-      <div class="alert ${v === 'ok' ? 'ok' : v === 'over' ? 'danger' : 'warn'}">${icon(VERDICT[v][0])}<span><b>${VERDICT[v][1]}</b> — déclaré ${money(d.total)} au point de vente, ${money(inv)} facturés en jeu (${n} facture${n > 1 ? 's' : ''}). Écart : <b>${d.total - inv > 0 ? '+' : ''}${money(d.total - inv)}</b>.</span></div>
+      <div class="alert ${v === 'ok' ? 'ok' : v === 'over' ? 'danger' : 'warn'}">${icon(VERDICT[v][0])}<span><b>${VERDICT[v][1]}</b> · déclaré ${money(d.total)} au point de vente, ${money(inv)} facturés en jeu (${n} facture${n > 1 ? 's' : ''}). Écart : <b>${d.total - inv > 0 ? '+' : ''}${money(d.total - inv)}</b>.</span></div>
       <div class="section-title">Jour par jour</div>
       <table class="tbl compact"><thead><tr><th>Jour</th><th class="right">Saisi en compta</th><th class="right">Factures en jeu</th><th class="right">Écart</th></tr></thead><tbody>
       ${days.map((x, i) => { const a = dayDecl(x), b = rows[i].revenue, dv = verdict(a, b); return `<tr><td>${U.fmtDate(new Date(x.from).toISOString())}</td><td class="right">${money(a)}</td><td class="right">${money(b)} <small class="muted">(${rows[i].count})</small></td><td class="right ${dv === 'ok' ? 'ok-t' : dv === 'over' ? 'danger-t' : 'warn-t'}">${a - b > 0 ? '+' : ''}${money(a - b)}</td></tr>`; }).join('')}
       </tbody></table>
       <div class="section-title">Ventes saisies contrôlées (${d.list.length})</div>
       ${d.list.length ? `<table class="tbl compact"><thead><tr><th>Vente</th><th>Date</th><th>Articles</th><th class="right">Montant</th></tr></thead><tbody>${d.list.map(l => `<tr class="clickable" data-sale="${l.sale.id}"><td>#${esc(l.sale.ref)}</td><td class="nowrap">${U.fmtDT(l.sale.createdAt)}</td><td class="muted">${esc(l.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', '))}</td><td class="right">${money(l.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">Aucune vente saisie dans les catégories contrôlées.</p>'}
-      <p class="hint" style="margin-top:10px">Contrôlé : ${esc(co.categories.filter(k => checkCats(co).includes(k.id)).map(k => k.label).join(', ') || '—')}. Ignoré : customs (Customisation, Performances) et ventes partenaires. Marge tolérée : 5 %.</p>`;
+      <p class="hint" style="margin-top:10px">Contrôlé : ${esc(co.categories.filter(k => checkCats(co).includes(k.id)).map(k => k.label).join(', ') || '·')}. Ignoré : customs (Customisation, Performances) et ventes partenaires. Marge tolérée : 5 %.</p>`;
     m.el.querySelectorAll('[data-sale]').forEach(r => r.onclick = () => LSC.open.sale(r.dataset.sale));
     paint();
   }
@@ -246,7 +246,7 @@
         rowClass: x => x.status === 'cancelled' ? 'dim' : '',
         columns: [
           { key: 'num', label: 'ID', render: x => `<b>#${x.num}</b>` },
-          { key: 'partnerName', label: 'Partenaire', render: x => x.partnerName ? esc(x.partnerName) : '<span class="faint">—</span>' },
+          { key: 'partnerName', label: 'Partenaire', render: x => x.partnerName ? esc(x.partnerName) : '<span class="faint">·</span>' },
           ...(own ? [] : [{ key: 'employeeName', label: 'Employé', render: x => esc(x.employeeName) }]),
           { key: 'items', label: 'Articles', sortValue: x => x.items.length, render: x => `<span class="muted">${esc(x.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', ')).slice(0, 60)}</span>` },
           { key: 'total', label: 'Total', align: 'right', render: x => `<b>${money(x.total)}</b>${x.discount ? `<br><small class="warn-t">-${money(x.discount.amount)}</small>` : ''}` },
@@ -262,12 +262,12 @@
   LSC.open.sale = id => {
     const s = S().sales.find(x => x.id === id);
     if (!s) return U.toast('Vente introuvable (ou non visible avec vos permissions)', 'error');
-    const adj = (a, label) => a ? `<dt>${label}</dt><dd>${a.type === 'percent' ? a.value + '% · ' : ''}${money(a.amount)} <small class="muted">— ${esc(a.reason)} (${esc(a.byName)})</small></dd>` : '';
+    const adj = (a, label) => a ? `<dt>${label}</dt><dd>${a.type === 'percent' ? a.value + '% · ' : ''}${money(a.amount)} <small class="muted">· ${esc(a.reason)} (${esc(a.byName)})</small></dd>` : '';
     const m = U.modal({
       title: 'Vente #' + s.ref, icon: 'receipt', size: 'lg',
       body: `<div class="grid cols-2">
         <dl class="kv"><dt>Employé</dt><dd>${esc(s.employeeName)}</dd>${s.partnerName ? `<dt>Partenaire</dt><dd>${esc(s.partnerName)}</dd>` : ''}
-          ${s.vehicle ? `<dt>Véhicule</dt><dd>${s.vehicle.name ? esc(s.vehicle.name) + ' · ' : ''}${esc(s.vehicle.plate || '—')}${s.vehicle.class ? ` · Catégorie ${s.vehicle.class}` : ''} <small class="muted">(${s.vehicle.source === 'auto' ? 'auto' : 'manuel'})</small></dd>` : ''}
+          ${s.vehicle ? `<dt>Véhicule</dt><dd>${s.vehicle.name ? esc(s.vehicle.name) + ' · ' : ''}${esc(s.vehicle.plate || '·')}${s.vehicle.class ? ` · Catégorie ${s.vehicle.class}` : ''} <small class="muted">(${s.vehicle.source === 'auto' ? 'auto' : 'manuel'})</small></dd>` : ''}
           <dt>Date</dt><dd>${U.fmtDT(s.createdAt)}</dd><dt>Paiement</dt><dd>${esc(A().payLabel(s.payment))}</dd><dt>Statut</dt><dd>${U.status('sale', s.status)}</dd></dl>
         <dl class="kv"><dt>Sous-total</dt><dd>${money(s.subtotal)}</dd>${adj(s.discount, 'Réduction')}${adj(s.markup, 'Majoration')}
           <dt>Prix usine</dt><dd>${money(s.factory)}</dd><dt>Commission</dt><dd>${money(ST.comBase(s))}</dd><dt><b>Total</b></dt><dd class="ok-t"><b>${money(s.total)}</b></dd></dl></div>
@@ -275,7 +275,7 @@
         <table class="tbl compact"><thead><tr><th>Article</th><th class="right">Prix</th><th class="right">Qté</th><th class="right">Total</th></tr></thead>
           <tbody>${s.items.map(i => `<tr><td>${esc(i.name)}</td><td class="right">${money(i.price)}</td><td class="right">${i.qty}</td><td class="right">${money(i.total)}</td></tr>`).join('')}</tbody></table>
         ${s.note ? `<div class="section-title">Note</div><p class="muted" style="margin:0">${esc(s.note)}</p>` : ''}
-        ${s.status === 'cancelled' ? `<div class="alert danger mt">${icon('ban')}<span>Annulée le ${U.fmtDT(s.cancelledAt)} par <b>${esc(s.cancelledBy)}</b> — ${esc(s.cancelReason)}</span></div>` : ''}`,
+        ${s.status === 'cancelled' ? `<div class="alert danger mt">${icon('ban')}<span>Annulée le ${U.fmtDT(s.cancelledAt)} par <b>${esc(s.cancelledBy)}</b> · ${esc(s.cancelReason)}</span></div>` : ''}`,
       foot: `${s.invoiceId && A().can('invoices.manage') ? `<button class="btn ghost" data-inv>${icon('file-text')}Voir la facture</button>` : ''}<span class="grow"></span>
         ${s.partnerId && s.status !== 'cancelled' && A().can('invoices.manage') ? `<button class="btn" data-unpartner title="Partenaire choisi par erreur">${icon('user-x')}Retirer le partenaire</button>` : ''}
         ${s.status !== 'cancelled' && A().can('sales.cancel') ? `<button class="btn danger" data-cancel>${icon('ban')}Annuler la vente</button>` : ''}<button class="btn" data-close>Fermer</button>`
@@ -302,10 +302,10 @@
     const tot = rows.reduce((a, x) => a + x.revenue, 0), mar = rows.reduce((a, x) => a + x.margin, 0);
     el.innerHTML = `<div class="page-head"><div><h1>Ventes par produit</h1><div class="sub">Analyse des services et produits vendus (hors ventes annulées, avant réduction).</div></div><div class="actions">${U.periodBar(pst)}</div></div>
       <div class="grid stats">${U.stat({ label: "Chiffre d'affaires", value: money(tot), icon: 'dollar-sign' })}${U.stat({ label: 'Marge', value: money(mar), sub: tot ? (mar / tot * 100).toFixed(1) + '% du CA' : '', icon: 'trending-up' })}
-        ${U.stat({ label: 'Articles vendus', value: rows.reduce((a, x) => a + x.qty, 0), icon: 'package', tone: 'info' })}${U.stat({ label: 'Meilleur service', value: rows[0] ? esc(rows[0].name) : '—', sub: rows[0] ? money(rows[0].revenue) : '', icon: 'trophy', tone: 'warn' })}</div>
+        ${U.stat({ label: 'Articles vendus', value: rows.reduce((a, x) => a + x.qty, 0), icon: 'package', tone: 'info' })}${U.stat({ label: 'Meilleur service', value: rows[0] ? esc(rows[0].name) : '·', sub: rows[0] ? money(rows[0].revenue) : '', icon: 'trophy', tone: 'warn' })}</div>
       <div class="grid cols-3 mt">
         <div class="panel span-2"><div class="panel-head"><h3>${icon('chart-bar')}Détail par service</h3><div class="search">${icon('search')}<input class="input" id="bpq" placeholder="Filtrer..." value="${esc(pst.q)}"></div></div><div class="panel-body" id="bpTable"></div></div>
-        ${U.panel('Top 8 — chiffre d\'affaires', U.hbars(rows.slice(0, 8).map(x => ({ label: x.name, value: x.revenue }))), { icon: 'trophy' })}
+        ${U.panel('Top 8 · chiffre d\'affaires', U.hbars(rows.slice(0, 8).map(x => ({ label: x.name, value: x.revenue }))), { icon: 'trophy' })}
       </div>`;
     const draw = () => U.table(el.querySelector('#bpTable'), {
       id: 'byproduct', rows: rows.filter(x => !pst.q || x.name.toLowerCase().includes(pst.q.toLowerCase())), sort: 'revenue', onRow: x => LSC.open.product(x.productId, r),
@@ -333,12 +333,12 @@
     lines.forEach(l => { const t = Date.parse(l.sale.createdAt); let i = list.length - 1; while (i > 0 && list[i].start > t) i--; vals[i] += l.item.total; });
     const name = p ? p.name : (lines[0] ? lines[0].item.name : 'Produit');
     const m = U.modal({ title: name, icon: (p && p.icon) || 'package', size: 'xl',
-      body: `<div class="grid stats">${U.stat({ label: 'Nombre de ventes', value: qty, icon: 'receipt' })}${U.stat({ label: "Chiffre d'affaires", value: money(rev), icon: 'dollar-sign' })}${U.stat({ label: 'Marge', value: money(mar), icon: 'trending-up' })}${U.stat({ label: 'Prix actuel', value: p ? money(p.price) : '—', sub: p ? 'coût ' + money(p.cost) : 'produit supprimé', icon: 'tag', tone: 'info' })}</div>
+      body: `<div class="grid stats">${U.stat({ label: 'Nombre de ventes', value: qty, icon: 'receipt' })}${U.stat({ label: "Chiffre d'affaires", value: money(rev), icon: 'dollar-sign' })}${U.stat({ label: 'Marge', value: money(mar), icon: 'trending-up' })}${U.stat({ label: 'Prix actuel', value: p ? money(p.price) : '·', sub: p ? 'coût ' + money(p.cost) : 'produit supprimé', icon: 'tag', tone: 'info' })}</div>
         <div class="grid cols-3 mt">${U.panel('Évolution', U.chart({ labels: list.map(b => b.label), series: [{ name: "Chiffre d'affaires", values: vals }], height: 210 }), { cls: 'span-2', icon: 'chart-line' })}
           ${U.panel('Employés ayant vendu', U.hbars(Object.keys(byEmp).sort((a, b) => byEmp[b].rev - byEmp[a].rev).map(k => ({ label: `${k} (${byEmp[k].qty})`, value: byEmp[k].rev }))), { icon: 'users' })}</div>
         <div class="section-title">Historique</div><div id="pdHist"></div>`,
       foot: `${p && A().can('products.manage') ? `<button class="btn" data-edit>${icon('pencil')}Modifier le produit</button>` : ''}<span class="grow"></span><button class="btn" data-close>Fermer</button>` });
-    U.table(m.el.querySelector('#pdHist'), { id: 'pdhist', rows: lines.map(l => ({ id: l.sale.id, num: l.sale.num, at: l.sale.createdAt, emp: l.sale.employeeName, cust: l.sale.partnerName || '—', qty: l.item.qty, total: l.item.total })), sort: 'at', pageSize: 8, resetPage: true, compact: true,
+    U.table(m.el.querySelector('#pdHist'), { id: 'pdhist', rows: lines.map(l => ({ id: l.sale.id, num: l.sale.num, at: l.sale.createdAt, emp: l.sale.employeeName, cust: l.sale.partnerName || '·', qty: l.item.qty, total: l.item.total })), sort: 'at', pageSize: 8, resetPage: true, compact: true,
       onRow: x => { m.close(); LSC.open.sale(x.id); }, empty: { title: 'Aucune vente sur la période', hint: false },
       columns: [{ key: 'num', label: 'Vente', render: x => '#' + x.num }, { key: 'at', label: 'Date', render: x => U.fmtDT(x.at) }, { key: 'emp', label: 'Employé' }, { key: 'cust', label: 'Partenaire' }, { key: 'qty', label: 'Qté', align: 'right' }, { key: 'total', label: 'Total', align: 'right', render: x => money(x.total) }] });
     const ed = m.el.querySelector('[data-edit]');
@@ -386,7 +386,7 @@
   }
   function payInvoice(id) {
     const i = S().invoices.find(x => x.id === id);
-    U.form({ title: 'Encaisser ' + i.ref, icon: 'circle-dollar-sign', size: 'sm', submit: 'Confirmer le paiement', intro: `<p class="lead" style="margin-bottom:12px">${esc(i.customerName)} — <b class="ok-t">${money(i.total)}</b></p>`,
+    U.form({ title: 'Encaisser ' + i.ref, icon: 'circle-dollar-sign', size: 'sm', submit: 'Confirmer le paiement', intro: `<p class="lead" style="margin-bottom:12px">${esc(i.customerName)} · <b class="ok-t">${money(i.total)}</b></p>`,
       fields: [{ name: 'method', label: 'Mode de règlement', type: 'select', full: true, options: [{ value: 'bank', label: 'Virement / carte (compte bancaire)' }, { value: 'cash', label: 'Espèces (caisse)' }] }],
       onSubmit: v => A().call('invoices.pay', { id, method: v.method }, 'Paiement effectué') });
   }
@@ -395,7 +395,7 @@
     if (!i) return U.toast('Facture introuvable', 'error');
     const st = ST.invoiceStatus(i);
     const m = U.modal({ title: 'Facture ' + i.ref, icon: 'file-text', size: 'lg',
-      body: `<div class="grid cols-2"><dl class="kv"><dt>Partenaire</dt><dd>${esc(i.customerName)}</dd><dt>Émise le</dt><dd>${U.fmtDate(i.createdAt)}</dd><dt>Par</dt><dd>${esc(i.createdByName || '—')}</dd></dl>
+      body: `<div class="grid cols-2"><dl class="kv"><dt>Partenaire</dt><dd>${esc(i.customerName)}</dd><dt>Émise le</dt><dd>${U.fmtDate(i.createdAt)}</dd><dt>Par</dt><dd>${esc(i.createdByName || '·')}</dd></dl>
         <dl class="kv"><dt>Échéance</dt><dd>${U.fmtDate(i.due)}</dd><dt>Statut</dt><dd>${U.status('invoice', st)}</dd>${i.paidAt ? `<dt>Payée le</dt><dd>${U.fmtDT(i.paidAt)}</dd>` : ''}</dl></div>
         <div class="section-title">Lignes</div><table class="tbl compact"><thead><tr><th>Désignation</th><th class="right">Prix</th><th class="right">Qté</th><th class="right">Total</th></tr></thead>
         <tbody>${i.items.map(l => `<tr><td>${esc(l.label)}</td><td class="right">${money(l.price)}</td><td class="right">${l.qty}</td><td class="right">${money(l.price * l.qty)}</td></tr>`).join('')}
@@ -416,7 +416,7 @@
   function invoiceEditor(id) {
     const s = S(), inv = id ? s.invoices.find(x => x.id === id) : null;
     let lines = inv ? inv.items.map(l => Object.assign({}, l)) : [];
-    const prodOpts = s.products.filter(p => p.active).map(p => ({ value: p.id, label: `${p.name} — ${money(p.price)}` }));
+    const prodOpts = s.products.filter(p => p.active).map(p => ({ value: p.id, label: `${p.name} · ${money(p.price)}` }));
     const m = U.modal({ title: inv ? 'Modifier ' + inv.ref : 'Facture personnalisée', icon: 'file-pen', size: 'lg',
       body: `<div class="form"><label class="field"><span class="field-label">Partenaire <b>*</b></span><select class="input" id="ieCust"><option value="">Choisir...</option>${U.opts(s.partners.map(x => ({ value: x.id, label: x.name })), inv ? inv.partnerId : '')}</select></label>
         <label class="field"><span class="field-label">Échéance</span><input class="input" type="date" id="ieDue" value="${U.toInputDate(inv ? inv.due : Date.now() + s.company.invoiceDays * ST.DAY)}"></label></div>
@@ -559,7 +559,7 @@
           if (g.wait) return '<span class="faint">…</span>';
           if (g.err) return `<span class="warn-t" title="API GLife injoignable">${icon('wifi-off', 'sm')}</span>`;
           const inv = (g.rows.find(x => x.charId === String(e.charId)) || {}).revenue || 0, d = declared(s, e.id, cf, ct), v = verdict(d.total, inv);
-          return idCell(p.id, `<button class="chk-btn ${v}" data-a="chk" title="${esc(VERDICT[v][1])} — saisi ${money(d.total)} · factures en jeu ${money(inv)}">${icon(VERDICT[v][0])}</button>`);
+          return idCell(p.id, `<button class="chk-btn ${v}" data-a="chk" title="${esc(VERDICT[v][1])} · saisi ${money(d.total)} · factures en jeu ${money(inv)}">${icon(VERDICT[v][0])}</button>`);
         } }] : []),
         { key: 'salary', label: 'Salaire', align: 'right', sortValue: sal, render: p => `${money(sal(p))}<br><small class="muted">${money(p.base)} + ${money(p.commissions)} com.${p.deduction ? ' − ' + money(p.deduction) : ''}</small>` },
         { key: 'primes', label: 'Primes', align: 'right', sortValue: prim, render: p => prim(p) ? `<span class="ok-t" title="${esc((p.primes || []).map(x => (x.auto ? '[auto] ' : '') + x.label + ' : ' + money(x.amount)).concat(p.bonus ? ['Bonus : ' + money(p.bonus)] : []).join(' | '))}">+${money(prim(p))}</span>` : '<span class="faint">$0</span>' },
@@ -609,20 +609,20 @@
   }
   function payEdit(id) {
     const p = S().payrolls.find(x => x.id === id);
-    U.form({ title: 'Paie — ' + p.employeeName, icon: 'banknote', size: 'sm', values: p,
+    U.form({ title: 'Paie · ' + p.employeeName, icon: 'banknote', size: 'sm', values: p,
       fields: [{ name: 'deduction', label: 'Retenue', type: 'money', full: true }, { name: 'note', label: 'Note', full: true }],
       onSubmit: v => A().call('payroll.update', Object.assign({ id }, v), 'Paie mise à jour') });
   }
   function payslip(id) {
     const s = S(), p = s.payrolls.find(x => x.id === id), e = s.employees.find(x => x.id === p.employeeId);
     const q = e ? ST.prereq(s, e, Date.parse(p.from), Date.parse(p.to)) : null;
-    U.modal({ title: 'Fiche de paie — ' + p.employeeName, icon: 'banknote', size: 'sm',
-      body: `<p class="muted" style="margin:0 0 12px">${esc(p.roleName)} · du ${U.fmtDate(p.from)} au ${U.fmtDate(p.to)}${e ? `<br>Char ID ${esc(e.charId || '—')} · Compte ${esc(e.bankAccount || 'non renseigné')}` : ''}</p>
+    U.modal({ title: 'Fiche de paie · ' + p.employeeName, icon: 'banknote', size: 'sm',
+      body: `<p class="muted" style="margin:0 0 12px">${esc(p.roleName)} · du ${U.fmtDate(p.from)} au ${U.fmtDate(p.to)}${e ? `<br>Char ID ${esc(e.charId || '·')} · Compte ${esc(e.bankAccount || 'non renseigné')}` : ''}</p>
         ${q ? `<div class="req-box ${q.ok ? 'ok' : 'ko'}"><b><span class="req ${q.ok ? 'ok' : 'ko'}"></span>${q.ok ? 'Prérequis de la semaine atteints' : 'Prérequis non atteints'}</b>
           ${q.checks.map(c => `<div class="row"><span class="${c.ok ? 'ok-t' : 'danger-t'}">${icon(c.ok ? 'check' : 'x', 'xs')}</span><span>${esc(c.label)}</span><span class="grow"></span><span class="muted">${esc(c.detail)}</span></div>`).join('') || '<small class="muted">Aucun prérequis configuré (Paramètres).</small>'}
           ${q.absences.length ? `<div class="row"><span class="warn-t">${icon('calendar-off', 'xs')}</span><span>Absence(s)</span><span class="grow"></span><span class="muted">${q.absences.map(a => U.fmtDate(a.from).slice(0, 5) + '→' + U.fmtDate(a.to).slice(0, 5)).join(', ')}</span></div>` : ''}</div>` : ''}
         <dl class="kv"><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd>${p.hourly ? `<dt>Heures (${U.fmtDur(p.minutes)} × ${money(p.hourly)})</dt><dd>${money(p.base - p.salary)}</dd>` : ''}
-        <dt>Commissions (${p.commissionIds.length} ventes)</dt><dd>${money(p.commissions)}</dd>${(p.primes || []).map(x => `<dt>${x.auto ? 'Prime auto' : 'Prime'} — ${esc(x.label)}</dt><dd class="ok-t">+${money(x.amount)}</dd>`).join('')}${p.bonus ? `<dt>Bonus</dt><dd class="ok-t">+${money(p.bonus)}</dd>` : ''}<dt>Retenue</dt><dd class="danger-t">-${money(p.deduction)}</dd></dl>
+        <dt>Commissions (${p.commissionIds.length} ventes)</dt><dd>${money(p.commissions)}</dd>${(p.primes || []).map(x => `<dt>${x.auto ? 'Prime auto' : 'Prime'} · ${esc(x.label)}</dt><dd class="ok-t">+${money(x.amount)}</dd>`).join('')}${p.bonus ? `<dt>Bonus</dt><dd class="ok-t">+${money(p.bonus)}</dd>` : ''}<dt>Retenue</dt><dd class="danger-t">-${money(p.deduction)}</dd></dl>
         <div class="sum-total" style="padding:12px 0 0;margin-top:12px;border-top:1px solid var(--line)"><span>Salaire + primes</span><b>${money(p.total)}</b></div>
         <p class="muted" style="margin:10px 0 0">${p.status === 'paid' ? U.badge('Payé', 'ok') : U.badge('À payer', 'warn')} ${p.validatedBy ? ` validée par ${esc(p.validatedBy)}` : ''}${p.paidAt ? ` · versée le ${U.fmtDT(p.paidAt)}` : ''}${p.note ? '<br>' + esc(p.note) : ''}</p>`,
       foot: '<span class="grow"></span><button class="btn" data-close>Fermer</button>' });
@@ -647,7 +647,7 @@
       columns: [{ key: 'date', label: 'Date', render: e => U.fmtDate(e.date) }, { key: 'category', label: 'Commande', render: e => U.badge(feeLabel(s, e)) },
         { key: 'qty', label: 'Qté', align: 'right', render: e => e.qty || 1 }, { key: 'unitPrice', label: 'Prix unitaire', align: 'right', render: e => money(e.unitPrice != null ? e.unitPrice : e.amount) },
         { key: 'amount', label: 'Total', align: 'right', render: e => `<b>${money(e.amount)}</b>` },
-        { key: 'supplier', label: 'Fournisseur', render: e => esc(e.supplier || '—') }, { key: 'description', label: 'Note', render: e => `<span class="muted">${esc(e.description || '—')}</span>` },
+        { key: 'supplier', label: 'Fournisseur', render: e => esc(e.supplier || '·') }, { key: 'description', label: 'Note', render: e => `<span class="muted">${esc(e.description || '·')}</span>` },
         { key: 'a', label: '', sortable: false, align: 'right', render: e => idCell(e.id, act('dup', 'Recommander', 'copy') + act('edit', 'Modifier', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger')) }] });
     el.querySelector('#exCat').onchange = e => { est.cat = e.target.value; expenses(el); };
     el.querySelector('[data-new]').onclick = () => expenseForm(null);
@@ -661,7 +661,7 @@
     const values = e ? Object.assign({}, e, { category: first.id, qty: e.qty || 1, unitPrice: e.unitPrice != null ? e.unitPrice : first.price, date: U.toInputDate(id ? e.date : Date.now()) })
       : { category: first.id, qty: 1, unitPrice: first.price, date: U.toInputDate(Date.now()) };
     U.form({ title: id ? 'Modifier la commande' : 'Nouvelle commande', icon: 'shopping-bag', values,
-      fields: [{ name: 'category', label: 'Commande', type: 'select', full: true, options: cats.map(c => ({ value: c.id, label: `${c.label} — ${money(c.price)} / u` })) },
+      fields: [{ name: 'category', label: 'Commande', type: 'select', full: true, options: cats.map(c => ({ value: c.id, label: `${c.label} · ${money(c.price)} / u` })) },
         { name: 'qty', label: 'Quantité', type: 'number', min: 1, step: '1', required: true }, { name: 'unitPrice', label: 'Prix unitaire', type: 'money', required: true },
         { name: 'total', label: 'Total débité', type: 'html', full: true, html: `<div class="big-num" id="exTotal">${money(values.qty * values.unitPrice)}</div>` },
         { name: 'supplier', label: 'Fournisseur' }, { name: 'date', label: 'Date', type: 'date' }, { name: 'description', label: 'Note', full: true }],

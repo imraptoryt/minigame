@@ -1,5 +1,5 @@
 /* =====================================================================
- * LS Customs — API serveur (fonction Vercel, Node 18+)
+ * LS Customs · API serveur (fonction Vercel, Node 18+)
  * POST /api/rpc  { action, payload }
  *
  * Identification de l'acteur (jamais fournie librement par le client) :
@@ -62,7 +62,7 @@ async function sbAll(path) {
 }
 
 /* ---------- Stockage ----------
- * lsc_state : document principal (réglages, comptes, grades, catalogue, paies, factures...) — petit.
+ * lsc_state : document principal (réglages, comptes, grades, catalogue, paies, factures...) · petit.
  * lsc_rows  : une ligne par vente / commission / service / opération bancaire / historique / mouvement de stock.
  * Une action ne charge que le document + les lignes « en cours » + ce qu'elle demande (Server.needs).
  * Écriture atomique (fonction SQL lsc_commit) avec verrou optimiste sur la version du document. */

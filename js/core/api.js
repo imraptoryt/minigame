@@ -113,7 +113,7 @@
   window.LSC.api = {
     mode, call,
     async logout() { store.del('lsc_token'); if (mode === 'local') await local('auth.logout'); location.reload(); },
-    /* session expirée ? (local : 1 h sans action ; web : jeton d'1 h) — jamais en jeu (identité FiveM) */
+    /* session expirée ? (local : 1 h sans action ; web : jeton d'1 h) · jamais en jeu (identité FiveM) */
     expired() {
       if (mode === 'local') { if (!db) load(); return !session(); }
       if (mode === 'http') {
