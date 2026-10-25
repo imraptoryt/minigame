@@ -189,6 +189,8 @@
   const fmtD = t => { const d = new Date(t); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1); };
   const fmtDur = m => pad(Math.floor(m / 60)) + 'h' + pad(Math.round(m % 60));
   const str = (v, max = 200) => String(v == null ? '' : v).trim().slice(0, max);
+  const safeId = (v, max) => String(v == null ? '' : v).replace(/[^\w-]/g, '').slice(0, max); // identifiant sûr (attributs HTML)
+  const iconName = (v, def) => { v = String(v || '').trim(); return /^[a-z0-9-]{1,40}$/.test(v) ? v : def; }; // nom d'icône Lucide uniquement
   const num = (v, min = 0, max = 1e9) => { const n = +v; return isFinite(n) ? Math.min(max, Math.max(min, n)) : min; };
   const firstName = n => String(n || '').split(' ')[0];
   function fail(msg) { const e = new Error(msg); e.userError = true; throw e; }
@@ -563,7 +565,7 @@
     const cats = db.company.categories.map(x => x.id);
     const data = {
       name: str(p.name, 60), description: str(p.description, 300), category: cats.includes(p.category) ? p.category : (cats[cats.length - 1] || 'autres'),
-      image: str(p.image, 500), icon: str(p.icon, 40) || 'wrench', cost: c.r(num(p.cost)), price: c.r(num(p.price)),
+      image: str(p.image, 500), icon: iconName(p.icon, 'wrench'), cost: c.r(num(p.cost)), price: c.r(num(p.price)),
       consume: num(p.consume, 1, 1000) || 1, visible: p.visible !== false, active: p.active !== false,
       classes: [...new Set((Array.isArray(p.classes) ? p.classes : []).map(Number).filter(n => n >= 1 && n <= 5))].sort()
     };
@@ -610,8 +612,8 @@
       const seen = new Set();
       const cats = p.categories.map(x => {
         const ss = new Set();
-        const subs = (Array.isArray(x.subs) ? x.subs : []).map(s => ({ id: str(s.id, 40) || uid('sub'), label: str(s.label, 30) })).filter(s => s.label && !ss.has(s.id) && ss.add(s.id));
-        return { id: str(x.id, 40) || uid('cat'), label: str(x.label, 30), icon: str(x.icon, 40) || 'package', vehicleClass: !!x.vehicleClass, subs };
+        const subs = (Array.isArray(x.subs) ? x.subs : []).map(s => ({ id: safeId(s.id, 40) || uid('sub'), label: str(s.label, 30) })).filter(s => s.label && !ss.has(s.id) && ss.add(s.id));
+        return { id: safeId(x.id, 40) || uid('cat'), label: str(x.label, 30), icon: iconName(x.icon, 'package'), vehicleClass: !!x.vehicleClass, subs };
       }).filter(x => x.label && !seen.has(x.id) && seen.add(x.id));
       if (!cats.length) fail('Au moins une catégorie est requise');
       const used = db.products.find(pr => !cats.some(x => x.id === pr.category));
@@ -670,7 +672,7 @@
   }
   A['stock.cat.save'] = (c, p) => {
     c.need('inventory.manage');
-    const data = { name: str(p.name, 40), icon: str(p.icon, 40) || 'package' };
+    const data = { name: str(p.name, 40), icon: iconName(p.icon, 'package') };
     if (!data.name) fail('Nom obligatoire');
     const prev = p.id ? find(c.db.stockCats, p.id, 'Catégorie') : null;
     /* webhook : vide = inchangé à l'édition ; « - » = supprimer */
@@ -1245,7 +1247,7 @@
     if (p.hiredAt) { const t = Date.parse(p.hiredAt); if (isFinite(t)) e.hiredAt = new Date(t).toISOString(); }
     return Object.assign({ id: e.id }, temp);
   };
-  const cleanPhoto = v => { const u = str(v, 500); if (u && !/^https?:\/\/\S+$/i.test(u)) fail('Photo : URL invalide (http/https)'); return u; };
+  const cleanPhoto = v => { const u = str(v, 500); if (u && !/^https:\/\/[^\s"'<>]+$/i.test(u)) fail('Photo : URL invalide (https)'); return u; };
   /* Mon compte : chacun met à jour ses propres infos (photo, Discord, compte bancaire, PIN).
    * Char ID, grade et date d'arrivée restent gérés par la direction (staff.save). */
   A['account.update'] = (c, p) => {
@@ -1559,6 +1561,7 @@
     const db = c.db;
     const perms = [...new Set((Array.isArray(p.perms) ? p.perms : []).filter(k => PERM_KEYS.has(k) || k === '*'))];
     if (perms.includes('*') && !c.can('*')) fail("Seul un accès complet peut accorder l'accès complet");
+    if (!c.can('*') && perms.some(k => !c.role.perms.includes(k))) fail('Vous ne pouvez pas donner une permission que vous n\'avez pas');
     const data = { name: str(p.name, 40), rank: Math.round(num(p.rank, 1, 99)), commission: num(p.commission, 0, 100), salary: c.r(num(p.salary)), hourly: c.r(num(p.hourly)), perms };
     if (!data.name) fail('Nom obligatoire');
     if (!c.can('*') && data.rank >= c.role.rank) fail('Le rang doit être inférieur au vôtre');
@@ -1645,7 +1648,7 @@
       if (v === '-') co[k] = '';
       else if (v) { if (!WEBHOOK_RE.test(v)) fail('URL de webhook Discord invalide'); co[k] = v; }
     });
-    if (Array.isArray(s.dismissChecklist)) co.dismissChecklist = s.dismissChecklist.map(x => ({ id: str(x.id, 30) || uid('dc'), label: str(x.label, 120) })).filter(x => x.label).slice(0, 20);
+    if (Array.isArray(s.dismissChecklist)) co.dismissChecklist = s.dismissChecklist.map(x => ({ id: safeId(x.id, 30) || uid('dc'), label: str(x.label, 120) })).filter(x => x.label).slice(0, 20);
     if (s.glifeCompanyId != null) co.glifeCompanyId = Math.floor(num(s.glifeCompanyId, 0, 1e9)) || 0;
     if (s.modelClasses && typeof s.modelClasses === 'object') {
       const mc = {};
@@ -1659,7 +1662,7 @@
     if (Array.isArray(s.categories)) {
       const cats = s.categories.map(x => {
         const prev = co.categories.find(k => k.id === x.id) || {}; // conserve sous-catégories et option véhicule
-        return Object.assign({ subs: [] }, prev, { id: str(x.id, 30) || uid('cat'), label: str(x.label, 30), icon: str(x.icon, 40) || 'package' });
+        return Object.assign({ subs: [] }, prev, { id: safeId(x.id, 30) || uid('cat'), label: str(x.label, 30), icon: iconName(x.icon, 'package') });
       }).filter(x => x.label);
       if (!cats.length) fail('Au moins une catégorie est requise');
       const used = c.db.products.find(pr => !cats.some(x => x.id === pr.category));
@@ -1686,18 +1689,18 @@
     }
     if (Array.isArray(s.expenseCategories)) {
       const seen = new Set();
-      const list = s.expenseCategories.map(x => ({ id: str(x.id, 30) || uid('fee'), label: str(x.label, 50), price: c.r(num(x.price, 0, 1e7)), deductible: x.deductible !== false })).filter(x => x.label && !seen.has(x.id) && seen.add(x.id));
+      const list = s.expenseCategories.map(x => ({ id: safeId(x.id, 30) || uid('fee'), label: str(x.label, 50), price: c.r(num(x.price, 0, 1e7)), deductible: x.deductible !== false })).filter(x => x.label && !seen.has(x.id) && seen.add(x.id));
       if (!list.length) fail('Au moins un type de commande est requis');
       co.expenseCategories = list;
     }
     if (Array.isArray(s.primeRules)) {
       co.primeRules = s.primeRules.slice(0, 20).map(r => ({
-        id: str(r.id, 30) || uid('pr'), label: str(r.label, 60), type: ['ca', 'hours', 'sales', 'top'].includes(r.type) ? r.type : 'ca',
+        id: safeId(r.id, 30) || uid('pr'), label: str(r.label, 60), type: ['ca', 'hours', 'sales', 'top'].includes(r.type) ? r.type : 'ca',
         threshold: num(r.threshold, 0, 1e9), amount: c.r(num(r.amount, 0, 1e7)), enabled: r.enabled !== false
       })).filter(r => r.label);
     }
     if (Array.isArray(s.adverts)) {
-      co.adverts = s.adverts.slice(0, 20).map(a => ({ id: str(a.id, 40) || uid('adv'), label: str(a.label, 30), title: str(a.title, 200), image: str(a.image, 500), message: str(a.message, 1500) }))
+      co.adverts = s.adverts.slice(0, 20).map(a => ({ id: safeId(a.id, 40) || uid('adv'), label: str(a.label, 30), title: str(a.title, 200), image: str(a.image, 500), message: str(a.message, 1500) }))
         .filter(a => a.title || a.message);
     }
     ['discountReasons', 'markupReasons'].forEach(k => { if (Array.isArray(s[k])) co[k] = s[k].map(x => str(x, 60)).filter(Boolean).slice(0, 20); });
@@ -1865,7 +1868,7 @@
       partners: db.partners.map(k => Object.assign({}, k, { hasWebhook: !!k.webhook, webhook: can('partners.manage') ? k.webhook : '' })),
       stockCats: (db.stockCats || []).map(k => Object.assign({}, k, { hasWebhook: !!k.webhook, webhook: can('inventory.manage') ? k.webhook : '' }))
     };
-    const state = { company: db.company, meta: db.meta };
+    const state = { company: db.company, meta: any('bank.view', 'accounting.view') ? db.meta : Object.assign({}, db.meta, { balance: null }) };
     COLLECTIONS.forEach(k => { state[k] = k in rules ? rules[k] : db[k]; });
     const seeIds = any('staff.view', 'payroll.manage'); // Discord ID et compte bancaire des collègues : direction / salaires uniquement
     state.employees = db.employees.map(e => {
@@ -1905,7 +1908,7 @@
   async function runEffects(list) {
     const tmo = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined);
     return Promise.all((list || []).filter(e => e.type === 'discord').map(e =>
-      fetch(e.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(e.body), signal: tmo() })
+      fetch(e.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ allowed_mentions: { parse: [] } }, e.body)), signal: tmo() })
         .then(r => ({ ok: r.ok, status: r.status }), () => ({ ok: false, status: 0 }))));
   }
 

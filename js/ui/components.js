@@ -27,7 +27,7 @@
     if (s < 86400) return 'il y a ' + Math.floor(s / 3600) + ' h';
     return 'il y a ' + Math.floor(s / 86400) + ' j';
   }
-  const icon = (n, cls) => `<i data-lucide="${n}" class="ic ${cls || ''}"></i>`;
+  const icon = (n, cls) => `<i data-lucide="${/^[a-z0-9-]{1,40}$/.test(n) ? n : 'circle'}" class="ic ${cls || ''}"></i>`;
   function paint() {
     if (window.lucide) try { window.lucide.createIcons(); } catch (e) { /* icônes facultatives */ }
     document.querySelectorAll('select[data-combo]').forEach(combo);

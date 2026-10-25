@@ -180,6 +180,7 @@ function actorOf(req, body, db) {
 
 module.exports = async (req, res) => {
   if (req.method === 'GET' && req.query && req.query.ping !== undefined) {
+    if (env.CRON_SECRET && !safeEqual(req.headers.authorization, 'Bearer ' + env.CRON_SECRET)) return res.status(401).json({ ok: false });
     /* tâche planifiée (Vercel tous les jours à 6h UTC + Supabase le dimanche 23h59 Paris) :
      * garde Supabase actif, rappel d'archivage en début de mois, recalcul automatique des salaires */
     try {
