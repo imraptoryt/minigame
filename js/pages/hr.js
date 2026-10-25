@@ -168,7 +168,7 @@
     const myRk = myRank(), full = A().can('*');
     /* salaire d'une semaine : fiche de paie si elle existe, sinon estimation (fixe + heures + commissions) */
     const pay = (e, r) => {
-      const p = s.payrolls.filter(x => x.employeeId === e.id && Date.parse(x.from) < r.to && Date.parse(x.to) > r.from);
+      const p = s.payrolls.filter(x => x.employeeId === e.id && x.status !== 'cancelled' && Date.parse(x.from) < r.to && Date.parse(x.to) > r.from);
       if (p.length) return { v: p.reduce((a, x) => a + x.total, 0), est: false, paid: p.every(x => x.status === 'paid') };
       if (Date.parse(e.hiredAt) > r.to) return { v: 0, est: false, none: true }; // pas encore arrivé
       const role = s.roles.find(x => x.id === e.roleId) || {}, z = ST.employee(s, e.id, r);
@@ -249,7 +249,7 @@
   }
   /* état du dernier salaire (aide pour l'étape « Compta ») */
   function salaryInfo(s, e) {
-    const r = ST.range('week'), p = s.payrolls.filter(x => x.employeeId === e.id && Date.parse(x.to) > r.from - 7 * ST.DAY).pop();
+    const r = ST.range('week'), p = s.payrolls.filter(x => x.employeeId === e.id && x.status !== 'cancelled' && Date.parse(x.to) > r.from - 7 * ST.DAY).pop();
     if (!p) return 'Salaire de la semaine : pas encore calculé (il se calcule en ouvrant Salaires & frais).';
     return p.status === 'paid' ? `Dernier salaire : ${money(p.total)} payé le ${U.fmtDate(p.paidAt)}.` : `Dernier salaire : ${money(p.total)} à payer (Salaires & frais → Marquer payé).`;
   }

@@ -494,7 +494,8 @@
   function payroll(el) {
     const s = S(), r = ST.range('week', '', '', pyst.wk);
     const rows = s.payrolls.filter(p => { const t = Date.parse(p.to); return t >= r.from && t <= r.to; });
-    const unpaid = rows.filter(p => p.status !== 'paid'), paid = rows.filter(p => p.status === 'paid');
+    const live = rows.filter(p => p.status !== 'cancelled'); // fiches annulées : affichées, jamais comptées
+    const unpaid = live.filter(p => p.status !== 'paid'), paid = live.filter(p => p.status === 'paid');
     const prim = p => (p.primesTotal || 0) + (p.bonus || 0), sal = p => p.total - prim(p);
     const sum = (list, f) => list.reduce((a, p) => a + f(p), 0);
     const emp = p => s.employees.find(x => x.id === p.employeeId);
@@ -509,7 +510,7 @@
     const chk = s.company.glifeMode === 'check' && s.company.glifeCompanyId, cf = r.from, ct = Math.min(r.to, Date.now());
     const g = chk ? glifeRows(cf, ct, () => { if (A().route === 'payroll') A().render(); }) : null;
     /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
-    const late = s.payrolls.filter(p => p.status !== 'paid' && Date.parse(p.to) < ST.range('week').from);
+    const late = s.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && Date.parse(p.to) < ST.range('week').from);
     /* clôture : faite cette semaine -> la suite compte pour la semaine prochaine */
     const lastClose = ((s.meta || {}).weekCloses || []).slice(-1)[0] || null, closed = !!(lastClose && Date.parse(lastClose.at) >= ST.range('week').from);
     if (pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
@@ -523,8 +524,8 @@
           <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
           ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
       ${closed && pyst.wk === 0 ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent pour la <b>semaine prochaine</b>.</span></div>` : ''}
-      <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(rows, sal)), sub: rows.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
-        ${U.stat({ label: 'Primes', value: money(sum(rows, prim)), sub: 'hors salaire', icon: 'gift' })}
+      <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(live, sal)), sub: live.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
+        ${U.stat({ label: 'Primes', value: money(sum(live, prim)), sub: 'hors salaire', icon: 'gift' })}
         ${U.stat({ label: 'Reste à verser', value: money(sum(unpaid, p => p.total)), sub: unpaid.length + ' fiche(s)', icon: 'hourglass', tone: unpaid.length ? 'warn' : '' })}
         ${U.stat({ label: 'Déjà payé', value: money(sum(paid, p => p.total)), sub: paid.length + ' fiche(s)', icon: 'circle-check' })}</div>
       ${late.length && pyst.wk === 0 ? `<div class="alert warn mt">${icon('triangle-alert')}<span>${late.length} salaire(s) de la semaine passée pas encore payé(s) : réglez-les d'abord (semaine précédente), la paie de cette semaine se calculera ensuite toute seule.</span><button class="btn sm" data-wkn="-1">${icon('chevron-left')}Semaine passée</button></div>` : ''}
@@ -560,8 +561,8 @@
         { key: 'total', label: 'Salaire + primes', align: 'right', render: p => `<span class="nowrap"><b class="big-qty">${money(p.total)}</b> ${cp(String(Math.round(p.total * 100) / 100), 'Copier le montant')}</span>` },
         { key: 'motif', label: 'Motif', sortable: false, render: p => `<span class="nowrap">${esc(reason)} ${cp(reason, 'Copier le motif')}</span>` },
         { key: 'req', label: 'Objectifs', sortValue: p => (req(p) || {}).ok ? 1 : 0, render: p => { const q = req(p); return q ? idCell(p.id, `<button class="req-btn ${q.ok ? 'ok' : 'ko'}" data-a="req" title="${esc(q.checks.map(c => (c.ok ? '✔ ' : '✘ ') + c.label + ' : ' + c.detail).join(' | ') || 'Aucun prérequis configuré')}"><span class="req ${q.ok ? 'ok' : 'ko'}"></span>${q.ok ? 'Atteints' : 'Non atteints'}</button>`) : ''; } },
-        { key: 'status', label: 'Paiement', render: p => p.status === 'paid' ? `${U.badge('Payé', 'ok')}<br><small class="muted">le ${U.fmtDate(p.paidAt).slice(0, 5)} · ${esc(p.paidBy || '')}</small>` : idCell(p.id, `<button class="btn sm primary" data-a="pay">${icon('check')}Marquer payé</button>`) },
-        { key: 'a', label: '', sortable: false, align: 'right', render: p => p.status === 'paid' ? idCell(p.id, act('slip', 'Fiche de paie', 'file-text')) : idCell(p.id, act('slip', 'Fiche de paie', 'file-text') + act('prime', 'Ajouter une prime', 'gift') + act('edit', 'Retenue', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger')) }]
+        { key: 'status', label: 'Paiement', render: p => p.status === 'cancelled' ? `${U.badge('Annulée', 'muted')}<br><small class="muted">non payée · ${esc(p.cancelledBy || '')}</small>` : p.status === 'paid' ? `${U.badge('Payé', 'ok')}<br><small class="muted">le ${U.fmtDate(p.paidAt).slice(0, 5)} · ${esc(p.paidBy || '')}</small>` : idCell(p.id, `<button class="btn sm primary" data-a="pay">${icon('check')}Marquer payé</button>`) },
+        { key: 'a', label: '', sortable: false, align: 'right', render: p => p.status === 'paid' || p.status === 'cancelled' ? idCell(p.id, act('slip', 'Fiche de paie', 'file-text')) : idCell(p.id, act('slip', 'Fiche de paie', 'file-text') + act('prime', 'Ajouter une prime', 'gift') + act('edit', 'Retenue', 'pencil') + act('del', 'Supprimer', 'trash-2', 'danger')) }]
     });
     el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { pyst.tab = b.dataset.tab; payroll(el); });
     el.addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if (b) { e.stopPropagation(); U.copy(b.dataset.copy); } });
@@ -589,7 +590,7 @@
       chk: id => { const e = emp(s.payrolls.find(x => x.id === id)); if (e) checkDetail(e, cf, ct); },
       prime: id => primeForm(s.payrolls.find(x => x.id === id).employeeId),
       delprime: async id => { if (await U.confirm('Retirer cette prime ?', { danger: true, ok: 'Retirer' })) A().call('primes.delete', { id }, 'Prime retirée'); },
-      del: async id => { if (await U.confirm('Supprimer cette fiche de paie ?', { danger: true, ok: 'Supprimer' })) A().call('payroll.delete', { id }, 'Fiche supprimée'); }
+      del: async id => { const p = s.payrolls.find(x => x.id === id); if (await U.confirm(`Supprimer la fiche de ${p.employeeName} (${money(p.total)}) ? Elle sera annulée : rien de cette période ne sera payé, ni maintenant ni plus tard, et elle ne sera pas recréée.`, { danger: true, ok: 'Supprimer' })) A().call('payroll.delete', { id }, 'Fiche annulée : elle ne sera pas payée'); }
     });
   }
   /* Prime manuelle : versée avec la prochaine paie (ajoutée tout de suite si une fiche est en brouillon) */

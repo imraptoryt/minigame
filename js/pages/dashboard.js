@@ -9,7 +9,7 @@
   function render(el) {
     const A = LSC.app, S = A.state, me = A.meEmp(), role = A.myRole();
     const r = ST.range('week', '', '', st.wk), z = ST.employee(S, me.id, r), req = ST.prereq(S, me, r.from, r.to);
-    const pay = S.payrolls.filter(p => p.employeeId === me.id && Date.parse(p.from) < r.to && Date.parse(p.to) > r.from).pop();
+    const pay = S.payrolls.filter(p => p.employeeId === me.id && p.status !== 'cancelled' && Date.parse(p.from) < r.to && Date.parse(p.to) > r.from).pop();
     const manual = (S.primes || []).filter(x => x.employeeId === me.id && !x.payrollId && ST.within(r, x.at));
     const hours = Math.round(z.minutes / 60 * 100) / 100;
     const p = pay ? { salary: pay.salary, hourly: pay.base - pay.salary, com: pay.commissions, primes: pay.primes || [], ded: pay.deduction || 0, bonus: pay.bonus || 0, total: pay.total }
@@ -64,7 +64,7 @@
     const out = [];
     S.inventory.filter(i => i.qty <= i.min).forEach(i => out.push(['warn', 'package-x', `Stock faible : ${i.name}`, `${i.qty} ${i.unit} restants (min. ${i.min})`, 'inventory']));
     S.invoices.filter(i => ST.invoiceStatus(i) === 'overdue').forEach(i => out.push(['danger', 'file-warning', `Facture partenaire en retard : ${i.ref}`, `${i.customerName} · ${money(i.total)}`, 'invoices']));
-    const drafts = S.payrolls.filter(p => p.status !== 'paid').length;
+    const drafts = S.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled').length;
     if (drafts && LSC.app.can('payroll.manage')) out.push(['info', 'banknote', `${drafts} fiche(s) de paie à traiter`, 'Valider puis payer', 'payroll']);
     if (LSC.app.can('bank.view') && ST.bankBalance(S) < 5000) out.push(['danger', 'landmark', 'Trésorerie faible', money(ST.bankBalance(S)), 'bank']);
     if (!out.length) return U.empty({ icon: 'shield-check', title: 'Aucune alerte', text: 'Tout est en ordre.', hint: false });

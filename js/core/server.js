@@ -963,12 +963,12 @@
       const hours = Math.round(minutes / 60 * 100) / 100;
       const commissions = c.r(comms.reduce((a, x) => a + x.amount, 0));
       /* période déjà payée (même partiellement) : le fixe et les primes auto ne sont pas comptés deux fois */
-      const paid = db.payrolls.some(x => x.employeeId === e.id && x.status === 'paid' && Date.parse(x.from) < to && Date.parse(x.to) > from);
+      const paid = db.payrolls.some(x => x.employeeId === e.id && (x.status === 'paid' || x.status === 'cancelled') && Date.parse(x.from) < to && Date.parse(x.to) > from);
       const salary = paid ? 0 : role.salary || 0;
       const base = c.r(salary + hours * (role.hourly || 0));
       const manual = (db.primes || []).filter(x => x.employeeId === e.id && !x.payrollId && Date.parse(x.at) <= to);
       const primes = (paid ? [] : autoPrimes(db, e, from, to, minutes, caMap)).concat(manual.map(x => ({ primeId: x.id, label: x.reason, amount: x.amount, auto: false })));
-      const existing = db.payrolls.find(x => x.employeeId === e.id && x.status !== 'paid');
+      const existing = db.payrolls.find(x => x.employeeId === e.id && (x.status === 'draft' || x.status === 'validated'));
       if (existing && existing.status === 'validated') return;
       /* plus rien à verser : l'ancien brouillon est retiré */
       if (!base && !commissions && !primes.length) { if (existing) db.payrolls = db.payrolls.filter(x => x !== existing); return; }
@@ -1025,7 +1025,7 @@
     const actor = db.employees.find(e => !e.archived && hasPerm(roleOf(db, e), '*'));
     if (!actor) return { skip: 'aucun compte de direction' };
     const mon = parisMonday(now);
-    if ((db.payrolls || []).some(x => x.status !== 'paid' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d’abord' };
+    if ((db.payrolls || []).some(x => x.status !== 'paid' && x.status !== 'cancelled' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d’abord' };
     return { actorId: actor.id, payload: { auto: true, from: new Date(mon).toISOString(), to: new Date(now).toISOString() } };
   }
   A['week.close'] = (c, p) => {
@@ -1085,6 +1085,7 @@
     c.need('payroll.manage');
     const db = c.db, pr = find(db.payrolls, p.id, 'Fiche de paie');
     if (pr.status === 'paid') fail('Salaire déjà marqué comme payé');
+    if (pr.status === 'cancelled') fail('Fiche annulée : elle ne peut pas être payée');
     if (pr.status === 'draft') { pr.validatedAt = c.iso; pr.validatedBy = c.me.name; } // « Marquer payé » en un clic
     pr.status = 'paid'; pr.paidAt = c.iso; pr.paidBy = c.me.name;
     db.commissions.forEach(x => { if (pr.commissionIds.includes(x.id) && !x.payrollId) x.payrollId = pr.id; });
@@ -1094,12 +1095,19 @@
     c.bank('out', pr.total, 'salaire', `Salaire — ${pr.employeeName}`, pr.id);
     c.audit('payroll.pay', `a payé le salaire de ${pr.employeeName} (${money(pr.total)})`);
   };
+  /* « Supprimer » une fiche = l'annuler : elle reste visible (Annulée) et n'est jamais recréée ;
+   * ses commissions, heures et primes sont considérées comme réglées (rien n'est reporté). */
   A['payroll.delete'] = (c, p) => {
     c.need('payroll.manage');
-    const pr = find(c.db.payrolls, p.id, 'Fiche de paie');
+    const db = c.db, pr = find(db.payrolls, p.id, 'Fiche de paie');
     if (pr.status === 'paid') fail('Une paie versée ne peut pas être supprimée');
-    c.db.payrolls = c.db.payrolls.filter(x => x.id !== pr.id);
-    c.audit('payroll.delete', `a supprimé la fiche de paie de ${pr.employeeName}`);
+    if (pr.status === 'cancelled') fail('Fiche déjà annulée');
+    Object.assign(pr, { status: 'cancelled', cancelledAt: c.iso, cancelledBy: c.me.name });
+    db.commissions.forEach(x => { if ((pr.commissionIds || []).includes(x.id) && !x.payrollId) x.payrollId = pr.id; });
+    db.sessions.forEach(s => { if ((pr.sessionIds || []).includes(s.id) && !s.payrollId) s.payrollId = pr.id; });
+    const pids = (pr.primes || []).map(x => x.primeId).filter(Boolean);
+    (db.primes || []).forEach(x => { if (pids.includes(x.id) && !x.payrollId) x.payrollId = pr.id; });
+    c.audit('payroll.delete', `a annulé la fiche de paie de ${pr.employeeName} (${money(pr.total)} non payés)`);
   };
 
   /* =================== SERVICE / PRÉSENCE =================== */
