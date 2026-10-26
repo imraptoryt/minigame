@@ -21,8 +21,8 @@
     else if (LSCSeed.migrate(db, LSCServer)) save();
   }
   function save() { store.set(cfg.storageKey, JSON.stringify(db)); }
-  /* Session : 1 h, prolongée à chaque action. Au-delà, connexion Char ID + mot de passe. */
-  const SESSION_MS = 3600e3;
+  /* Session : 24 h, prolongée à chaque action. Au-delà, connexion Char ID + mot de passe. */
+  const SESSION_MS = 864e5;
   function session() {
     try {
       const s = JSON.parse(store.get('lsc_session'));
@@ -93,7 +93,7 @@
       body: JSON.stringify({ action, payload: payload || {} })
     });
     const res = await r.json().catch(() => ({ ok: false, error: 'Réponse serveur invalide' }));
-    if (res.ok && res.token) store.set('lsc_token', res.token); // jeton renouvelé (session glissante 1 h, ou 30 jours avec « Rester connecté »)
+    if (res.ok && res.token) store.set('lsc_token', res.token); // jeton renouvelé (session glissante 24 h, ou 30 jours avec « Rester connecté »)
     if (res.needLogin) store.del('lsc_token');
     return res;
   }
@@ -113,7 +113,7 @@
   window.LSC.api = {
     mode, call,
     async logout() { store.del('lsc_token'); if (mode === 'local') await local('auth.logout'); location.reload(); },
-    /* session expirée ? (local : 1 h sans action ; web : jeton d'1 h) · jamais en jeu (identité FiveM) */
+    /* session expirée ? (local : 24 h sans action ; web : jeton de 24 h) · jamais en jeu (identité FiveM) */
     expired() {
       if (mode === 'local') { if (!db) load(); return !session(); }
       if (mode === 'http') {

@@ -424,8 +424,8 @@
   }
 
   /* ---------- connexion (mode http) ---------- */
-  /* ---------- connexion (Char ID + mot de passe), session de 1 h ---------- */
-  /* ---------- connexion (Char ID + mot de passe), session de 1 h ; création de compte ---------- */
+  /* ---------- connexion (Char ID + mot de passe), session de 24 h ---------- */
+  /* ---------- connexion (Char ID + mot de passe), session de 24 h ; création de compte ---------- */
   let keep = (() => { try { return localStorage.getItem('lsc_keep') === '1'; } catch (e) { return false; } })(); // « Rester connecté »
   function showLogin(msg, mode, charId, code) { // code = mot de passe provisoire déjà vérifié (mode newpwd)
     U.closePopover();

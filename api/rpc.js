@@ -147,12 +147,12 @@ async function oldest() { const r = await sb('lsc_rows?select=at&order=at.asc&li
 
 /* Jetons web : base64url(id.exp).signature */
 const sign = s => crypto.createHmac('sha256', env.LSC_SECRET).update(s).digest('base64url');
-/* session de 1 h, ou 30 jours avec « Rester connecté », renouvelée à chaque appel.
+/* session de 24 h, ou 30 jours avec « Rester connecté », renouvelée à chaque appel.
  * Le jeton porte une empreinte du mot de passe : un changement ou une réinitialisation déconnecte partout. */
 const pwPrint = e => e && e.pinHash ? sign('pw:' + e.pinHash).slice(0, 12) : '';
 function issue(id, long, db) {
   const e = db.employees.find(x => x.id === id);
-  const body = Buffer.from([id, Date.now() + (long ? 30 * 864e5 : 3600e3), long ? 1 : 0, pwPrint(e)].join('.')).toString('base64url');
+  const body = Buffer.from([id, Date.now() + (long ? 30 * 864e5 : 864e5), long ? 1 : 0, pwPrint(e)].join('.')).toString('base64url');
   return body + '.' + sign(body);
 }
 function verify(token, db) {
