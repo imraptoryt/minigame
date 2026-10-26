@@ -541,6 +541,21 @@ select option { background: var(--panel-solid); }
 @media (max-width: 1100px) { .stock-layout { grid-template-columns: 1fr; } }
 
 /* paramètres : lignes configurables (frais, primes) */
+/* Prime d'équipe : cartes d'options avec interrupteur / bouton radio */
+.pool { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.pool-body { display: flex; flex-direction: column; gap: 10px; }
+.pool.off .pool-body { opacity: .45; pointer-events: none; }
+.pool-amount { margin: 2px 0; }
+.pool-amount .field[hidden] { display: none; }
+.opt-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--well); cursor: pointer; }
+.opt-card.radio { justify-content: flex-start; }
+.opt-card b { display: block; font-size: 14px; }
+.opt-card small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.opt-card input[type=radio] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; margin: 0; }
+.toggle { appearance: none; -webkit-appearance: none; flex: none; width: 44px; height: 24px; border-radius: 99px; background: var(--line-2); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.toggle:checked { background: var(--accent); }
+.toggle:checked::after { transform: translateX(20px); }
 .cfg-row, .cfg-head { display: grid; gap: 8px; align-items: center; margin-bottom: 6px; }
 .cfg-head { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .cfg-row .input.sm { width: 100%; min-width: 0; }

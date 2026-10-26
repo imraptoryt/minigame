@@ -346,7 +346,9 @@
           <div id="feeRows">${co.expenseCategories.map(feeRow).join('')}</div>
           <div class="row" style="margin-top:8px"><button class="btn sm" id="addFee">${icon('plus')}Ajouter un type</button><span class="grow"></span><button class="btn primary sm" data-save="fees">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('gift')}Primes automatiques</h3></div><div class="panel-body" id="fPrimes">
-          <p class="muted" style="margin:0 0 10px">Ajoutées automatiquement aux fiches lors de « Générer la paie » si la condition est remplie sur la période. Les primes manuelles se donnent depuis Salaires.</p>
+          ${poolBox(co.primeAuto || {})}
+          <div class="section-title">Primes à seuil</div>
+          <p class="muted" style="margin:0 0 10px">Ajoutées aux fiches si la condition est remplie sur la semaine. Les primes manuelles se donnent depuis Salaires.</p>
           <div class="cfg-head rule"><span></span><span>Nom</span><span>Condition</span><span>Seuil</span><span>Prime</span><span></span></div>
           <div id="ruleRows">${(co.primeRules || []).map(ruleRow).join('')}</div>
           <div class="row" style="margin-top:8px"><button class="btn sm" id="addRule">${icon('plus')}Ajouter une règle</button><span class="grow"></span><button class="btn primary sm" data-save="primes">${icon('save')}Enregistrer</button></div></div></section>
@@ -409,6 +411,12 @@
     ['#feeRows', '#ruleRows'].forEach(sel => el.querySelector(sel).addEventListener('click', e => { const b = e.target.closest('[data-rmrow]'); if (b) b.closest('.cfg-row').remove(); }));
     el.querySelector('#addCat').onclick = () => { el.querySelector('#catRows').insertAdjacentHTML('beforeend', catRow({ id: '', label: '', icon: 'package' })); U.paint(); };
     el.querySelector('#catRows').addEventListener('click', e => { const b = e.target.closest('[data-rmcat]'); if (b) b.closest('.cat-row').remove(); });
+    const pool = el.querySelector('#fPool');
+    if (pool) {
+      const sync = () => { const on = pool.querySelector('[name=paEnabled]').checked, ca = pool.querySelector('[name=paCa]').checked;
+        pool.classList.toggle('off', !on); pool.querySelector('[name=paPct]').closest('.field').hidden = !ca; pool.querySelector('[name=paAmount]').closest('.field').hidden = ca; };
+      pool.addEventListener('change', sync); sync();
+    }
     el.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
       const k = b.dataset.save;
       if (k === 'co') save(form('#fCo'));
@@ -441,7 +449,9 @@
         save({ expenseCategories: list }, 'Types de commande enregistrés');
       } else if (k === 'primes') {
         const list = [...el.querySelectorAll('#ruleRows .cfg-row')].map(r => ({ id: r.dataset.id, enabled: r.querySelector('[data-k=enabled]').checked, label: r.querySelector('[data-k=label]').value, type: r.querySelector('[data-k=type]').value, threshold: +r.querySelector('[data-k=threshold]').value || 0, amount: +r.querySelector('[data-k=amount]').value || 0 }));
-        save({ primeRules: list }, 'Règles de primes enregistrées');
+        const pb = el.querySelector('#fPool'), pv = n => pb.querySelector(`[name=${n}]`);
+        const primeAuto = { enabled: pv('paEnabled').checked, caBased: pv('paCa').checked, pct: +pv('paPct').value || 0, amount: +pv('paAmount').value || 0, method: pb.querySelector('[name=paMethod]:checked').value };
+        save({ primeRules: list, primeAuto }, 'Primes enregistrées');
       } else if (k === 'req') {
         const f = el.querySelector('#fReq'), g = n => f.querySelector(`[name=${n}]`).value;
         save({ payrollRules: { quota: +g('quota') || 0, minDays: +g('minDays') || 0, absence: g('absence'), roles: [...f.querySelectorAll('[data-rr]:checked')].map(i => i.dataset.rr) } }, 'Prérequis enregistrés');
@@ -533,6 +543,16 @@
   }
   const feeRow = f => `<div class="cfg-row fee" data-id="${esc(f.id || '')}"><input class="input sm" data-k="label" value="${esc(f.label)}" placeholder="Commande moteur"><input class="input sm" type="number" min="0" step="0.01" data-k="price" value="${f.price || 0}"><label class="check" title="Déductible des impôts (achat fournisseur). Décochez pour un achat de véhicule, de local, une custom..."><input type="checkbox" data-k="ded" ${f.deductible === false ? '' : 'checked'}><span>Déd.</span></label><button class="icon-btn sm danger" data-rmrow title="Retirer">${icon('x', 'sm')}</button></div>`;
   const RULE_TYPES = [{ value: 'ca', label: 'CA de la période ≥ ($)' }, { value: 'hours', label: 'Heures de service ≥' }, { value: 'sales', label: 'Nombre de ventes ≥' }, { value: 'top', label: 'Meilleur vendeur (CA)' }];
+  /* Prime d'équipe : réglages façon interrupteurs */
+  const poolBox = a => `<div id="fPool" class="pool ${a.enabled ? '' : 'off'}">
+      <label class="opt-card"><div><b>Activer les primes automatiques</b><small>Une enveloppe de primes est partagée chaque semaine entre ceux qui ont vendu.</small></div><input type="checkbox" class="toggle" name="paEnabled" ${a.enabled ? 'checked' : ''}></label>
+      <div class="pool-body">
+        <label class="opt-card"><div><b>Basé sur le chiffre d'affaires</b><small>L'enveloppe est un % du CA global de la semaine, sinon un montant fixe.</small></div><input type="checkbox" class="toggle" name="paCa" ${a.caBased ? 'checked' : ''}></label>
+        <div class="form pool-amount">${U.field({ name: 'paPct', label: 'Enveloppe : % du CA global', type: 'number', min: 0, max: 100, step: 0.5 }, a.pct != null ? a.pct : 5)}${U.field({ name: 'paAmount', label: 'Enveloppe : montant fixe', type: 'money' }, a.amount || 0)}</div>
+        <div class="section-title" style="margin-top:4px">Méthode de distribution</div>
+        <label class="opt-card radio"><input type="radio" name="paMethod" value="prop" ${a.method !== 'fixed' ? 'checked' : ''}><div><b>Proportionnel</b><small>Exemple : 18 % du CA = 18 % des primes</small></div></label>
+        <label class="opt-card radio"><input type="radio" name="paMethod" value="fixed" ${a.method === 'fixed' ? 'checked' : ''}><div><b>Montant fixe</b><small>Montant identique pour chaque employé</small></div></label>
+      </div></div>`;
   const ruleRow = r => `<div class="cfg-row rule" data-id="${esc(r.id || '')}"><label class="check"><input type="checkbox" data-k="enabled" ${r.enabled !== false ? 'checked' : ''} title="Active"></label><input class="input sm" data-k="label" value="${esc(r.label)}" placeholder="Nom de la prime"><select class="input sm" data-k="type">${U.opts(RULE_TYPES, r.type)}</select><input class="input sm" type="number" min="0" data-k="threshold" value="${r.threshold || 0}" title="Seuil (ignoré pour Meilleur vendeur)"><input class="input sm" type="number" min="0" step="0.01" data-k="amount" value="${r.amount || 0}" title="Montant de la prime ($)"><button class="icon-btn sm danger" data-rmrow title="Retirer">${icon('x', 'sm')}</button></div>`;
   const catRow = c => `<div class="cat-row" data-id="${esc(c.id)}"><input class="input sm" style="width:auto" data-k="label" value="${esc(c.label)}" placeholder="Nom"><input class="input sm" style="width:auto" data-k="icon" value="${esc(c.icon)}" placeholder="icône"><button class="icon-btn sm danger" data-rmcat title="Retirer">${icon('x', 'sm')}</button></div>`;
 

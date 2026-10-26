@@ -161,6 +161,8 @@
       ],
       /* Primes automatiques, calculées à chaque génération de paie (aucune par défaut) */
       primeRules: [],
+      /* Prime d'équipe : enveloppe (montant fixe ou % du CA global) partagée entre les vendeurs de la semaine */
+      primeAuto: { enabled: false, caBased: false, pct: 5, amount: 0, method: 'prop' },
       /* Paie : commission = % du bénéfice de la vente (prix − coût), ou du CA ; motif du virement « S40 Paye LS Customs » */
       commissionBase: 'margin',
       payReason: 'Paye LS Customs',
@@ -1010,6 +1012,18 @@
       (r.type === 'sales' && nb >= r.threshold) || (r.type === 'top' && best === e.id && ca > 0)
     )).map(r => ({ ruleId: r.id, label: r.label, amount: r.amount, auto: true }));
   }
+  /* Prime d'équipe (Paramètres > Primes) : part de chaque vendeur de la période (au moins une vente)
+   * proportionnel = enveloppe × sa part du CA ; montant fixe = enveloppe partagée à parts égales */
+  function teamPrime(db, caMap) {
+    const cfg = db.company.primeAuto || {}, out = {};
+    if (!cfg.enabled) return out;
+    const ids = Object.keys(caMap).filter(id => caMap[id] > 0), total = ids.reduce((a, id) => a + caMap[id], 0);
+    if (!ids.length || !(total > 0)) return out;
+    const env = cfg.caBased ? total * (+cfg.pct || 0) / 100 : +cfg.amount || 0;
+    if (!(env > 0)) return out;
+    ids.forEach(id => { out[id] = roundTo(cfg.method === 'fixed' ? env / ids.length : env * caMap[id] / total, db.company.rounding || 1); });
+    return out;
+  }
   A['payroll.generate'] = (c, p) => {
     c.need('payroll.manage');
     const db = c.db;
@@ -1022,6 +1036,7 @@
     const caMap = {};
     db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + saleCA(s); });
     db.employees.forEach(e => { if (e.archived) delete caMap[e.id]; });
+    const pool = teamPrime(db, caMap);
     let n = 0;
     db.employees.filter(e => !e.archived).forEach(e => {
       const role = roleOf(db, e);
@@ -1035,7 +1050,8 @@
       const salary = paid ? 0 : role.salary || 0;
       const base = c.r(salary + hours * (role.hourly || 0));
       const manual = (db.primes || []).filter(x => x.employeeId === e.id && !x.payrollId && Date.parse(x.at) <= to);
-      const primes = (paid ? [] : autoPrimes(db, e, from, to, minutes, caMap)).concat(manual.map(x => ({ primeId: x.id, label: x.reason, amount: x.amount, auto: false })));
+      const share = !paid && pool[e.id] > 0 ? [{ ruleId: 'team', label: "Prime d'équipe", amount: pool[e.id], auto: true }] : [];
+      const primes = (paid ? [] : autoPrimes(db, e, from, to, minutes, caMap)).concat(share, manual.map(x => ({ primeId: x.id, label: x.reason, amount: x.amount, auto: false })));
       const existing = db.payrolls.find(x => x.employeeId === e.id && (x.status === 'draft' || x.status === 'validated'));
       if (existing && existing.status === 'validated') return;
       /* plus rien à verser : l'ancien brouillon est retiré */
@@ -1692,6 +1708,10 @@
       const list = s.expenseCategories.map(x => ({ id: safeId(x.id, 30) || uid('fee'), label: str(x.label, 50), price: c.r(num(x.price, 0, 1e7)), deductible: x.deductible !== false })).filter(x => x.label && !seen.has(x.id) && seen.add(x.id));
       if (!list.length) fail('Au moins un type de commande est requis');
       co.expenseCategories = list;
+    }
+    if (s.primeAuto && typeof s.primeAuto === 'object') {
+      const a = s.primeAuto;
+      co.primeAuto = { enabled: !!a.enabled, caBased: !!a.caBased, pct: num(a.pct, 0, 100), amount: c.r(num(a.amount, 0, 1e8)), method: a.method === 'fixed' ? 'fixed' : 'prop' };
     }
     if (Array.isArray(s.primeRules)) {
       co.primeRules = s.primeRules.slice(0, 20).map(r => ({
