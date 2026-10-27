@@ -102,6 +102,18 @@
         <div class="prod-stock ${tone}">${U.dot(tone || 'ok')}${st == null ? 'Disponible' : st <= 0 ? 'Rupture de stock' : 'Stock : ' + st}</div></div></button>`;
   }
   /* Grille rangée par catégorie (sections), dans l'ordre choisi */
+  /* Véhicules électriques de base GTA (nom de spawn) : les performances ne servent à rien dessus */
+  const EV_MODELS = new Set(['raiden', 'neon', 'voltic', 'voltic2', 'cyclone', 'cyclone2', 'tezeract', 'dilettante', 'dilettante2', 'khamelion', 'surge',
+    'imorgon', 'iwagen', 'omnisegt', 'virtue', 'powersurge', 'buffalo5', 'caddy', 'caddy2', 'caddy3', 'airtug', 'inductor', 'inductor2']);
+  function curEV() {
+    const x = vehSel(P.vehicle), model = String((x && x.model) || P.vehicle.model || '').toLowerCase().trim();
+    return EV_MODELS.has(model) ? { model, name: (x && x.name) || model } : null;
+  }
+  function evBanner() {
+    const ev = curEV();
+    if (ev) return `<div class="ev-alert big">${icon('zap')}<div><b>Véhicule électrique : ${esc(ev.name)}</b><span>Les performances ne servent à rien sur ce véhicule. Ne les vendez pas.</span></div></div>`;
+    return `<div class="ev-alert">${icon('zap', 'sm')}<span><b>Véhicules électriques :</b> les performances sont inutiles dessus.</span></div>`;
+  }
   function drawGrid() {
     if (!root || !root.querySelector('#posGrid')) return;
     const grid = root.querySelector('#posGrid'), list = filtered();
@@ -110,11 +122,12 @@
       let items = list.filter(p => p.category === c.id);
       const total = items.length;
       if (!items.length && !P.edit) return '';
-      const head = `<div class="cat-sec-head">${icon(c.icon || 'package')}<h3>${esc(c.label)}</h3><span class="tab-count">${total}</span>
-        ${c.vehicleClass ? `<span class="badge info">${icon('car', 'xs')}Selon la catégorie du véhicule</span><span class="perf-note">${icon('zap', 'xs')}Véhicules électriques : les performances sont inutiles</span>` : ''}
+      let head = `<div class="cat-sec-head">${icon(c.icon || 'package')}<h3>${esc(c.label)}</h3><span class="tab-count">${total}</span>
+        ${c.vehicleClass ? `<span class="badge info">${icon('car', 'xs')}Selon la catégorie du véhicule</span>` : ''}
         ${P.edit ? `<span class="grow"></span><button class="btn sm ghost" data-subnew="${c.id}">${icon('folder-plus', 'xs')}Sous-catégorie</button><button class="icon-btn sm" data-catedit="${c.id}" title="Renommer / icône / option véhicule">${icon('pencil', 'xs')}</button><button class="icon-btn sm danger" data-catdel="${c.id}" title="Supprimer la catégorie">${icon('trash-2', 'xs')}</button>` : ''}</div>`;
       /* Performances : rien n'est proposé tant que la catégorie du véhicule n'est pas choisie */
       if (c.vehicleClass && !P.edit) {
+        head += evBanner();
         if (!P.vehicle.cls) return `<div class="cat-sec" data-sec="${c.id}">${head}<div class="vc-pick"><span>${icon('car')}Choisissez la catégorie du véhicule</span><div class="vc-cards">${vcButtons(true)}</div></div></div>`;
         items = items.filter(p => classOk(p, P.vehicle.cls));
       }
@@ -292,6 +305,8 @@
   }
   /* alerte : modèle absent de la liste (à vérifier en jeu) ou catégorie 0 (aucune performance) */
   function vehAlert(v) {
+    const ev = curEV();
+    if (ev) return `<div class="alert danger veh-alert">${icon('zap', 'sm')}<span><b>${esc(ev.name)} : véhicule électrique.</b> Pas de performances.</span></div>`;
     const u = v.unlisted;
     if (u && u.none) return `<div class="alert info veh-alert">${icon('ban', 'sm')}<span><b>${esc(u.name || u.model)}</b> : catégorie 0, aucune performance possible sur ce véhicule.</span></div>`;
     if (!u) return '';
