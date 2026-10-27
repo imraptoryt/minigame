@@ -393,7 +393,7 @@
         ${thumb(p, 'cart-thumb')}
         <div class="cart-name">${esc(i.name)}</div><div class="cart-total">${money(i.total)}</div>
         <div class="cart-unit">${money(i.price)} x ${i.qty}</div>
-        <div class="cart-ctrl"><span class="qty"><button data-dec="${i.productId}" title="Diminuer">${icon('minus', 'xs')}</button><span>${i.qty}</span><button data-inc="${i.productId}" title="Augmenter">${icon('plus', 'xs')}</button></span>
+        <div class="cart-ctrl"><span class="qty"><button data-dec="${i.productId}" title="Diminuer">${icon('minus', 'xs')}</button><input class="qty-in" data-qty="${i.productId}" inputmode="numeric" value="${i.qty}" title="Quantité"><button data-inc="${i.productId}" title="Augmenter">${icon('plus', 'xs')}</button></span>
           <button class="icon-btn sm danger" data-del="${i.productId}" title="Supprimer (Suppr)">${icon('trash-2', 'sm')}</button></div></div>`;
     }).join('') : U.empty({ icon: 'shopping-basket', title: 'Panier vide', text: 'Cliquez sur un service pour l\'ajouter.', hint: false });
     root.querySelector('#cartSum').innerHTML = `<div class="sum">
@@ -438,6 +438,17 @@
     if (d > 0) { const st = available(app().product(id)); if (st != null && l.qty + 1 > st) { U.toast('Stock insuffisant', 'warn'); return; } }
     l.qty += d;
     if (l.qty <= 0) remove(id); else { P.sel = id; persist(); drawCart(); drawGrid(); }
+  }
+  /* quantité tapée à la main dans le panier */
+  function typeQty(id, v) {
+    const l = P.cart.find(x => x.productId === id);
+    if (!l) return;
+    let n = Math.floor(+String(v).replace(/[^\d]/g, ''));
+    if (!(n > 0)) return remove(id);
+    n = Math.min(999, n);
+    const st = available(app().product(id));
+    if (st != null && n > st) { U.toast(`Stock insuffisant (${st} disponible${st > 1 ? 's' : ''})`, 'warn'); n = Math.max(1, st); }
+    l.qty = n; P.sel = id; persist(); drawCart(); drawGrid();
   }
   function remove(id) {
     P.cart = P.cart.filter(x => x.productId !== id);
@@ -534,6 +545,10 @@
       if (inc) setQty(inc.dataset.inc, 1); else if (dec) setQty(dec.dataset.dec, -1); else if (del) remove(del.dataset.del);
       else if (line) { P.sel = line.dataset.line; root.querySelectorAll('.cart-line').forEach(l => l.classList.toggle('sel', l === line)); }
     };
+    const lines = root.querySelector('#cartLines');
+    lines.addEventListener('change', e => { if (e.target.dataset.qty) typeQty(e.target.dataset.qty, e.target.value); });
+    lines.addEventListener('keydown', e => { if (e.target.dataset.qty && e.key === 'Enter') e.target.blur(); });
+    lines.addEventListener('focusin', e => { if (e.target.dataset.qty) e.target.select(); });
     const right = root.querySelector('.pos-right');
     right.addEventListener('input', e => {
       if (e.target.id !== 'vehPlate') return;

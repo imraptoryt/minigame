@@ -466,6 +466,8 @@ select option { background: var(--panel-solid); }
 .qty button { width: 24px; height: 24px; border: 0; background: rgba(var(--fg), .03); display: grid; place-items: center; color: var(--muted); }
 .qty button:hover { background: rgba(var(--fg), .08); color: var(--text); }
 .qty span { min-width: 26px; text-align: center; font-weight: 600; font-size: 12px; }
+.qty .qty-in { width: 34px; height: 24px; border: 0; padding: 0; background: transparent; color: inherit; text-align: center; font: inherit; font-weight: 600; font-size: 12px; outline: none; }
+.qty .qty-in:focus { background: rgba(var(--fg), .08); }
 .sum { padding: 10px 14px; border-top: 1px solid var(--line); }
 .sum-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; color: var(--text-2); }
 .sum-row span:first-child { color: var(--muted); }

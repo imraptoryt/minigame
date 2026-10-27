@@ -155,7 +155,7 @@
       markupReasons: ['Intervention de nuit', 'Urgence', 'Zone éloignée', 'Pièce spéciale'],
       /* Frais : uniquement des commandes (prix unitaire par défaut, modifiable dans Paramètres) */
       expenseCategories: [
-        { id: 'moteur', label: 'Commande moteur', price: 1200 },
+        { id: 'moteur', label: 'Commande moteur', price: 900 },
         { id: 'kit_carro', label: 'Commande kit carrosserie', price: 150 },
         { id: 'karcher', label: 'Commande Kärcher', price: 350 }
       ],
