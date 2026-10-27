@@ -31,7 +31,7 @@
   function taxRules() {
     const li = (b, t) => `<li><b>${b}</b> ${t}</li>`;
     return `<ul class="rules">
-      ${li('CA :', "tout l'argent encaissé, hors TVA (la TVA n'est pas une charge, elle se reverse à la mairie).")}
+      ${li('CA :', "l'argent encaissé moins le prix usine (sauf les ventes de pièces), hors TVA (la TVA n'est pas une charge, elle se reverse à la mairie).")}
       ${li('Imposable :', "le CA et les produits d'autres activités. Les subventions de la mairie ne le sont pas.")}
       ${li('Déductible :', 'salaires, achats fournisseurs (kits, stock), loyers.')}
       ${li('Non déductible :', 'achat de locaux ou de véhicules, customs de véhicules, achats de confort (nourriture).')}
@@ -46,7 +46,7 @@
   function declaration(el) {
     const s = S(), co = s.company, r = ST.range('week', '', '', dst.wk), z = ST.summary(s, r), po = co.payout || { primes: 10, dividends: 40, treasury: 50 };
     const sales = s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt));
-    const clients = sales.filter(x => !x.partnerId).reduce((a, x) => a + x.total, 0), partners = sales.filter(x => x.partnerId).reduce((a, x) => a + x.total, 0);
+    const ca = LSCServer.saleCA, clients = sales.filter(x => !x.partnerId).reduce((a, x) => a + ca(x), 0), partners = sales.filter(x => x.partnerId).reduce((a, x) => a + ca(x), 0);
     const other = z.revenue - clients - partners; // factures personnalisées payées
     const cats = {}, label = id => (co.expenseCategories.find(c => c.id === id) || {}).label || ((s.expenses.find(e => e.category === id) || {}).categoryLabel) || id;
     const nd = new Set(co.expenseCategories.filter(c => c.deductible === false).map(c => c.id));
@@ -143,13 +143,13 @@
   function bilan(el) {
     const s = S(), r = ST.range(bst.period, bst.from, bst.to, bst.wk), z = ST.summary(s, r), o = ST.summary(s, ST.prev(r)), ser = ST.series(s, r);
     const top = ST.byProduct(s, r).slice(0, 6), bySeller = {};
-    s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt)).forEach(x => { bySeller[x.employeeName] = (bySeller[x.employeeName] || 0) + x.total; });
+    s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt)).forEach(x => { bySeller[x.employeeName] = (bySeller[x.employeeName] || 0) + LSCServer.saleCA(x); });
     const sellers = Object.keys(bySeller).sort((a, b) => bySeller[b] - bySeller[a]).slice(0, 6).map(k => ({ label: k, value: bySeller[k] }));
     const cats = {};
     s.expenses.filter(e => ST.within(r, e.date)).forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
     const catLabel = id => (s.company.expenseCategories.find(c => c.id === id) || {}).label || ((s.expenses.find(e => e.category === id) || {}).categoryLabel) || id;
     const rows = [
-      ['Chiffre d\'affaires', z.revenue, 'ok'], ['Prix usine des ventes', -z.factory], ['Marge brute (bénéfice)', z.gross, 'b'],
+      ['Chiffre d\'affaires', z.revenue, 'ok'], ['Prix usine des pièces vendues', -z.factory], ['Marge brute (bénéfice)', z.gross, 'b'],
       ['Achats de stock', -z.purchases], ['Frais (commandes)', -z.charges - z.bills], ['Salaires', -z.salaries], ['Commissions', -z.commissions],
       ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'], ['Impôt (barème)', -z.tax], ['Bénéfice net après impôt', z.netAfterTax, 'b']
     ];

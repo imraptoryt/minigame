@@ -57,7 +57,8 @@
   /* Journal comptable unifié : chaque ligne porte ses montants par nature. */
   function ledger(S) {
     const L = [];
-    S.sales.forEach(s => { if (s.status !== 'cancelled') L.push({ t: ts(s.createdAt), revenue: s.total, factory: s.factory, count: 1 }); });
+    /* CA sans le prix usine, sauf catégorie « Vente » (donc impôts aussi) */
+    S.sales.forEach(s => { if (s.status !== 'cancelled') L.push({ t: ts(s.createdAt), revenue: LSCServer.saleCA(s), factory: LSCServer.saleUsine(s), count: 1 }); });
     S.invoices.forEach(i => { if (i.status === 'paid' && !i.saleId) L.push({ t: ts(i.paidAt), revenue: i.total, count: 0 }); });
     const nd = new Set((S.company.expenseCategories || []).filter(c => c.deductible === false).map(c => c.id));
     S.expenses.forEach(e => L.push({ t: ts(e.date), charges: e.amount, chargesND: nd.has(e.category) ? e.amount : 0, cat: e.category }));

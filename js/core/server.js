@@ -345,13 +345,15 @@
     } }));
   }
   /* CA d'une vente pour l'employé (salaires, stats, objectifs, primes, récap) :
-   * tout est compté sans le prix usine, sauf la catégorie « Vente » (revente de pièces). Le Bilan garde le montant encaissé. */
+   * tout est compté sans le prix usine, sauf la catégorie « Vente » (revente de pièces). Même règle pour le Bilan et les impôts. */
   const GROSS_CA = ['vente'];
   function saleCA(s) {
     if (!s || s.status === 'cancelled') return 0;
     const usine = (s.items || []).filter(i => !GROSS_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
     return Math.max(0, Math.round(((+s.total || 0) - usine) * 100) / 100);
   }
+  /* prix usine restant dans le CA (catégorie « Vente ») : sert à la marge brute du Bilan */
+  const saleUsine = s => !s || s.status === 'cancelled' ? 0 : (s.items || []).filter(i => GROSS_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
   /* plaque : lettres, chiffres et espaces, 10 caractères maximum */
   const plateOf = v => str(v, 30).toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 10);
   A['pos.createSale'] = (c, p) => {
@@ -1933,7 +1935,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, saleCA, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });
