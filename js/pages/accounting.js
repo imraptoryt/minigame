@@ -140,6 +140,18 @@
 
   /* =================== BILAN =================== */
   const bst = { period: 'week' };
+  /* Prime d'équipe pas encore versée sur la période : enveloppe estimée (% du CA ou montant fixe par semaine avec ventes)
+   * moins celle déjà payée avec les salaires (déjà comptée dans « Salaires ») */
+  function teamPrimeLeft(s, r) {
+    const pa = s.company.primeAuto || {};
+    if (!pa.enabled) return 0;
+    const sales = s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt)), ca = sales.reduce((a, x) => a + LSCServer.saleCA(x), 0);
+    if (!(ca > 0)) return 0;
+    const weeks = new Set(sales.map(x => { const t = Date.parse(x.createdAt); return new Date(t).getFullYear() + '-' + ST.weekNum(t); })).size;
+    const est = pa.caBased ? ca * (+pa.pct || 0) / 100 : (+pa.amount || 0) * weeks;
+    const paid = s.payrolls.filter(p => p.status === 'paid' && ST.within(r, p.paidAt)).reduce((a, p) => a + (p.primes || []).filter(x => x.ruleId === 'team').reduce((b, x) => b + (+x.amount || 0), 0), 0);
+    return Math.max(0, Math.round(est - paid));
+  }
   function bilan(el) {
     const s = S(), r = ST.range(bst.period, bst.from, bst.to, bst.wk), z = ST.summary(s, r), o = ST.summary(s, ST.prev(r)), ser = ST.series(s, r);
     const top = ST.byProduct(s, r).slice(0, 6), bySeller = {};
@@ -148,10 +160,13 @@
     const cats = {};
     s.expenses.filter(e => ST.within(r, e.date)).forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
     const catLabel = id => (s.company.expenseCategories.find(c => c.id === id) || {}).label || ((s.expenses.find(e => e.category === id) || {}).categoryLabel) || id;
+    const pend = teamPrimeLeft(s, r), netP = z.net - pend, taxP = pend ? ST.tax(z.taxable - pend, s.company.taxBrackets).total : z.tax;
     const rows = [
       ['Chiffre d\'affaires', z.revenue, 'ok'], ['Prix usine des pièces vendues', -z.factory], ['Marge brute (bénéfice)', z.gross, 'b'],
       ['Achats de stock', -z.purchases], ['Frais (commandes)', -z.charges - z.bills], ['Salaires', -z.salaries], ['Commissions', -z.commissions],
-      ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'], ['Impôt (barème)', -z.tax], ['Bénéfice net après impôt', z.netAfterTax, 'b']
+      ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'],
+      ...(pend ? [["Primes d'équipe à verser", -pend], ['Bénéfice net avec primes', netP, 'b'], ['Impôt (barème)', -taxP], ['Bénéfice net après primes et impôt', netP - taxP, 'b']]
+        : [['Impôt (barème)', -z.tax], ['Bénéfice net après impôt', z.netAfterTax, 'b']])
     ];
     el.innerHTML = `<div class="page-head"><div><h1>Bilan</h1></div><div class="actions">${U.periodBar(bst)}</div></div>
       <div class="grid stats">
@@ -159,6 +174,7 @@
         ${U.stat({ label: 'Dépenses', value: money(z.expenses), trend: ST.trend(z.expenses, o.expenses), inverse: true, sub: 'commissions, salaires, frais, achats', icon: 'arrow-up-right', tone: 'warn' })}
         ${U.stat({ label: 'Bénéfice', value: money(z.gross), sub: 'marge brute', icon: 'trending-up' })}
         ${U.stat({ label: 'Bénéfice net', value: money(z.net), valueCls: z.net < 0 ? 'danger-t' : 'ok-t', trend: ST.trend(z.net, o.net), icon: 'piggy-bank' })}
+        ${pend ? U.stat({ label: 'Bénéfice avec primes', value: money(netP), valueCls: netP < 0 ? 'danger-t' : 'ok-t', sub: `${money(pend)} de primes d'équipe à verser`, icon: 'gift', tone: 'info', route: 'payroll' }) : ''}
       </div>
       <div class="grid stats mt">
         ${U.stat({ label: 'Salaires', value: money(z.salaries), icon: 'banknote', tone: 'info', route: 'payroll' })}
