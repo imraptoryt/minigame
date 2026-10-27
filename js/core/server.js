@@ -1115,6 +1115,31 @@
     if ((db.payrolls || []).some(x => x.status !== 'paid' && x.status !== 'cancelled' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d\'abord' };
     return { actorId: actor.id, payload: { auto: true, from: new Date(mon).toISOString(), to: new Date(now).toISOString() } };
   }
+  /* Salaire de la semaine en cours d'un employé (affiché à côté de la prise de service, recalculé au chargement) :
+   * même calcul que « Générer la paie » sur la période ouverte, service en cours compris ;
+   * ce qui est déjà sur une fiche clôturée en attente de paiement n'est pas recompté */
+  function payEstimate(db, actorId, now) {
+    const e = db && db.employees.find(x => x.id === actorId && !x.archived);
+    if (!e) return null;
+    now = now || Date.now();
+    const from = openFrom(db, now), to = now, r = v => Math.round(v * 100) / 100, held = new Set();
+    db.payrolls.filter(x => x.status === 'validated').forEach(x => [].concat(x.commissionIds || [], x.sessionIds || [], (x.primes || []).map(y => y.primeId)).forEach(id => { if (id) held.add(id); }));
+    const caMap = {};
+    db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + saleCA(s); });
+    db.employees.forEach(x => { if (x.archived) delete caMap[x.id]; });
+    const role = roleOf(db, e);
+    const minutes = db.sessions.filter(s => s.employeeId === e.id && !s.payrollId && !held.has(s.id) && Date.parse(s.start) >= from && Date.parse(s.start) <= to)
+      .reduce((a, s) => a + (s.end ? s.minutes || 0 : minutesOf(s, now)), 0);
+    const commissions = r(db.commissions.filter(x => x.employeeId === e.id && !x.payrollId && !held.has(x.id) && Date.parse(x.createdAt) <= to).reduce((a, x) => a + x.amount, 0));
+    const paid = db.payrolls.some(x => x.employeeId === e.id && (x.status === 'paid' || x.status === 'cancelled') && Date.parse(x.from) < to && Date.parse(x.to) > from);
+    const base = r((paid ? 0 : role.salary || 0) + minutes / 60 * (role.hourly || 0));
+    const auto = paid ? [] : autoPrimes(db, e, from, to, minutes, caMap);
+    const manual = (db.primes || []).filter(x => x.employeeId === e.id && !x.payrollId && !held.has(x.id) && Date.parse(x.at) <= to);
+    const primes = r((paid ? 0 : teamPrime(db, caMap)[e.id] || 0) + auto.concat(manual).reduce((a, x) => a + x.amount, 0));
+    const draft = db.payrolls.find(x => x.employeeId === e.id && x.status === 'draft'); // bonus / retenue saisis sur la fiche
+    const adj = draft ? (draft.bonus || 0) - (draft.deduction || 0) : 0;
+    return { from: new Date(from).toISOString(), base, commissions, primes, adjust: r(adj), total: r(base + commissions + primes + adj) };
+  }
   A['week.close'] = (c, p) => {
     c.need('payroll.manage');
     const db = c.db, from = openFrom(db, c.now), to = c.now;
@@ -1937,7 +1962,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });

@@ -64,7 +64,7 @@
       if (m) { save(); LSCServer.runEffects(m.effects); }
       /* récap quotidien des factures en jeu (GLife), sans bloquer l'ouverture */
       LSCServer.glifeRecap(db).then(g => { if (g) { save(); LSCServer.runEffects(g.effects); } }).catch(() => {});
-      return LSCServer.view(db, actor());
+      return withPay(LSCServer.view(db, actor()), actor());
     }
     if (payload && payload.__server) payload = Object.assign({}, payload, { __server: undefined });
     const work = JSON.parse(JSON.stringify(db)); // transaction : rien n'est écrit si l'action échoue
@@ -73,8 +73,9 @@
     if (res.readonly) return { ok: true, readonly: true, data: res.data, delivery: await LSCServer.runEffects(res.effects) };
     db = work; save();
     LSCServer.runEffects(res.effects); // webhooks Discord, sans bloquer l'interface
-    return Object.assign(LSCServer.view(db, actor()), { data: res.data });
+    return Object.assign(withPay(LSCServer.view(db, actor()), actor()), { data: res.data });
   }
+  function withPay(v, id) { if (v.state) v.state.myPay = LSCServer.payEstimate(db, id); return v; }
 
   /* ---------- FiveM NUI ---------- */
   async function nui(action, payload) {

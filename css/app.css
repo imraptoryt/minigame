@@ -136,6 +136,11 @@ body.has-bg .main:not(.route-pos), body.has-bg .pos-left > .panel { background: 
 .ptab.on .ic { color: var(--accent); }
 .svc-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 13px; border-radius: var(--r-sm); border: 1px solid var(--line-2); background: rgba(var(--fg), .03); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .svc-btn[hidden] { display: none; }
+.pay-chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--line-2); background: rgba(var(--fg), .03); white-space: nowrap; cursor: default; }
+.pay-chip[hidden] { display: none; }
+.pay-chip .ic { color: var(--accent); }
+.pay-chip small { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); line-height: 1.1; }
+.pay-chip b { display: block; font-size: 14px; font-variant-numeric: tabular-nums; line-height: 1.15; color: var(--ok, inherit); }
 .svc-btn.off { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .svc-btn.off:hover { filter: brightness(1.08); }
 .svc-btn.on { border-color: rgba(var(--ac), .45); background: var(--accent-soft); }
@@ -745,7 +750,7 @@ body { background: radial-gradient(1200px 600px at 78% -15%, rgba(var(--ac), .07
   .top-right { gap: 8px; }
   .clock, .user-btn > div, .user-btn > .ic { display: none; }
   #advertBtn { font-size: 0; gap: 0; padding: 0 8px; }
-  .svc-btn span small { display: none; }
+  .svc-btn span small, .pay-chip small { display: none; }
   .main { padding: 14px 12px 20px; }
   .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: minmax(0, 1fr); }
   .grid .span-2, .grid.cols-3 .span-2 { grid-column: auto; }

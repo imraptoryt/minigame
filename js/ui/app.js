@@ -167,6 +167,7 @@
         ((r.removed || {})[k] || []).forEach(id => map.delete(id));
         next[k] = [...map.values()].sort((a, b) => String(a[f]).localeCompare(String(b[f])));
       });
+      if (next.myPay === undefined) next.myPay = prev.myPay; // salaire de la semaine : recalculé au chargement de la page
       App.state = next;
     } else { App.state = r.state; App.loadedFrom = r.from || 0; App.auditFrom = r.auditFrom || App.loadedFrom; App.oldest = r.oldest || 0; }
     const th = App.state.company.theme || 'dark';
@@ -249,7 +250,15 @@
     return Math.max(0, Math.floor(ms / 1000));
   }
   const hms = sec => [Math.floor(sec / 3600), Math.floor(sec / 60) % 60, sec % 60].map(n => String(n).padStart(2, '0')).join(':');
+  function renderPay() {
+    const el = $('#payChip'), p = App.state.myPay;
+    el.hidden = !p;
+    if (!p) return;
+    el.title = `Semaine en cours : fixe ${U.money(p.base)} + commissions ${U.money(p.commissions)} + primes ${U.money(p.primes)}${p.adjust ? ` + ajustement ${U.money(p.adjust)}` : ''}`;
+    el.innerHTML = `${icon('wallet')}<span><small>Mon salaire</small><b>${U.money(p.total)}</b></span>`;
+  }
   function renderService() {
+    renderPay();
     const b = $('#svcBtn');
     b.hidden = !App.can('service.self');
     if (b.hidden) return;
