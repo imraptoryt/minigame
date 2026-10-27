@@ -145,7 +145,8 @@
   function teamPrimeLeft(s, r) {
     const pa = s.company.primeAuto || {};
     if (!pa.enabled) return 0;
-    const sales = s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt)), ca = sales.reduce((a, x) => a + LSCServer.saleCA(x), 0);
+    const pdg = new Set(s.employees.filter(e => e.roleId === 'patron').map(e => e.id)); // PDG : pas de prime d'équipe
+    const sales = s.sales.filter(x => x.status !== 'cancelled' && !pdg.has(x.employeeId) && ST.within(r, x.createdAt)), ca = sales.reduce((a, x) => a + LSCServer.saleCA(x), 0);
     if (!(ca > 0)) return 0;
     const weeks = new Set(sales.map(x => { const t = Date.parse(x.createdAt); return new Date(t).getFullYear() + '-' + ST.weekNum(t); })).size;
     const est = pa.caBased ? ca * (+pa.pct || 0) / 100 : (+pa.amount || 0) * weeks;

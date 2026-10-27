@@ -545,7 +545,7 @@
   const RULE_TYPES = [{ value: 'ca', label: 'CA de la période ≥ ($)' }, { value: 'hours', label: 'Heures de service ≥' }, { value: 'sales', label: 'Nombre de ventes ≥' }, { value: 'top', label: 'Meilleur vendeur (CA)' }];
   /* Prime d'équipe : réglages façon interrupteurs */
   const poolBox = a => `<div id="fPool" class="pool ${a.enabled ? '' : 'off'}">
-      <label class="opt-card"><div><b>Activer les primes automatiques</b><small>Une enveloppe de primes est partagée chaque semaine entre ceux qui ont vendu.</small></div><input type="checkbox" class="toggle" name="paEnabled" ${a.enabled ? 'checked' : ''}></label>
+      <label class="opt-card"><div><b>Activer les primes automatiques</b><small>Une enveloppe de primes est partagée chaque semaine entre ceux qui ont vendu (sauf le PDG).</small></div><input type="checkbox" class="toggle" name="paEnabled" ${a.enabled ? 'checked' : ''}></label>
       <div class="pool-body">
         <label class="opt-card"><div><b>Basé sur le chiffre d'affaires</b><small>L'enveloppe est un % du CA global de la semaine, sinon un montant fixe.</small></div><input type="checkbox" class="toggle" name="paCa" ${a.caBased ? 'checked' : ''}></label>
         <div class="form pool-amount">${U.field({ name: 'paPct', label: 'Enveloppe : % du CA global', type: 'number', min: 0, max: 100, step: 0.5 }, a.pct != null ? a.pct : 5)}${U.field({ name: 'paAmount', label: 'Enveloppe : montant fixe', type: 'money' }, a.amount || 0)}</div>

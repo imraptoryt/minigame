@@ -1014,12 +1014,13 @@
       (r.type === 'sales' && nb >= r.threshold) || (r.type === 'top' && best === e.id && ca > 0)
     )).map(r => ({ ruleId: r.id, label: r.label, amount: r.amount, auto: true }));
   }
-  /* Prime d'équipe (Paramètres > Primes) : part de chaque vendeur de la période (au moins une vente)
+  /* Prime d'équipe (Paramètres > Primes) : part de chaque vendeur de la période (au moins une vente), PDG exclus
    * proportionnel = enveloppe × sa part du CA ; montant fixe = enveloppe partagée à parts égales */
+  const noTeamPrime = (db, id) => { const e = db.employees.find(x => x.id === id); return !e || e.roleId === 'patron'; };
   function teamPrime(db, caMap) {
     const cfg = db.company.primeAuto || {}, out = {};
     if (!cfg.enabled) return out;
-    const ids = Object.keys(caMap).filter(id => caMap[id] > 0), total = ids.reduce((a, id) => a + caMap[id], 0);
+    const ids = Object.keys(caMap).filter(id => caMap[id] > 0 && !noTeamPrime(db, id)), total = ids.reduce((a, id) => a + caMap[id], 0);
     if (!ids.length || !(total > 0)) return out;
     const env = cfg.caBased ? total * (+cfg.pct || 0) / 100 : +cfg.amount || 0;
     if (!(env > 0)) return out;
