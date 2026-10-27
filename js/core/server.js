@@ -345,11 +345,11 @@
     } }));
   }
   /* CA d'une vente pour l'employé (salaires, stats, objectifs, primes, récap) :
-   * les performances et la customisation sont comptées sans leur prix usine (kit). Le Bilan garde le montant encaissé. */
-  const NET_CA = ['performances', 'custom'];
+   * tout est compté sans le prix usine, sauf la catégorie « Vente » (revente de pièces). Le Bilan garde le montant encaissé. */
+  const GROSS_CA = ['vente'];
   function saleCA(s) {
     if (!s || s.status === 'cancelled') return 0;
-    const usine = (s.items || []).filter(i => NET_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
+    const usine = (s.items || []).filter(i => !GROSS_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
     return Math.max(0, Math.round(((+s.total || 0) - usine) * 100) / 100);
   }
   /* plaque : lettres, chiffres et espaces, 10 caractères maximum */

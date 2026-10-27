@@ -119,7 +119,7 @@
   }
   function employee(S, empId, r) {
     const sales = salesIn(S, r, s => s.employeeId === empId);
-    const revenue = sales.reduce((a, s) => a + LSCServer.saleCA(s), 0); // perfs / customisation : sans le prix usine
+    const revenue = sales.reduce((a, s) => a + LSCServer.saleCA(s), 0); // sans le prix usine, sauf catégorie « Vente »
     const commissions = S.commissions.filter(c => c.employeeId === empId && within(r, c.createdAt)).reduce((a, c) => a + c.amount, 0);
     const services = sales.reduce((a, s) => a + s.items.reduce((b, i) => b + i.qty, 0), 0);
     const mins = minutes(S, empId, r);
