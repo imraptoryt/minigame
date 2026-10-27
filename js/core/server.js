@@ -1714,6 +1714,7 @@
     if (s.primeAuto && typeof s.primeAuto === 'object') {
       const a = s.primeAuto;
       co.primeAuto = { enabled: !!a.enabled, caBased: !!a.caBased, pct: num(a.pct, 0, 100), amount: c.r(num(a.amount, 0, 1e8)), method: a.method === 'fixed' ? 'fixed' : 'prop' };
+      if (co.primeAuto.enabled && !(co.primeAuto.caBased ? co.primeAuto.pct : co.primeAuto.amount)) fail(co.primeAuto.caBased ? "Primes automatiques : mettez un % du CA" : "Primes automatiques : mettez un montant (ou activez « Basé sur le chiffre d'affaires »)");
     }
     if (Array.isArray(s.primeRules)) {
       co.primeRules = s.primeRules.slice(0, 20).map(r => ({
