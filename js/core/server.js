@@ -211,12 +211,17 @@
   /* ---------- tarification (partagée UI / serveur) ---------- */
   /* Performances : tarif fixe par catégorie de véhicule (1 à 5), sans remise partenaire */
   const byClass = (list, cls) => Array.isArray(list) && cls >= 1 && cls <= 5 && list[cls - 1] != null ? +list[cls - 1] : null;
-  function unitPrice(product, partner, cls) {
+  /* prix temporaire (ex. fourrière à 250 $ pour la semaine) : { price, from, until } ; les ventes déjà faites gardent leur prix */
+  const basePrice = (product, at) => {
+    const t = product.tempPrice, now = at || Date.now();
+    return t && now >= (Date.parse(t.from) || 0) && now < Date.parse(t.until) ? +t.price : product.price;
+  };
+  function unitPrice(product, partner, cls, at) {
     const fixed = byClass(product.classPrices, cls);
     if (fixed != null) return fixed;
     if (partner && partner.prices && partner.prices[product.id] != null) return +partner.prices[product.id];
-    if (partner && partner.rate) return product.price * (1 - partner.rate / 100);
-    return product.price;
+    if (partner && partner.rate) return basePrice(product, at) * (1 - partner.rate / 100);
+    return basePrice(product, at);
   }
   function adjAmount(spec, base) {
     if (!spec || !(+spec.value > 0)) return 0;
@@ -240,7 +245,7 @@
     qty.forEach((q, id) => {
       const p = db.products.find(x => x.id === id);
       if (!p) { missing.push(id); return; }
-      const cls = Math.floor(+input.vehicleClass), price = r(unitPrice(p, partner, cls)), cc = byClass(p.classCosts, cls);
+      const cls = Math.floor(+input.vehicleClass), price = r(unitPrice(p, partner, cls, Date.parse(input.at) || 0)), cc = byClass(p.classCosts, cls);
       items.push({ productId: id, name: p.name, category: p.category, price, cost: cc != null ? cc : +p.cost || 0, qty: q, total: r(price * q) });
     });
     const subtotal = r(items.reduce((s, i) => s + i.total, 0));
@@ -518,7 +523,7 @@
     const partnerName = s.partnerName, seller = db.employees.find(e => e.id === s.employeeId);
     const rate = s.commissionRate != null ? s.commissionRate : (seller ? roleOf(db, seller).commission : 0);
     const spec = a => a ? { type: a.type, value: a.value } : null;
-    const q = quote(db, { items: s.items.map(i => ({ productId: i.productId, qty: i.qty })), discount: spec(s.discount), markup: spec(s.markup), vehicleClass: (s.vehicle || {}).class }, rate);
+    const q = quote(db, { items: s.items.map(i => ({ productId: i.productId, qty: i.qty })), discount: spec(s.discount), markup: spec(s.markup), vehicleClass: (s.vehicle || {}).class, at: s.createdAt }, rate);
     if (!q.missing.length) Object.assign(s, { items: q.items, subtotal: q.subtotal, factory: q.factory, total: q.total, commissionRate: q.commissionRate, commission: q.commission, commissionBase: q.commissionBase });
     [s.discount, s.markup].forEach(a => a && Object.assign(a, { original: s.subtotal, final: s.total }));
     const mode = saleMode(db, null), method = (db.company.paymentMethods || []).find(m => m.id === mode.payment) || { id: mode.payment };
