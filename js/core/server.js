@@ -157,7 +157,8 @@
       expenseCategories: [
         { id: 'moteur', label: 'Commande moteur', price: 900 },
         { id: 'kit_carro', label: 'Commande kit carrosserie', price: 150 },
-        { id: 'karcher', label: 'Commande Kärcher', price: 350 }
+        { id: 'karcher', label: 'Commande Kärcher', price: 350 },
+        { id: 'revision', label: 'Commande révision', price: 4000 }
       ],
       /* Primes automatiques, calculées à chaque génération de paie (aucune par défaut) */
       primeRules: [],

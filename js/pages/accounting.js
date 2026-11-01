@@ -180,7 +180,7 @@
       <div class="grid stats mt">
         ${U.stat({ label: 'Salaires', value: money(z.salaries), icon: 'banknote', tone: 'info', route: 'payroll' })}
         ${U.stat({ label: 'Commissions', value: money(z.commissions), icon: 'percent', tone: 'info' })}
-        ${U.stat({ label: 'Frais (commandes)', value: money(z.charges + z.bills), sub: 'moteur, kit carrosserie, Kärcher', icon: 'wallet', tone: 'warn', route: 'expenses' })}
+        ${U.stat({ label: 'Frais (commandes)', value: money(z.charges + z.bills), sub: 'moteur, kit carrosserie, Kärcher, révision', icon: 'wallet', tone: 'warn', route: 'expenses' })}
         ${U.stat({ label: 'Achats', value: money(z.purchases), sub: 'réassort stock', icon: 'package', tone: 'warn', route: 'inventory' })}
       </div>
       <div class="grid cols-3 mt">
