@@ -246,10 +246,10 @@
     qty.forEach((q, id) => {
       const p = db.products.find(x => x.id === id);
       if (!p) { missing.push(id); return; }
-      /* frais supplémentaires (articles autorisés, ex. Révision) : par unité, refacturés comme le prix usine (ni commission ni CA) */
+      /* frais supplémentaires (articles autorisés, ex. Révision) : par unité, s'ajoutent au prix (donc à la commission et au CA) */
       const extra = p.allowExtra ? r(extras.get(id) || 0) : 0;
       const cls = Math.floor(+input.vehicleClass), price = r(unitPrice(p, partner, cls, Date.parse(input.at) || 0) + extra), cc = byClass(p.classCosts, cls);
-      items.push(Object.assign({ productId: id, name: p.name, category: p.category, price, cost: (cc != null ? cc : +p.cost || 0) + extra, qty: q, total: r(price * q) }, extra ? { extra } : {}));
+      items.push(Object.assign({ productId: id, name: p.name, category: p.category, price, cost: cc != null ? cc : +p.cost || 0, qty: q, total: r(price * q) }, extra ? { extra } : {}, p.grossCA ? { grossCA: true } : {}));
     });
     const subtotal = r(items.reduce((s, i) => s + i.total, 0));
     const factory = r(items.reduce((s, i) => s + i.cost * i.qty, 0));
@@ -353,15 +353,16 @@
     } }));
   }
   /* CA d'une vente pour l'employé (salaires, stats, objectifs, primes, récap) :
-   * tout est compté sans le prix usine, sauf la catégorie « Vente » (revente de pièces). Même règle pour le Bilan et les impôts. */
+   * tout est compté sans le prix usine, sauf la catégorie « Vente » et les articles grossCA (Révision) : leur coût passe par une commande dans Frais.
+   * Même règle pour le Bilan et les impôts. */
   const GROSS_CA = ['vente'];
   function saleCA(s) {
     if (!s || s.status === 'cancelled') return 0;
-    const usine = (s.items || []).filter(i => !GROSS_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
+    const usine = (s.items || []).filter(i => !GROSS_CA.includes(i.category) && !i.grossCA).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
     return Math.max(0, Math.round(((+s.total || 0) - usine) * 100) / 100);
   }
-  /* prix usine restant dans le CA (catégorie « Vente ») : sert à la marge brute du Bilan */
-  const saleUsine = s => !s || s.status === 'cancelled' ? 0 : (s.items || []).filter(i => GROSS_CA.includes(i.category)).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
+  /* prix usine restant dans le CA (catégorie « Vente », articles grossCA) : sert à la marge brute du Bilan */
+  const saleUsine = s => !s || s.status === 'cancelled' ? 0 : (s.items || []).filter(i => GROSS_CA.includes(i.category) || i.grossCA).reduce((a, i) => a + (+i.cost || 0) * (+i.qty || 0), 0);
   /* plaque : lettres, chiffres et espaces, 10 caractères maximum */
   const plateOf = v => str(v, 30).toUpperCase().replace(/[^A-Z0-9 ]/g, '').trim().slice(0, 10);
   A['pos.createSale'] = (c, p) => {
