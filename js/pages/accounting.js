@@ -59,7 +59,7 @@
     const row = (l, n, o) => `<div class="d-row ${o && o.sub ? 'sub' : ''} ${o && o.b ? 'b' : ''}"><span>${esc(l)}</span>${v(n, o && o.cls)}</div>`;
     const grp = rows => `<div class="d-grp">${rows.join('')}</div>`;
     const col = (title, total, ic, body) => `<section class="d-col"><div class="d-head">${icon(ic)}<span>${title}</span>${v(total)}</div>${body}</section>`;
-    const wn = ST.weekNum(r.from);
+    const wn = ST.weekNum(r.to);
     el.innerHTML = `<div class="page-head"><div><h1>Déclaration</h1><div class="sub">Cliquez sur un montant pour le copier.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-dw="-1" title="Semaine précédente">${icon('chevron-left')}</button><span class="d-wk">S<input class="input sm" id="dWeek" type="number" min="1" max="53" value="${wn}"></span><span class="muted">${esc(ST.weekLabel(r).split(' · ')[1] || '')}</span><button class="icon-btn sm" data-dw="1" title="Semaine suivante" ${dst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
         <button class="btn sm" id="dCopy">${icon('clipboard-copy')}Copier le résumé</button></div></div>
@@ -148,9 +148,9 @@
     const pdg = new Set(s.employees.filter(e => e.roleId === 'patron').map(e => e.id)); // PDG : pas de prime d'équipe
     const sales = s.sales.filter(x => x.status !== 'cancelled' && !pdg.has(x.employeeId) && ST.within(r, x.createdAt)), ca = sales.reduce((a, x) => a + LSCServer.saleCA(x), 0);
     if (!(ca > 0)) return 0;
-    const weeks = new Set(sales.map(x => { const t = Date.parse(x.createdAt); return new Date(t).getFullYear() + '-' + ST.weekNum(t); })).size;
+    const weeks = r.period === 'week' ? 1 : new Set(sales.map(x => { const t = Date.parse(x.createdAt); return new Date(t).getFullYear() + '-' + ST.weekNum(t); })).size;
     const est = pa.caBased ? ca * (+pa.pct || 0) / 100 : (+pa.amount || 0) * weeks;
-    const paid = s.payrolls.filter(p => p.status === 'paid' && ST.within(r, p.paidAt)).reduce((a, p) => a + (p.primes || []).filter(x => x.ruleId === 'team').reduce((b, x) => b + (+x.amount || 0), 0), 0);
+    const paid = s.payrolls.filter(p => p.status === 'paid' && ST.within(r, ST.payAt(p))).reduce((a, p) => a + (p.primes || []).filter(x => x.ruleId === 'team').reduce((b, x) => b + (+x.amount || 0), 0), 0);
     return Math.max(0, Math.round(est - paid));
   }
   function bilan(el) {
@@ -509,7 +509,7 @@
   const pyst = { tab: 'week', wk: 0 };
   function payroll(el) {
     const s = S(), r = ST.range('week', '', '', pyst.wk);
-    const rows = s.payrolls.filter(p => { const t = Date.parse(p.to); return t >= r.from && t <= r.to; });
+    const rows = s.payrolls.filter(p => { const t = Date.parse(p.to) - (p.closedAt ? 1 : 0); return t >= r.from && t <= r.to; });
     const live = rows.filter(p => p.status !== 'cancelled'); // fiches annulées : affichées, jamais comptées
     const unpaid = live.filter(p => p.status !== 'paid'), paid = live.filter(p => p.status === 'paid');
     const prim = p => (p.primesTotal || 0) + (p.bonus || 0), sal = p => p.total - prim(p);
@@ -521,14 +521,14 @@
       s.commissions.forEach(c => { if (!ids.has(c.id) || seen.has(c.saleId)) return; seen.add(c.saleId);
         const sale = s.sales.find(x => x.id === c.saleId); t += sale ? LSCServer.saleCA(sale) : (c.rate ? c.amount * 100 / c.rate : 0); });
       return Math.round(t * 100) / 100; };
-    const reason = `S${ST.weekNum(r.from)} ${s.company.payReason || 'Paye LS Customs'}`;
+    const reason = `S${ST.weekNum(r.to)} ${s.company.payReason || 'Paye LS Customs'}`;
     /* vérification anti-fraude : une lecture de l'API pour la semaine affichée */
     const chk = s.company.glifeMode === 'check' && s.company.glifeCompanyId, cf = r.from, ct = Math.min(r.to, Date.now());
     const g = chk ? glifeRows(cf, ct, () => { if (A().route === 'payroll') A().render(); }) : null;
     /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
-    const late = s.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && Date.parse(p.to) < ST.range('week').from);
+    const late = s.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && Date.parse(p.to) <= ST.range('week').from);
     /* clôture : faite cette semaine -> la suite compte pour la semaine prochaine */
-    const lastClose = ((s.meta || {}).weekCloses || []).slice(-1)[0] || null, closed = !!(lastClose && Date.parse(lastClose.at) >= ST.range('week').from);
+    const lastClose = ((s.meta || {}).weekCloses || []).slice(-1)[0] || null, closed = !!(lastClose && Date.parse(lastClose.at) >= ST.monday());
     if (pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
       pyst.autoAt = Date.now();
       A().call('payroll.generate', { auto: true, from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
@@ -539,7 +539,7 @@
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
           <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
           ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
-      ${closed && pyst.wk === 0 ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent pour la <b>semaine prochaine</b>.</span></div>` : ''}
+      ${closed && pyst.wk === 0 ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent dans cette <b>nouvelle semaine</b>, partout dans la compta.</span></div>` : ''}
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(live, sal)), sub: live.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Primes', value: money(sum(live, prim)), sub: 'hors salaire', icon: 'gift' })}
         ${U.stat({ label: 'Reste à verser', value: money(sum(unpaid, p => p.total)), sub: unpaid.length + ' fiche(s)', icon: 'hourglass', tone: unpaid.length ? 'warn' : '' })}

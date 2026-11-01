@@ -251,7 +251,7 @@ module.exports = async (req, res) => {
         const scope = Server.rowScope(core, actorId), from = now - Server.WINDOW, auditFrom = now - 3 * 864e5;
         const rest = KINDS.filter(k => k !== 'audit');
         const q = scoped({ open: true }, scope, rest).concat(scoped({ from, to: now + 864e5 }, scope, rest), scoped({ from: auditFrom, to: now + 864e5 }, scope, ['audit']));
-        q.push({ kinds: ['sales'], from: now - 8 * 864e5, to: now + 864e5 }); // salaire de la semaine : CA de toute l'équipe (la vue reste filtrée)
+        q.push({ kinds: ['sales'], from: now - 15 * 864e5, to: now + 864e5 }); // salaire de la semaine : CA de toute l'équipe (la vue reste filtrée)
         const db = assemble(core, await loadRows(q)), v = Server.view(db, actorId);
         if (v.state) try { v.state.myPay = Server.payEstimate(db, actorId, now); } catch (e) { console.error('payEstimate', e); } // ne bloque jamais l'ouverture
         return res.json(Object.assign(v, { from, auditFrom, oldest: await oldest() }, token));

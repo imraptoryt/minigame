@@ -1043,7 +1043,7 @@
     const to = Date.parse(p.to) + (String(p.to || '').length <= 10 ? DAY - 1 : 0);
     if (!(from < to)) fail('Période invalide');
     const closeAt = Date.parse((db.meta || {}).weekStart || '') || 0;
-    if (!p.closing && closeAt >= from && closeAt <= to) return { count: 0, closed: true }; // semaine clôturée : la suite compte pour la semaine prochaine
+    if (!p.closing && closeAt > from && closeAt <= to + 1000) return { count: 0, closed: true }; // semaine clôturée : la suite compte pour la semaine prochaine
     if (closeAt && closeAt < from && closeAt > from - 7 * DAY) from = closeAt; // ce qui a été fait depuis la dernière clôture
     const caMap = {};
     db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + saleCA(s); });

@@ -7,12 +7,26 @@
   const pad = n => String(n).padStart(2, '0');
   const ts = iso => iso ? Date.parse(iso) : NaN;
 
+  /* Semaines de la compta : du lundi au dimanche, mais une clôture coupe la semaine.
+   * La semaine clôturée s'arrête à la clôture, la suivante démarre à la clôture et va jusqu'à son dimanche. */
+  const monday = t => { t = t || Date.now(); return sod(sod(t) - ((new Date(t).getDay() + 6) % 7) * DAY + 12 * HOUR); };
+  const shiftWeek = (m, k) => sod(m + k * 7 * DAY + 12 * HOUR);
+  const closeIn = m => {
+    const app = window.LSC && LSC.app, list = (app && app.state && app.state.meta && app.state.meta.weekCloses) || [], end = shiftWeek(m, 1);
+    return list.map(x => ts(x.at)).filter(t => t >= m && t < end).pop() || 0;
+  };
+  const weekStart = m => closeIn(shiftWeek(m, -1)) || m;
+
   /* wk = décalage en semaines (0 = semaine en cours, -1 = semaine précédente...) */
   function range(period, from, to, wk) {
     const now = Date.now(), d = new Date(now);
     let a, b, bucket = 'day';
     if (period === 'today') { a = sod(now); b = a + DAY - 1; bucket = 'hour'; }
-    else if (period === 'week') { a = sod(sod(now) - ((d.getDay() + 6) % 7) * DAY + (wk || 0) * 7 * DAY + 12 * 36e5); b = sod(a + 7.5 * DAY) - 1; }
+    else if (period === 'week') {
+      const cur = monday(now), m = shiftWeek(closeIn(cur) ? shiftWeek(cur, 1) : cur, wk || 0);
+      a = weekStart(m); b = weekStart(shiftWeek(m, 1)) - 1;
+      return { period, from: a, to: b, bucket, wk: wk || 0 };
+    }
     else if (period === 'year') { a = new Date(d.getFullYear(), 0, 1).getTime(); b = new Date(d.getFullYear() + 1, 0, 1).getTime() - 1; bucket = 'month'; }
     else if (period === 'custom') {
       a = from ? Date.parse(from + 'T00:00:00') : sod(now) - 29 * DAY;
@@ -26,14 +40,17 @@
   /* Période précédente de même durée écoulée (ex. 1-3 oct. comparé à 1-3 sept.) */
   /* numéro de semaine ISO + libellé « Semaine 40 · 28/09 → 04/10 » */
   function weekNum(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / DAY - 3 + (w1.getDay() + 6) % 7) / 7); }
-  function weekLabel(r) { const f = new Date(r.from), t = new Date(r.to); return `Semaine ${weekNum(r.from)} · ${pad(f.getDate())}/${pad(f.getMonth() + 1)} → ${pad(t.getDate())}/${pad(t.getMonth() + 1)}`; }
+  function weekLabel(r) { const f = new Date(r.from), t = new Date(r.to); return `Semaine ${weekNum(r.to)} · ${pad(f.getDate())}/${pad(f.getMonth() + 1)} → ${pad(t.getDate())}/${pad(t.getMonth() + 1)}`; }
   const prev = r => {
     const elapsed = Math.min(r.to, Date.now()) - r.from;
     let from = r.from - (r.to - r.from + 1);
+    if (r.period === 'week') from = range('week', '', '', (r.wk || 0) - 1).from;
     if (r.period === 'month') { const d = new Date(r.from); from = new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime(); }
     if (r.period === 'year') { const d = new Date(r.from); from = new Date(d.getFullYear() - 1, 0, 1).getTime(); }
     return { period: r.period, from, to: Math.min(from + elapsed, r.from - 1), bucket: r.bucket };
   };
+  /* une fiche clôturée compte dans la semaine clôturée, même payée après */
+  const payAt = p => p.closedAt ? ts(p.to) - 1 : ts(p.paidAt);
   const within = (r, iso) => { const t = typeof iso === 'number' ? iso : ts(iso); return t >= r.from && t <= r.to; };
 
   function buckets(r) {
@@ -63,7 +80,7 @@
     const nd = new Set((S.company.expenseCategories || []).filter(c => c.deductible === false).map(c => c.id));
     S.expenses.forEach(e => L.push({ t: ts(e.date), charges: e.amount, chargesND: nd.has(e.category) ? e.amount : 0, cat: e.category }));
     S.bills.forEach(b => { if (b.status === 'paid') L.push({ t: ts(b.paidAt), bills: b.amount }); });
-    S.payrolls.forEach(p => { if (p.status === 'paid') L.push({ t: ts(p.paidAt), salaries: p.base + (p.bonus || 0) + (p.primesTotal || 0) - p.deduction }); });
+    S.payrolls.forEach(p => { if (p.status === 'paid') L.push({ t: payAt(p), salaries: p.base + (p.bonus || 0) + (p.primesTotal || 0) - p.deduction }); });
     S.commissions.forEach(c => L.push({ t: ts(c.createdAt), commissions: c.amount }));
     S.bank.forEach(b => { if (b.type === 'out' && b.category === 'achat') L.push({ t: ts(b.at), purchases: b.amount }); });
     return L;
@@ -148,5 +165,5 @@
   const billStatus = b => b.status === 'pending' && ts(b.due) < Date.now() ? 'overdue' : b.status;
 
   window.LSC = window.LSC || {};
-  window.LSC.stats = { comBase, tax, range, prev, within, buckets, summary, series, trend, salesIn, byProduct, minutes, employee, bankBalance, invoiceStatus, billStatus, sod, DAY, weekNum, weekLabel, absencesIn, absentNow, prereq };
+  window.LSC.stats = { comBase, tax, range, prev, within, buckets, summary, series, trend, salesIn, byProduct, minutes, employee, bankBalance, invoiceStatus, billStatus, sod, DAY, weekNum, weekLabel, monday, payAt, absencesIn, absentNow, prereq };
 })();
