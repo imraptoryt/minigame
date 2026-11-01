@@ -165,25 +165,24 @@
         { name: 'margin', label: 'Marge (%)', type: 'number', step: '1', hint: 'Modifier la marge recalcule le prix de vente.' },
         { name: 'webhook', label: 'Webhook Discord des sorties de stock', full: true, placeholder: p && p.hasWebhook ? 'Webhook enregistré · laisser vide pour le garder' : 'https://discord.com/api/webhooks/...', hint: `Chaque vente envoie une sortie de stock sur ce salon (annulation = retour). Vide = webhook par défaut des Paramètres${S().company.hasStockWebhook ? '' : ' (non défini)'}. « - » pour retirer.` },
         { name: 'consume', label: 'Quantité sortie par vente', type: 'number', min: 1 },
+        { name: 'allowExtra', label: 'Case « Frais supp. » au panier', type: 'checkbox' },
         { name: 'visible', label: 'Visible dans le point de vente', type: 'checkbox' }, { name: 'active', label: 'Produit actif', type: 'checkbox' }],
       extraFoot: p ? `<button class="btn danger" data-delprod>${icon('trash-2')}Supprimer</button>` : '',
       onChange: (v, fe, e) => {
         if (e.target.name === 'category') {
           fe.elements.sub.innerHTML = U.opts(subOpts(v.category), '');
           fe.querySelector('#pfClasses').closest('.field').hidden = !catOf(v.category).vehicleClass;
-          fe.querySelector('#pfTiers').closest('.field').hidden = !catOf(v.category).vehicleClass;
         }
         if (e.target.name === 'margin' && v.cost != null && v.margin != null && v.margin < 100) fe.elements.price.value = Math.round(v.cost / (1 - v.margin / 100));
         else if ((e.target.name === 'price' || e.target.name === 'cost') && v.price) fe.elements.margin.value = Math.round((v.price - (v.cost || 0)) / v.price * 100);
       },
       onMount: m => {
         m.el.querySelector('#pfClasses').closest('.field').hidden = !catOf(vals.category).vehicleClass;
-        m.el.querySelector('#pfTiers').closest('.field').hidden = !catOf(vals.category).vehicleClass;
         m.el.querySelector('form').insertAdjacentHTML('beforeend', `<datalist id="imgList">${[...new Set(s.products.map(x => x.image).filter(Boolean))].sort().map(x => `<option value="${esc(x)}">`).join('')}</datalist>`);
         const d = m.el.querySelector('[data-delprod]'); if (d) d.onclick = async () => { if (await U.confirm(`Supprimer ${p.name} ?`, { danger: true, ok: 'Supprimer' })) { const r = await A().call('products.delete', { id }, 'Produit supprimé'); if (r.ok) m.close(); } }; },
       onSubmit: (v, m) => { delete v.margin; v.classes = [...m.el.querySelectorAll('[data-vc]:checked')].map(i => +i.dataset.vc);
         const tier = k => [...m.el.querySelectorAll(`[data-${k}]`)].map(i => i.value);
-        if (catOf(v.category).vehicleClass) { v.classPrices = tier('tp'); v.classCosts = tier('tc'); } else { v.classPrices = null; v.classCosts = null; } return A().call('products.save', Object.assign({ id }, v), p ? 'Produit modifié' : 'Produit ajouté'); } });
+        v.classPrices = tier('tp'); v.classCosts = tier('tc'); return A().call('products.save', Object.assign({ id }, v), p ? 'Produit modifié' : 'Produit ajouté'); } });
   };
 
   /* =================== PARTENAIRES =================== */

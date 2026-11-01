@@ -236,17 +236,19 @@
   function quote(db, input, rate) {
     const r = n => roundTo(n, db.company.rounding);
     const partner = input.partnerId ? db.partners.find(p => p.id === input.partnerId) : null;
-    const qty = new Map();
+    const qty = new Map(), extras = new Map();
     (Array.isArray(input.items) ? input.items : []).forEach(l => {
       const q = Math.floor(+l.qty);
-      if (l && l.productId && q > 0) qty.set(l.productId, Math.min(999, (qty.get(l.productId) || 0) + q));
+      if (l && l.productId && q > 0) { qty.set(l.productId, Math.min(999, (qty.get(l.productId) || 0) + q)); if (+l.extra > 0) extras.set(l.productId, Math.min(1e7, +l.extra)); }
     });
     const items = [], missing = [];
     qty.forEach((q, id) => {
       const p = db.products.find(x => x.id === id);
       if (!p) { missing.push(id); return; }
-      const cls = Math.floor(+input.vehicleClass), price = r(unitPrice(p, partner, cls, Date.parse(input.at) || 0)), cc = byClass(p.classCosts, cls);
-      items.push({ productId: id, name: p.name, category: p.category, price, cost: cc != null ? cc : +p.cost || 0, qty: q, total: r(price * q) });
+      /* frais supplémentaires (articles autorisés, ex. Révision) : par unité, refacturés comme le prix usine (ni commission ni CA) */
+      const extra = p.allowExtra ? r(extras.get(id) || 0) : 0;
+      const cls = Math.floor(+input.vehicleClass), price = r(unitPrice(p, partner, cls, Date.parse(input.at) || 0) + extra), cc = byClass(p.classCosts, cls);
+      items.push(Object.assign({ productId: id, name: p.name, category: p.category, price, cost: (cc != null ? cc : +p.cost || 0) + extra, qty: q, total: r(price * q) }, extra ? { extra } : {}));
     });
     const subtotal = r(items.reduce((s, i) => s + i.total, 0));
     const factory = r(items.reduce((s, i) => s + i.cost * i.qty, 0));
@@ -523,7 +525,7 @@
     const partnerName = s.partnerName, seller = db.employees.find(e => e.id === s.employeeId);
     const rate = s.commissionRate != null ? s.commissionRate : (seller ? roleOf(db, seller).commission : 0);
     const spec = a => a ? { type: a.type, value: a.value } : null;
-    const q = quote(db, { items: s.items.map(i => ({ productId: i.productId, qty: i.qty })), discount: spec(s.discount), markup: spec(s.markup), vehicleClass: (s.vehicle || {}).class, at: s.createdAt }, rate);
+    const q = quote(db, { items: s.items.map(i => ({ productId: i.productId, qty: i.qty, extra: i.extra })), discount: spec(s.discount), markup: spec(s.markup), vehicleClass: (s.vehicle || {}).class, at: s.createdAt }, rate);
     if (!q.missing.length) Object.assign(s, { items: q.items, subtotal: q.subtotal, factory: q.factory, total: q.total, commissionRate: q.commissionRate, commission: q.commission, commissionBase: q.commissionBase });
     [s.discount, s.markup].forEach(a => a && Object.assign(a, { original: s.subtotal, final: s.total }));
     const mode = saleMode(db, null), method = (db.company.paymentMethods || []).find(m => m.id === mode.payment) || { id: mode.payment };
@@ -575,7 +577,7 @@
     const data = {
       name: str(p.name, 60), description: str(p.description, 300), category: cats.includes(p.category) ? p.category : (cats[cats.length - 1] || 'autres'),
       image: str(p.image, 500), icon: iconName(p.icon, 'wrench'), cost: c.r(num(p.cost)), price: c.r(num(p.price)),
-      consume: num(p.consume, 1, 1000) || 1, visible: p.visible !== false, active: p.active !== false,
+      consume: num(p.consume, 1, 1000) || 1, visible: p.visible !== false, active: p.active !== false, allowExtra: !!p.allowExtra,
       classes: [...new Set((Array.isArray(p.classes) ? p.classes : []).map(Number).filter(n => n >= 1 && n <= 5))].sort()
     };
     /* tarif par catégorie de véhicule (5 prix de vente + 5 prix usine) ; vide = prix unique */

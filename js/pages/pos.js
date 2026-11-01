@@ -393,6 +393,7 @@
         ${thumb(p, 'cart-thumb')}
         <div class="cart-name">${esc(i.name)}</div><div class="cart-total">${money(i.total)}</div>
         <div class="cart-unit">${money(i.price)} x ${i.qty}</div>
+        ${p && p.allowExtra ? `<label class="cart-extra"><span>Frais supp.</span><input class="input sm" data-extra="${i.productId}" inputmode="numeric" placeholder="0" value="${i.extra || ''}"></label>` : ''}
         <div class="cart-ctrl"><span class="qty"><button data-dec="${i.productId}" title="Diminuer">${icon('minus', 'xs')}</button><input class="qty-in" data-qty="${i.productId}" inputmode="numeric" value="${i.qty}" title="Quantité"><button data-inc="${i.productId}" title="Augmenter">${icon('plus', 'xs')}</button></span>
           <button class="icon-btn sm danger" data-del="${i.productId}" title="Supprimer (Suppr)">${icon('trash-2', 'sm')}</button></div></div>`;
     }).join('') : U.empty({ icon: 'shopping-basket', title: 'Panier vide', text: 'Cliquez sur un service pour l\'ajouter.', hint: false });
@@ -546,9 +547,12 @@
       else if (line) { P.sel = line.dataset.line; root.querySelectorAll('.cart-line').forEach(l => l.classList.toggle('sel', l === line)); }
     };
     const lines = root.querySelector('#cartLines');
-    lines.addEventListener('change', e => { if (e.target.dataset.qty) typeQty(e.target.dataset.qty, e.target.value); });
-    lines.addEventListener('keydown', e => { if (e.target.dataset.qty && e.key === 'Enter') e.target.blur(); });
-    lines.addEventListener('focusin', e => { if (e.target.dataset.qty) e.target.select(); });
+    lines.addEventListener('change', e => {
+      if (e.target.dataset.qty) typeQty(e.target.dataset.qty, e.target.value);
+      if (e.target.dataset.extra) { const l = P.cart.find(x => x.productId === e.target.dataset.extra); if (l) { l.extra = +e.target.value.replace(/[^\d]/g, '') || 0; persist(); drawCart(); } }
+    });
+    lines.addEventListener('keydown', e => { if ((e.target.dataset.qty || e.target.dataset.extra) && e.key === 'Enter') e.target.blur(); });
+    lines.addEventListener('focusin', e => { if (e.target.dataset.qty || e.target.dataset.extra) e.target.select(); });
     const right = root.querySelector('.pos-right');
     right.addEventListener('input', e => {
       if (e.target.id !== 'vehPlate') return;

@@ -465,6 +465,9 @@ select option { background: var(--panel-solid); }
 .cart-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 2px; }
 .cart-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cart-unit { font-size: 11.5px; color: var(--muted); }
+.cart-extra { grid-column: 2 / -1; grid-row: 3; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 11.5px; color: var(--muted); }
+.cart-extra span { white-space: nowrap; }
+.cart-extra input.input { flex: none; width: 96px; height: 26px; text-align: right; }
 .cart-total { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .cart-ctrl { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .qty { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; }
