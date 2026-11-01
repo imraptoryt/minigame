@@ -471,7 +471,7 @@
       const ord = Math.max(0, ...db.products.filter(x => x.category === 'reparations').map(x => +x.order || 0));
       const base = { category: 'reparations', inventoryId: null, consume: 1, description: '', visible: true, active: true, createdAt: iso(Date.now()) };
       if (!db.products.some(x => x.id === 'prd_repa_freins')) db.products.push(Object.assign({ id: 'prd_repa_freins', name: 'Réparation freins', price: +pneu.price || 0, cost: +pneu.cost || 0, icon: 'disc', image: 'img/products/freins.png', order: ord + 1 }, base));
-      if (!db.products.some(x => x.id === 'prd_revision')) db.products.push(Object.assign({ id: 'prd_revision', name: 'Révision', price: 2500, cost: 4000, classPrices: [2500, 5000, 7500, 10000, 15000], classCosts: [4000, 4000, 4000, 4000, 4000], allowExtra: true, grossCA: true, icon: 'clipboard-check', image: '', order: ord + 2 }, base));
+      if (!db.products.some(x => x.id === 'prd_revision')) db.products.push(Object.assign({ id: 'prd_revision', name: 'Révision', price: 4000, cost: 4000, classPrices: [4000, 5000, 7500, 10000, 15000], classCosts: [4000, 4000, 4000, 4000, 4000], allowExtra: true, grossCA: true, icon: 'clipboard-check', image: '', order: ord + 2 }, base));
       db.meta.repaV = 1; changed = true;
     }
     if (!db || !db.meta || (db.meta.catalog || 1) >= CATALOG_VERSION) return changed;
