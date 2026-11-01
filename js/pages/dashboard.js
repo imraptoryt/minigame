@@ -23,7 +23,7 @@
     const abs = (S.absences || []).filter(x => x.employeeId === me.id).slice(-3).reverse(), warns = S.warnings.filter(x => x.employeeId === me.id).slice(-3).reverse();
 
     el.innerHTML = `<div class="page-head"><div class="who">${U.avatar(me.name, 'lg')}<div><h1>Bonjour ${esc(me.name.split(' ')[0])}</h1><div class="sub">${esc(role.name)} · Char ID ${esc(me.charId || '·')}${me.bankAccount ? ' · Compte ' + esc(me.bankAccount) : ''}</div></div></div>
-        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${st.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div></div></div>
+        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${st.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div></div></div>
       <div class="grid stats">
         ${U.stat({ label: 'Mon CA', value: money(z.revenue), sub: `${z.count} vente${z.count > 1 ? 's' : ''}`, icon: 'dollar-sign', route: A.allowed('mysales') ? 'mysales' : '' })}
         ${U.stat({ label: 'Heures de service', value: U.fmtDur(z.minutes), sub: open ? 'en service en ce moment' : 'cette semaine', icon: 'timer', tone: 'info', route: 'service' })}
@@ -49,7 +49,7 @@
         ${U.panel('Mes fiches de paie', slips.length ? `<div class="list">${slips.map(x => `<div class="li"><span class="li-ic ${x.status === 'paid' ? 'ok' : 'warn'}">${icon('banknote')}</span><div><b>${U.fmtDate(x.from).slice(0, 5)} → ${U.fmtDate(x.to).slice(0, 5)}</b><small>${x.status === 'paid' ? 'Payée' : 'À payer'}</small></div><div class="meta"><b>${money(x.total)}</b></div></div>`).join('')}</div>` : U.empty({ icon: 'banknote', title: 'Aucune fiche de paie', hint: false }), { icon: 'wallet' })}
         ${U.panel('Absences & avertissements', abs.length || warns.length ? `<div class="list">${abs.map(x => `<div class="li"><span class="li-ic info">${icon('calendar-off')}</span><div><b>Absence · ${esc(x.reason)}</b><small>du ${U.fmtDate(x.from)} au ${U.fmtDate(x.to)}</small></div></div>`).join('')}${warns.map(x => `<div class="li"><span class="li-ic danger">${icon('megaphone')}</span><div><b>Avertissement · ${esc(x.type)}</b><small>${esc(x.reason)}</small></div><div class="meta"><small>${U.fmtDate(x.at)}</small></div></div>`).join('')}</div>` : U.empty({ icon: 'shield-check', title: 'Rien à signaler', hint: false }), { icon: 'calendar-off', right: `<button class="btn sm ghost" data-go="absences">Absences</button>` })}
       </div>`;
-    el.querySelectorAll('[data-wk]').forEach(b => b.onclick = () => { st.wk = Math.min(0, st.wk + +b.dataset.wk); if (!A.ensure(ST.range('week', '', '', st.wk).from)) render(el); });
+    el.querySelectorAll('[data-wk]').forEach(b => b.onclick = () => { st.wk = Math.min(1, st.wk + +b.dataset.wk); if (!A.ensure(ST.range('week', '', '', st.wk).from)) render(el); });
     el.querySelectorAll('[data-sale]').forEach(x => x.onclick = () => LSC.open.sale(x.dataset.sale));
   }
 

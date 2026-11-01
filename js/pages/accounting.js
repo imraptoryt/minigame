@@ -61,7 +61,7 @@
     const col = (title, total, ic, body) => `<section class="d-col"><div class="d-head">${icon(ic)}<span>${title}</span>${v(total)}</div>${body}</section>`;
     const wn = ST.weekNum(r.to);
     el.innerHTML = `<div class="page-head"><div><h1>Déclaration</h1><div class="sub">Cliquez sur un montant pour le copier.</div></div>
-        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-dw="-1" title="Semaine précédente">${icon('chevron-left')}</button><span class="d-wk">S<input class="input sm" id="dWeek" type="number" min="1" max="53" value="${wn}"></span><span class="muted">${esc(ST.weekLabel(r).split(' · ')[1] || '')}</span><button class="icon-btn sm" data-dw="1" title="Semaine suivante" ${dst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
+        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-dw="-1" title="Semaine précédente">${icon('chevron-left')}</button><span class="d-wk">S<input class="input sm" id="dWeek" type="number" min="1" max="53" value="${wn}"></span><span class="muted">${esc(ST.weekLabel(r).split(' · ')[1] || '')}</span><button class="icon-btn sm" data-dw="1" title="Semaine suivante" ${dst.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
         <button class="btn sm" id="dCopy">${icon('clipboard-copy')}Copier le résumé</button></div></div>
       <div class="decl">
         ${col("Chiffre d'affaires", z.revenue, 'dollar-sign',
@@ -80,7 +80,7 @@
           grp([row('Coût de revient des ventes', z.factory, { b: true }), row('Nombre de ventes', 0, { sub: true }).replace(/<button[^>]*>[^<]*<\/button>/, `<span class="d-val">${z.count}</span>`)]))}
       </div>
       <p class="hint" style="margin-top:12px">Barème d'impôt, répartition (primes / dividendes / trésorerie) et frais non déductibles : Paramètres → Comptabilité.</p>`;
-    const go = wk => { dst.wk = Math.min(0, wk); if (!A().ensure(ST.range('week', '', '', dst.wk).from)) declaration(el); };
+    const go = wk => { dst.wk = Math.min(1, wk); if (!A().ensure(ST.range('week', '', '', dst.wk).from)) declaration(el); };
     el.querySelectorAll('[data-dw]').forEach(b => b.onclick = () => go(dst.wk + +b.dataset.dw));
     el.querySelector('#dWeek').onchange = e => { const n = Math.round(+e.target.value); if (n >= 1 && n <= 53) go(dst.wk + n - wn); };
     el.querySelector('.decl').onclick = e => { const b = e.target.closest('[data-copy]'); if (b) U.copy(b.dataset.copy); };
@@ -523,7 +523,7 @@
       return Math.round(t * 100) / 100; };
     const reason = `S${ST.weekNum(r.to)} ${s.company.payReason || 'Paye LS Customs'}`;
     /* vérification anti-fraude : une lecture de l'API pour la semaine affichée */
-    const chk = s.company.glifeMode === 'check' && s.company.glifeCompanyId, cf = r.from, ct = Math.min(r.to, Date.now());
+    const chk = pyst.wk <= 0 && s.company.glifeMode === 'check' && s.company.glifeCompanyId, cf = r.from, ct = Math.min(r.to, Date.now());
     const g = chk ? glifeRows(cf, ct, () => { if (A().route === 'payroll') A().render(); }) : null;
     /* semaine en cours : fiches recalculées automatiquement (pas avant que la semaine passée soit réglée) */
     const late = s.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && Date.parse(p.to) <= ST.range('week').from);
@@ -536,8 +536,8 @@
     const cp = (txt, title) => `<button class="icon-btn sm" data-copy="${esc(txt)}" title="${esc(title)}">${icon('copy', 'sm')}</button>`;
     const auto = (s.meta || {}).payrollAutoAt;
     el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Recalcul automatique tous les jours et le dimanche à 23h59${auto ? ` · dernier : ${U.fmtDT(auto)}` : ''}.</div></div>
-        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
-          <button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button><button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
+        <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
+          ${pyst.wk > 0 ? '' : `<button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button>`}<button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
           ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
       ${closed && pyst.wk === 0 ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent dans cette <b>nouvelle semaine</b>, partout dans la compta.</span></div>` : ''}
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(live, sal)), sub: live.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
@@ -559,7 +559,7 @@
     });
     else U.table(el.querySelector('#pyTable'), {
       id: 'payroll-week', rows, sort: 'employeeName', dir: 1, resetPage: true,
-      empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: pyst.wk === 0 ? 'Les fiches apparaissent automatiquement dès qu\'il y a un salaire ou une commission.' : 'Cliquez sur « Recalculer » pour calculer cette semaine.', hint: false },
+      empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: pyst.wk > 0 ? 'Cette semaine n\'a pas encore commencé.' : pyst.wk === 0 ? 'Les fiches apparaissent automatiquement dès qu\'il y a un salaire ou une commission.' : 'Cliquez sur « Recalculer » pour calculer cette semaine.', hint: false },
       columns: [
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
         { key: 'account', label: 'N° de compte', sortValue: p => (emp(p) || {}).bankAccount || '', render: p => { const e = emp(p); return e && e.bankAccount ? `<span class="nowrap">${esc(e.bankAccount)} ${cp(e.bankAccount, 'Copier le n° de compte')}</span>` : `<span class="warn-t">Non renseigné</span>`; } },
@@ -582,8 +582,9 @@
     });
     el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { pyst.tab = b.dataset.tab; payroll(el); });
     el.addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if (b) { e.stopPropagation(); U.copy(b.dataset.copy); } });
-    el.querySelectorAll('[data-wkn]').forEach(b => b.onclick = () => { pyst.wk = Math.min(0, pyst.wk + +b.dataset.wkn); if (!A().ensure(ST.range('week', '', '', pyst.wk).from)) payroll(el); });
-    el.querySelector('#pyGen').onclick = async () => {
+    el.querySelectorAll('[data-wkn]').forEach(b => b.onclick = () => { pyst.wk = Math.min(1, pyst.wk + +b.dataset.wkn); if (!A().ensure(ST.range('week', '', '', pyst.wk).from)) payroll(el); });
+    const pg = el.querySelector('#pyGen');
+    if (pg) pg.onclick = async () => {
       const res = await A().call('payroll.generate', { from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
       if (res.ok) { pyst.tab = 'week'; U.toast(`${res.data.count} fiche(s) de paie calculée(s)`); A().render(); }
     };

@@ -245,7 +245,7 @@
   /* ---------- Filtre de période ---------- */
   const PERIODS = [['week', 'Semaine'], ['today', "Aujourd'hui"], ['month', 'Ce mois'], ['year', 'Cette année'], ['custom', 'Personnalisé']];
   function periodBar(st) {
-    const wk = st.period === 'week' ? `<div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(LSC.stats.weekLabel(LSC.stats.range('week', '', '', st.wk || 0)))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${(st.wk || 0) >= 0 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>` : '';
+    const wk = st.period === 'week' ? `<div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(LSC.stats.weekLabel(LSC.stats.range('week', '', '', st.wk || 0)))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${(st.wk || 0) >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>` : '';
     return `<div class="period">${wk}<div class="seg">${PERIODS.map(p => `<button class="seg-btn ${st.period === p[0] ? 'on' : ''}" data-period="${p[0]}">${p[1]}</button>`).join('')}</div>
       ${st.period === 'custom' ? `<input type="date" class="input sm" data-pfrom value="${st.from || ''}"><span class="muted">→</span><input type="date" class="input sm" data-pto value="${st.to || ''}">` : ''}</div>`;
   }
@@ -259,7 +259,7 @@
       if (st.period === 'custom' && !st.from) { st.from = toInputDate(Date.now() - 29 * 864e5); st.to = toInputDate(Date.now()); }
       redraw();
     });
-    root.querySelectorAll('[data-wk]').forEach(b => b.onclick = () => { st.wk = Math.min(0, (st.wk || 0) + +b.dataset.wk); redraw(); });
+    root.querySelectorAll('[data-wk]').forEach(b => b.onclick = () => { st.wk = Math.min(1, (st.wk || 0) + +b.dataset.wk); redraw(); });
     const f = root.querySelector('[data-pfrom]'), t = root.querySelector('[data-pto]');
     if (f) f.onchange = () => { st.from = f.value; redraw(); };
     if (t) t.onchange = () => { st.to = t.value; redraw(); };
