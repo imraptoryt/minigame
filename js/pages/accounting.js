@@ -558,7 +558,7 @@
         { key: 'a', label: '', sortable: false, align: 'right', render: x => x.payrollId ? '' : idCell(x.id, act('delprime', 'Retirer', 'trash-2', 'danger')) }]
     });
     else U.table(el.querySelector('#pyTable'), {
-      id: 'payroll-week', rows, sort: 'employeeName', dir: 1, resetPage: true,
+      id: 'payroll-week', rows, sort: 'employeeName', dir: 1, resetPage: pyst.pageWk !== (pyst.pageWk = pyst.wk), // la page ne revient à 1 que si on change de semaine
       empty: { icon: 'banknote', title: 'Aucune fiche pour cette semaine', text: pyst.wk > 0 ? 'Cette semaine n\'a pas encore commencé.' : pyst.wk === 0 ? 'Les fiches apparaissent automatiquement dès qu\'il y a un salaire ou une commission.' : 'Cliquez sur « Recalculer » pour calculer cette semaine.', hint: false },
       columns: [
         { key: 'employeeName', label: 'Employé', render: p => { const q = req(p); return `<div class="who">${U.avatar(p.employeeName)}<div><b>${esc(p.employeeName)}</b><small>${esc(p.roleName)} · ${U.fmtDur(p.minutes)}</small>${q && q.absences.length ? `<small>${U.badge('Absence', 'warn')}</small>` : ''}</div></div>`; } },
