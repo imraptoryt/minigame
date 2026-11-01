@@ -187,6 +187,16 @@ module.exports = async (req, res) => {
       let { core, version } = await loadCore();
       const now = Date.now(), m = Server.maintenance(core, now), g = await Server.glifeRecap(core, now);
       if (m || g) { const nv = await commit(version, core); if (nv > 0) { remember(core, nv); version = nv; await Server.runEffects([].concat(m ? m.effects : [], g ? g.effects : [])); } }
+      /* passage de grade automatique, le lundi */
+      let promoted = null;
+      if (Server.autoPromoteDue(core, now)) {
+        const maps = await loadRows(Server.needs('staff.autoPromote', {}, core, now));
+        const before = snapshot(maps), db = assemble(core, maps);
+        promoted = Server.autoPromote(db, now);
+        const d = diff(before, db), next = coreOf(db), nv = await commit(version, next, d.ups, d.dels);
+        if (nv > 0) { remember(next, nv); core = next; version = nv; }
+        promoted = Object.assign({ saved: nv > 0 }, promoted);
+      }
       const plan = Server.payrollPlan(core, now);
       let payroll = plan && plan.skip ? { skipped: plan.skip } : null;
       if (plan && !plan.skip) {
@@ -200,7 +210,7 @@ module.exports = async (req, res) => {
           payroll = Object.assign({ saved: nv > 0 }, r.data);
         } else payroll = { error: r.error };
       }
-      return res.json({ ok: true, payroll });
+      return res.json({ ok: true, payroll, promoted });
     } catch (e) { console.error('[LSC] ping', e); return res.status(500).json({ ok: false }); }
   }
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST uniquement' });

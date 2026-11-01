@@ -304,6 +304,16 @@
   }
 
   /* =================== PARAMÈTRES =================== */
+  function autoPromoteBox(s) {
+    const a = s.company.autoPromote || LSCServer.defaultCompany().autoPromote, roles = s.roles.slice().sort((x, y) => x.rank - y.rank);
+    const next = ST.monday() + 7 * ST.DAY + 12 * 36e5, who = a.enabled ? LSCServer.promotable(s, next) : [];
+    return `<p class="muted" style="margin:0 0 10px">Tous les lundis à 00h01. Un employé arrivé un lundi a fait ses 7 jours le lundi suivant. Un employé rétrogradé à la main ne repasse pas tout seul.</p>
+      <label class="check" style="padding:5px 0"><input type="checkbox" name="apEnabled" ${a.enabled ? 'checked' : ''}><span>Activer le passage automatique</span></label>
+      <div class="section-title">Grades concernés</div>
+      <div class="chips">${roles.map(r => `<label class="check" style="margin-right:12px"><input type="checkbox" data-ap="${r.id}" ${(a.from || []).includes(r.id) ? 'checked' : ''}><span>${esc(r.name)}</span></label>`).join('')}</div>
+      <div class="form" style="margin-top:12px">${U.field({ name: 'apTo', label: 'Passent au grade', type: 'select', options: roles.map(r => ({ value: r.id, label: r.name })) }, a.to)}${U.field({ name: 'apDays', label: 'Jours depuis l\'arrivée', type: 'number', min: 1, max: 365 }, a.days || 7)}</div>
+      ${a.enabled ? `<div class="alert info mt">${icon('calendar-check')}<span>Lundi ${U.fmtDate(new Date(next).toISOString())} : ${who.length ? esc(who.map(e => e.name).join(', ')) : 'personne pour le moment'}.</span></div>` : ''}`;
+  }
   function settings(el) {
     const s = S(), co = s.company, local = LSC.api.mode === 'local';
     el.innerHTML = `<div class="page-head"><div><h1>Paramètres</h1></div></div>
@@ -359,6 +369,9 @@
           <div class="section-title">Grades éligibles <small class="muted" style="text-transform:none;letter-spacing:0">(aucun coché = tous)</small></div>
           <div class="chips">${s.roles.slice().sort((a, b) => a.rank - b.rank).map(r => `<label class="check" style="margin-right:12px"><input type="checkbox" data-rr="${r.id}" ${((co.payrollRules || {}).roles || []).includes(r.id) ? 'checked' : ''}><span>${esc(r.name)}</span></label>`).join('')}</div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="req">${icon('save')}Enregistrer</button></div></div></section>
+        <section class="panel"><div class="panel-head"><h3>${icon('arrow-up-right')}Passage de grade automatique</h3></div><div class="panel-body" id="fAuto">
+          ${autoPromoteBox(s)}
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="promote">${icon('save')}Enregistrer</button></div></div></section>
         <section class="panel"><div class="panel-head"><h3>${icon('bell')}Notifications</h3></div><div class="panel-body" id="fNotif">
           ${[['signup', 'Demande de compte'], ['lowStock', 'Stock faible'], ['overdue', 'Facture en retard'], ['largeSale', 'Transaction importante'], ['payment', 'Paiement reçu'], ['service', 'Fin de service']].map(n => `<label class="check" style="padding:5px 0"><input type="checkbox" data-n="${n[0]}" ${co.notify[n[0]] !== false ? 'checked' : ''}><span>${n[1]}</span></label>`).join('')}
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary sm" data-save="notif">${icon('save')}Enregistrer</button></div></div></section>
@@ -454,6 +467,9 @@
       } else if (k === 'req') {
         const f = el.querySelector('#fReq'), g = n => f.querySelector(`[name=${n}]`).value;
         save({ payrollRules: { quota: +g('quota') || 0, minDays: +g('minDays') || 0, absence: g('absence'), roles: [...f.querySelectorAll('[data-rr]:checked')].map(i => i.dataset.rr) } }, 'Prérequis enregistrés');
+      } else if (k === 'promote') {
+        const f = el.querySelector('#fAuto');
+        save({ autoPromote: { enabled: f.querySelector('[name=apEnabled]').checked, from: [...f.querySelectorAll('[data-ap]:checked')].map(i => i.dataset.ap), to: f.querySelector('[name=apTo]').value, days: +f.querySelector('[name=apDays]').value || 7 } }, 'Passage de grade enregistré');
       } else if (k === 'notif') { const notify = {}; el.querySelectorAll('[data-n]').forEach(i => { notify[i.dataset.n] = i.checked; }); save({ notify }); }
     });
     el.querySelector('#impMc').onclick = () => importModels(co);

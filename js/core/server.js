@@ -147,6 +147,7 @@
       vehicleClasses: ['Compactes & citadines', 'Berlines & SUV', 'Sportives', 'Super-sportives', 'Exotiques & spéciales'],
       /* prérequis hebdomadaires pour la paie (rond vert / rouge dans Salaires) */
       payrollRules: { quota: 1000, absence: 'exempt', minDays: 7, roles: [] },
+      autoPromote: { enabled: false, from: ['apprenti', 'employe'], to: 'mecanicien', days: 7 },
       adverts: [{
         id: 'adv_ouvert', label: 'Ouvert', title: '~p~ Ouvert', image: 'https://imgg.fr/r/qNcalpr9.png',
         message: '🔧 On répare, on customise, on fait briller ton moteur dans une ambiance chaleureuse.✨ 🚙 Un souci sous le capot ? Pas de panique, on a la solution.'
@@ -1746,6 +1747,13 @@
       if (!list.length) fail('Au moins un type de commande est requis');
       co.expenseCategories = list;
     }
+    if (s.autoPromote && typeof s.autoPromote === 'object') {
+      const a = s.autoPromote, to = c.db.roles.find(x => x.id === a.to);
+      if (a.enabled && !to) fail('Passage de grade : choisissez le grade cible');
+      const from = (Array.isArray(a.from) ? a.from : []).filter(id => { const x = c.db.roles.find(y => y.id === id); return x && (!to || x.rank < to.rank); });
+      if (a.enabled && !from.length) fail('Passage de grade : cochez au moins un grade inférieur au grade cible');
+      co.autoPromote = { enabled: !!a.enabled, from, to: to ? to.id : '', days: Math.round(num(a.days, 1, 365)) || 7 };
+    }
     if (s.primeAuto && typeof s.primeAuto === 'object') {
       const a = s.primeAuto;
       co.primeAuto = { enabled: !!a.enabled, caBased: !!a.caBased, pct: num(a.pct, 0, 100), amount: c.r(num(a.amount, 0, 1e8)), method: a.method === 'fixed' ? 'fixed' : 'prop' };
@@ -1831,6 +1839,39 @@
         timestamp: d.toISOString() }]
     } }] : [];
     return { effects };
+  }
+
+  /* =================== PASSAGE DE GRADE AUTOMATIQUE ===================
+   * Le lundi à 00h01 (Paris) : les grades choisis passent au grade cible une fois leurs premiers jours faits,
+   * en jours de calendrier (arrivé un lundi = 7 jours le lundi suivant).
+   * Un employé rétrogradé à la main ne repasse pas tout seul. */
+  function promotable(db, now) {
+    const cfg = db.company.autoPromote || {}, to = db.roles.find(r => r.id === cfg.to);
+    if (!to) return [];
+    const limit = parisMonday(now) - (Math.max(1, +cfg.days || 7) - 1) * DAY;
+    const demoted = e => { const last = (e.promotions || []).slice(-1)[0], old = last && db.roles.find(r => r.name === last.from); return !!old && old.rank > roleOf(db, e).rank; };
+    return db.employees.filter(e => !e.archived && e.status !== 'suspended' && !(e.dismissal && e.dismissal.done) && (cfg.from || []).includes(e.roleId) && roleOf(db, e).rank < to.rank
+      && Date.parse(e.rehiredAt || e.hiredAt) < limit && !demoted(e));
+  }
+  /* uniquement le lundi, une seule fois : la tâche de 6h rattrape celle de 00h01 si elle n'est pas passée */
+  function autoPromoteDue(db, now) {
+    const cfg = (db && db.company && db.company.autoPromote) || {}, mon = parisMonday(now);
+    return !!cfg.enabled && now - mon < DAY && !((Date.parse(db.meta.autoPromoteAt || '') || 0) >= mon);
+  }
+  function autoPromote(db, now) {
+    now = now || Date.now();
+    if (!autoPromoteDue(db, now)) return null;
+    const to = db.roles.find(r => r.id === db.company.autoPromote.to), iso = new Date(now).toISOString(), list = promotable(db, now);
+    db.meta.autoPromoteAt = iso;
+    list.forEach(e => {
+      const old = roleOf(db, e);
+      (e.promotions = e.promotions || []).push({ from: old.name, to: to.name, at: iso, by: 'Automatique' });
+      e.roleId = to.id;
+      db.audit.push({ id: uid('log'), at: iso, actorId: '', actor: 'Automatique', action: 'staff.role', text: `Passage automatique de ${e.name} (${old.name} → ${to.name})` });
+    });
+    if (list.length) db.notifications.push({ id: uid('ntf'), type: 'promote', title: 'Passage de grade automatique', body: `${list.map(e => e.name).join(', ')} : ${to.name}`, level: 'info', route: 'staff', at: iso, read: false });
+    db.meta.version++;
+    return { to: to.name, names: list.map(e => e.name) };
   }
 
   /* =================== FACTURES EN JEU (GLife) ===================
@@ -1971,7 +2012,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, promotable, autoPromoteDue, autoPromote, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });

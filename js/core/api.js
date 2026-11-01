@@ -63,6 +63,7 @@
       const m = LSCServer.maintenance(db); // rappel d'archivage en début de mois
       if (m) { save(); LSCServer.runEffects(m.effects); }
       /* récap quotidien des factures en jeu (GLife), sans bloquer l'ouverture */
+      if (LSCServer.autoPromote(db, Date.now())) save();
       LSCServer.glifeRecap(db).then(g => { if (g) { save(); LSCServer.runEffects(g.effects); } }).catch(() => {});
       return withPay(LSCServer.view(db, actor()), actor());
     }
