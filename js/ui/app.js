@@ -158,6 +158,7 @@
    * le document principal + les lignes modifiées / la période demandée). */
   const ROWS = LSCServer.ROWS;
   function apply(r) {
+    if (r.ver) App.ver = r.ver; // version en base : le rafraîchissement automatique ne demande que ce qui a changé depuis
     if (!r.state) return;
     if (r.merge && App.state) {
       const prev = App.state, next = r.state;
@@ -586,12 +587,16 @@
   });
   if (LSC.api.mode === 'nui') document.body.classList.add('nui-hidden');
 
-  /* rafraîchissement périodique en mode multi-utilisateur */
-  if (LSC.api.mode !== 'local') setInterval(async () => {
-    if (!App.state || U.modal.top() || document.body.classList.contains('nui-hidden') || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName)) return;
-    const r = await LSC.api.call('bootstrap');
-    if (r.ok) { apply(r); App.render(); }
-  }, 20000);
+  /* rafraîchissement périodique en mode multi-utilisateur : seulement onglet visible, et seulement ce qui a changé */
+  async function refresh() {
+    if (document.hidden || !App.state || U.modal.top() || document.body.classList.contains('nui-hidden') || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName)) return;
+    const r = await LSC.api.call('sync', { ver: App.ver || 0 });
+    if (r.ok && !r.same) { apply(r); App.render(); }
+  }
+  if (LSC.api.mode !== 'local') {
+    setInterval(refresh, 20000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  }
 
   setInterval(tick, 1000); tick();
   LSC.openPalette = openPalette;

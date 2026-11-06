@@ -45,7 +45,7 @@ Server.config.ownerCharId = env.LSC_OWNER_CHARID || ''; // seul ce Char ID peut 
 
 async function sb(path, opts) {
   const r = await fetch(env.SUPABASE_URL + '/rest/v1/' + path, Object.assign({ signal: AbortSignal.timeout(9000) }, opts, {
-    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', Prefer: 'return=representation' }
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', 'Accept-Encoding': 'gzip', Prefer: 'return=representation' }
   }));
   if (!r.ok) throw new Error('Supabase ' + r.status + ' ' + await r.text());
   const t = await r.text();
@@ -111,9 +111,48 @@ function scoped(base, scope, kinds) {
   if (own.length) out.push(Object.assign({}, base, { kinds: own, emp: scope.me }));
   return out;
 }
-async function loadRows(queries) {
+/* ---------- Cache des lignes récentes (mémoire de l'instance Vercel) ----------
+ * Lignes en cours + 17 derniers jours, lues une fois puis tenues à jour avec ce que cette instance écrit.
+ * Tant que la version en base est celle du cache, rien n'est relu depuis Supabase.
+ * Une écriture venue d'ailleurs (autre instance, SQL à la main) change la version : le cache est relu en entier.
+ * Le journal des écritures permet d'envoyer à l'interface seulement ce qui a changé (action « sync »). */
+const SPAN = 17 * 864e5;
+let rc = null; // { version, base, from, built, rows: Map('kind|id' -> { kind, id, t, open, data }), log: [{ ver, keys, dels }] }
+const rkey = (k, id) => k + '|' + id;
+async function warm(version) {
+  const now = Date.now();
+  if (rc && rc.version === version && now - rc.built < 12 * 36e5) return;
+  const from = now - SPAN, rows = new Map();
+  (await sbAll('lsc_rows?select=kind,id,at,open,data&or=' + encodeURIComponent('(open.is.true,at.gte.' + new Date(from).toISOString() + ')')))
+    .forEach(r => rows.set(rkey(r.kind, r.id), { kind: r.kind, id: r.id, t: Date.parse(r.at), open: !!r.open, data: r.data }));
+  rc = { version, base: version, from, built: now, rows, log: [] };
+}
+const cacheable = q => !(q.ids || q.refs || q.plate || q.model) && (q.from == null ? !!q.open : q.from >= rc.from);
+function fromCache(q) {
+  const out = [];
+  rc.rows.forEach(r => {
+    if ((q.kinds && !q.kinds.includes(r.kind)) || (q.open && !r.open) || (q.from != null && !(r.t >= q.from)) || (q.to != null && !(r.t <= q.to))) return;
+    if (q.emp && (r.data || {}).employeeId !== q.emp) return;
+    out.push(r);
+  });
+  return out;
+}
+/* après une écriture réussie de cette instance : le cache suit (sinon il sera relu au prochain appel) */
+function track(version, nv, d) {
+  if (!(nv > 0) || !rc || rc.version !== version) { if (nv > 0 && rc && rc.version !== nv) rc = null; return; }
+  const keys = [], dels = [];
+  if (d) {
+    d.ups.forEach(u => { const k = rkey(u.kind, u.id); rc.rows.set(k, { kind: u.kind, id: u.id, t: Date.parse(u.at), open: !!u.open, data: structuredClone(u.data) }); keys.push(k); });
+    d.dels.forEach(x => { rc.rows.delete(rkey(x.kind, x.id)); dels.push(x); });
+  }
+  rc.version = nv; rc.log.push({ ver: nv, keys, dels });
+  if (rc.log.length > 300) { rc.log.shift(); rc.base = rc.log[0].ver - 1; }
+}
+async function loadRows(queries, version) {
   const maps = {}; KINDS.forEach(k => { maps[k] = new Map(); });
+  if (version != null) await warm(version);
   for (const q of queries) {
+    if (version != null && rc && rc.version === version && cacheable(q)) { fromCache(q).forEach(r => maps[r.kind].set(r.id, structuredClone(r.data))); continue; }
     let f = 'lsc_rows?select=kind,id,data';
     if (q.emp) f += '&data->>employeeId=eq.' + encodeURIComponent(clean(q.emp));
     if (q.open) f += '&open=is.true';
@@ -186,26 +225,28 @@ module.exports = async (req, res) => {
     try {
       let { core, version } = await loadCore();
       const now = Date.now(), m = Server.maintenance(core, now), g = await Server.glifeRecap(core, now);
-      if (m || g) { const nv = await commit(version, core); if (nv > 0) { remember(core, nv); version = nv; await Server.runEffects([].concat(m ? m.effects : [], g ? g.effects : [])); } }
+      if (m || g) { const nv = await commit(version, core); track(version, nv, null); if (nv > 0) { remember(core, nv); version = nv; await Server.runEffects([].concat(m ? m.effects : [], g ? g.effects : [])); } }
       /* passage de grade automatique, le lundi */
       let promoted = null;
       if (Server.autoPromoteDue(core, now)) {
-        const maps = await loadRows(Server.needs('staff.autoPromote', {}, core, now));
+        const maps = await loadRows(Server.needs('staff.autoPromote', {}, core, now), version);
         const before = snapshot(maps), db = assemble(core, maps);
         promoted = Server.autoPromote(db, now);
         const d = diff(before, db), next = coreOf(db), nv = await commit(version, next, d.ups, d.dels);
+        track(version, nv, d);
         if (nv > 0) { remember(next, nv); core = next; version = nv; }
         promoted = Object.assign({ saved: nv > 0 }, promoted);
       }
       const plan = Server.payrollPlan(core, now);
       let payroll = plan && plan.skip ? { skipped: plan.skip } : null;
       if (plan && !plan.skip) {
-        const maps = await loadRows(Server.needs('payroll.generate', plan.payload, core, now));
+        const maps = await loadRows(Server.needs('payroll.generate', plan.payload, core, now), version);
         const before = snapshot(maps), db = assemble(core, maps);
         const r = Server.handle(db, plan.actorId, 'payroll.generate', plan.payload, now);
         if (r.ok) {
           db.meta.payrollAutoAt = new Date(now).toISOString();
           const d = diff(before, db), next = coreOf(db), nv = await commit(version, next, d.ups, d.dels);
+          track(version, nv, d);
           if (nv > 0) remember(next, nv);
           payroll = Object.assign({ saved: nv > 0 }, r.data);
         } else payroll = { error: r.error };
@@ -234,7 +275,7 @@ module.exports = async (req, res) => {
           const e = core.employees.find(x => x.id === r.id);
           if (e.license !== lic) { e.license = lic; e.linkedAt = new Date().toISOString(); r.changed = true; }
         }
-        if (r.changed) { const nv = await commit(version, core); if (nv < 0) continue; remember(core, nv); }
+        if (r.changed) { const nv = await commit(version, core); if (nv < 0) continue; track(version, nv, null); remember(core, nv); }
         if (!r.ok) return res.status(r.needNewPassword ? 200 : r.locked ? 423 : 401).json({ ok: false, error: r.error, locked: r.locked, needNewPassword: r.needNewPassword });
         return res.json(Object.assign({ ok: true }, fivem ? { linked: true } : { token: issue(r.id, payload.remember === true, core) }));
       }
@@ -243,7 +284,7 @@ module.exports = async (req, res) => {
       if (action === 'auth.register') {
         const r = Server.register(core, Object.assign({}, payload, { from: connKey(req, body, fivem) }));
         if (!r.ok) return res.json(r);
-        { const nv = await commit(version, core); if (nv > 0) { remember(core, nv); return res.json(r); } }
+        { const nv = await commit(version, core); if (nv > 0) { track(version, nv, null); remember(core, nv); return res.json(r); } }
         continue;
       }
 
@@ -257,21 +298,35 @@ module.exports = async (req, res) => {
 
       /* démarrage : document + 15 derniers jours (historique d'actions : 3 jours) + éléments en cours,
        * limité à ce que l'employé a le droit de voir */
-      if (action === 'bootstrap') {
+      /* rafraîchissement automatique de l'interface : rien si la base n'a pas bougé,
+       * sinon seulement les lignes écrites depuis (journal du cache), ou tout si le journal ne suffit pas */
+      if (action === 'sync') {
+        const ver = Math.floor(+payload.ver) || 0;
+        if (ver === version) return res.json(Object.assign({ ok: true, same: true, ver: version }, token));
+        await warm(version);
+        if (ver > 0 && ver >= rc.base && ver < rc.version && rc.version === version) {
+          const scope = Server.rowScope(core, actorId) || {}, keys = new Set(), removed = {}, rows = {};
+          rc.log.forEach(l => { if (l.ver > ver) { l.keys.forEach(k => keys.add(k)); l.dels.forEach(x => { keys.delete(rkey(x.kind, x.id)); (removed[x.kind] = removed[x.kind] || []).push(x.id); }); } });
+          KINDS.forEach(k => { rows[k] = []; });
+          keys.forEach(k => { const r = rc.rows.get(k), s = r && scope[r.kind]; if (s === 'all' || (s === 'own' && (r.data || {}).employeeId === scope.me)) rows[r.kind].push(structuredClone(r.data)); });
+          return res.json(Object.assign(Server.view(Object.assign({}, core, rows), actorId), { merge: true, removed, ver: version }, token));
+        }
+      }
+      if (action === 'bootstrap' || action === 'sync') {
         const scope = Server.rowScope(core, actorId), from = now - Server.WINDOW, auditFrom = now - 3 * 864e5;
         const rest = KINDS.filter(k => k !== 'audit');
         const q = scoped({ open: true }, scope, rest).concat(scoped({ from, to: now + 864e5 }, scope, rest), scoped({ from: auditFrom, to: now + 864e5 }, scope, ['audit']));
         q.push({ kinds: ['sales'], from: now - 15 * 864e5, to: now + 864e5 }); // salaire de la semaine : CA de toute l'équipe (la vue reste filtrée)
-        const db = assemble(core, await loadRows(q)), v = Server.view(db, actorId);
+        const db = assemble(core, await loadRows(q, version)), v = Server.view(db, actorId);
         if (v.state) try { v.state.myPay = Server.payEstimate(db, actorId, now); } catch (e) { console.error('payEstimate', e); } // ne bloque jamais l'ouverture
-        return res.json(Object.assign(v, { from, auditFrom, oldest: await oldest() }, token));
+        return res.json(Object.assign(v, { from, auditFrom, oldest: await oldest(), ver: version }, token));
       }
       /* historique demandé par l'interface (période plus ancienne) */
       if (action === 'rows.range') {
         const from = +payload.from, to = +payload.to;
         if (!isFinite(from) || !isFinite(to) || to < from || to - from > 62 * 864e5) return res.json({ ok: false, error: 'Période invalide' });
         const kinds = Array.isArray(payload.kinds) ? KINDS.filter(k => payload.kinds.includes(k)) : KINDS.filter(k => k !== 'audit');
-        const db = assemble(core, await loadRows(scoped({ from, to }, Server.rowScope(core, actorId), kinds)));
+        const db = assemble(core, await loadRows(scoped({ from, to }, Server.rowScope(core, actorId), kinds), version));
         return res.json(Object.assign(Server.view(db, actorId), { merge: true }));
       }
       if (action === 'demo.switch') return res.status(403).json({ ok: false, error: 'Indisponible en production' });
@@ -279,12 +334,12 @@ module.exports = async (req, res) => {
         const me = core.employees.find(e => e.id === actorId);
         if (!me || !Server.hasPerm(Server.roleOf(core, me), '*')) return res.status(403).json({ ok: false, error: "Vous n'avez pas les permissions nécessaires" });
         const fresh = Object.assign(Seed.build(Server, { demo: false }), { employees: core.employees, roles: core.roles, signups: core.signups || [] });
-        if (await commit(version, coreOf(fresh), allRows(fresh), [], true) > 0) return res.json(Object.assign(Server.view(fresh, actorId), { from: 0 }));
+        if (await commit(version, coreOf(fresh), allRows(fresh), [], true) > 0) { rc = null; return res.json(Object.assign(Server.view(fresh, actorId), { from: 0 })); }
         continue;
       }
 
       if (payload && payload.__server) payload = Object.assign({}, payload, { __server: undefined });
-      const maps = await loadRows(Server.needs(action, payload, core, now));
+      const maps = await loadRows(Server.needs(action, payload, core, now), version);
       const before = snapshot(maps), db = assemble(core, maps);
       const r = Server.handle(db, actorId, action, payload, now);
       if (!r.ok) return res.json(r);
@@ -292,12 +347,13 @@ module.exports = async (req, res) => {
       if (r.readonly) return res.json({ ok: true, readonly: true, data: r.data, delivery: await Server.runEffects(r.effects) });
       const d = diff(before, db), next = coreOf(db);
       const nv = await commit(version, next, d.ups, d.dels);
+      track(version, nv, d);
       if (nv > 0) {
         remember(next, nv);
         await Server.runEffects(r.effects);
         /* réponse : document + lignes modifiées seulement (l'interface fusionne) */
         /* jeton refait après l'action : changer son mot de passe garde cette session, déconnecte les autres */
-        return res.json(Object.assign(Server.view(Object.assign({}, next, d.changed), actorId), { data: r.data, merge: true, removed: d.removed }, web ? { token: issue(actorId, req.longSession, next) } : {}));
+        return res.json(Object.assign(Server.view(Object.assign({}, next, d.changed), actorId), { data: r.data, merge: true, removed: d.removed, ver: nv }, web ? { token: issue(actorId, req.longSession, next) } : {}));
       }
       /* conflit : un autre employé a écrit entre-temps -> on rejoue sur la version fraîche */
     }
