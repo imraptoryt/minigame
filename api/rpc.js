@@ -138,6 +138,15 @@ function fromCache(q) {
   return out;
 }
 /* après une écriture réussie de cette instance : le cache suit (sinon il sera relu au prochain appel) */
+/* salaire de la semaine de l'employé, calculé sur le cache (lecture seule, sans copie) : à jour à chaque rafraîchissement */
+function payOf(core, actorId, version, now) {
+  if (!rc || rc.version !== version) return undefined;
+  const db = Object.assign({}, core), from = now - 15 * 864e5;
+  KINDS.forEach(k => { db[k] = []; });
+  rc.rows.forEach(r => { if (r.open || r.t >= from) db[r.kind].push(r.data); });
+  try { return Server.payEstimate(db, actorId, now); } catch (e) { console.error('payEstimate', e); return undefined; }
+}
+function withPay(v, pay) { if (v.state && pay) v.state.myPay = pay; return v; }
 function track(version, nv, d) {
   if (!(nv > 0) || !rc || rc.version !== version) { if (nv > 0 && rc && rc.version !== nv) rc = null; return; }
   const keys = [], dels = [];
@@ -309,7 +318,7 @@ module.exports = async (req, res) => {
           rc.log.forEach(l => { if (l.ver > ver) { l.keys.forEach(k => keys.add(k)); l.dels.forEach(x => { keys.delete(rkey(x.kind, x.id)); (removed[x.kind] = removed[x.kind] || []).push(x.id); }); } });
           KINDS.forEach(k => { rows[k] = []; });
           keys.forEach(k => { const r = rc.rows.get(k), s = r && scope[r.kind]; if (s === 'all' || (s === 'own' && (r.data || {}).employeeId === scope.me)) rows[r.kind].push(structuredClone(r.data)); });
-          return res.json(Object.assign(Server.view(Object.assign({}, core, rows), actorId), { merge: true, removed, ver: version }, token));
+          return res.json(Object.assign(withPay(Server.view(Object.assign({}, core, rows), actorId), payOf(core, actorId, version, now)), { merge: true, removed, ver: version }, token));
         }
       }
       if (action === 'bootstrap' || action === 'sync') {
@@ -353,7 +362,7 @@ module.exports = async (req, res) => {
         await Server.runEffects(r.effects);
         /* réponse : document + lignes modifiées seulement (l'interface fusionne) */
         /* jeton refait après l'action : changer son mot de passe garde cette session, déconnecte les autres */
-        return res.json(Object.assign(Server.view(Object.assign({}, next, d.changed), actorId), { data: r.data, merge: true, removed: d.removed, ver: nv }, web ? { token: issue(actorId, req.longSession, next) } : {}));
+        return res.json(Object.assign(withPay(Server.view(Object.assign({}, next, d.changed), actorId), payOf(next, actorId, nv, now)), { data: r.data, merge: true, removed: d.removed, ver: nv }, web ? { token: issue(actorId, req.longSession, next) } : {}));
       }
       /* conflit : un autre employé a écrit entre-temps -> on rejoue sur la version fraîche */
     }
