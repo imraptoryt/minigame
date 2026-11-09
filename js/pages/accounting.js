@@ -41,6 +41,49 @@
     </ul><a class="btn sm ghost" href="${SLIDES}" target="_blank" rel="noopener" style="margin-top:8px">${icon('external-link')}Bases de la comptabilité (mairie)</a>`;
   }
 
+  /* =================== FACTURES EN JEU (API GLife) ===================
+   * Mode impôts : tout ce qui n'est pas custom / perfs / Vente / partenaires est facturé en jeu.
+   * Total de la semaine, jour par jour et par personnage, et l'impôt de la semaine qui en découle. */
+  const gst = { wk: 0 };
+  function gamePage(el) {
+    const s = S(), id = s.company.glifeCompanyId, r = ST.range('week', '', '', gst.wk), to = Math.min(r.to, Date.now());
+    const redraw = () => { if (A().route === 'game') A().render(); };
+    const head = `<div class="page-head"><div><h1>Factures en jeu</h1><div class="sub">API GLife · entreprise ${esc(id || '?')} · relue toutes les 5 min</div></div>
+      <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-gw="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-gw="1" title="Semaine suivante" ${gst.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div></div></div>`;
+    const bind = () => el.querySelectorAll('[data-gw]').forEach(b => b.onclick = () => { gst.wk = Math.min(1, gst.wk + +b.dataset.gw); if (!A().ensure(ST.range('week', '', '', gst.wk).from)) gamePage(el); });
+    if (!id) { el.innerHTML = head + U.empty({ icon: 'receipt-text', title: 'ID GLife manquant', text: 'Renseignez l\'ID de l\'entreprise GLife dans Paramètres.', hint: false }); bind(); return; }
+    if (!(to > r.from)) { el.innerHTML = head + U.empty({ icon: 'calendar-clock', title: 'Semaine pas encore commencée', hint: false }); bind(); return; }
+    const e = glifeRows(r.from, to, redraw), rows = (e.rows || []).slice().sort((a, b) => b.revenue - a.revenue);
+    const total = rows.reduce((a, x) => a + x.revenue, 0), count = rows.reduce((a, x) => a + x.count, 0);
+    const emp = c => s.employees.find(x => x.charId === c), unlinked = rows.filter(x => !emp(x.charId)).length;
+    /* jour par jour : une lecture par jour (en cache 5 min) */
+    const days = [];
+    for (let t = ST.sod(r.from); t <= to; t = ST.sod(t + ST.DAY * 1.5)) { const d = glifeRows(Math.max(t, r.from), Math.min(ST.sod(t + ST.DAY * 1.5) - 1, to), redraw), x = new Date(t); days.push({ label: String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0'), v: (d.rows || []).reduce((a, y) => a + y.revenue, 0) }); }
+    const z = ST.summary(s, r, LSCServer.taxOnly(s, r.from) ? total : 0);
+    const wait = e.wait && !e.rows;
+    el.innerHTML = head + (e.err && !e.rows ? `<div class="alert danger">${icon('wifi-off')}<span>API GLife injoignable : réessai dans quelques minutes.</span></div>` : '') + `
+      <div class="grid stats">
+        ${U.stat({ label: 'Facturé en jeu', value: wait ? '...' : money(total), sub: 'cette semaine', icon: 'receipt-text', tone: 'info' })}
+        ${U.stat({ label: 'Factures', value: wait ? '...' : String(count), sub: rows.length + ' personnage(s)', icon: 'files' })}
+        ${U.stat({ label: 'Non reliés', value: wait ? '...' : String(unlinked), valueCls: unlinked ? 'danger-t' : '', sub: 'Char ID absent du personnel', icon: 'user-x', tone: unlinked ? 'danger' : '' })}
+        ${U.stat({ label: 'Impôt de la semaine', value: money(z.tax), sub: LSCServer.taxOnly(s, r.from) ? 'factures en jeu + ventes de la compta' : 'avant le mode impôts', icon: 'landmark', tone: 'warn', route: 'bilan' })}
+      </div>
+      <div class="grid cols-3 mt">
+        ${U.panel('Jour par jour', U.chart({ labels: days.map(d => d.label), series: [{ name: 'Facturé en jeu', values: days.map(d => d.v) }], type: 'bar', height: 220 }), { icon: 'chart-column', cls: 'span-2' })}
+        ${U.panel('Meilleurs factureurs', rows.length ? U.hbars(rows.slice(0, 6).map(x => ({ label: (emp(x.charId) || {}).name || x.name, value: x.revenue }))) : U.empty({ title: wait ? 'Chargement...' : 'Aucune facture', hint: false }), { icon: 'trophy' })}
+      </div>
+      <div class="panel mt"><div class="panel-body"><div id="gmTable"></div></div></div>`;
+    U.table(el.querySelector('#gmTable'), { id: 'game', rows, sort: 'revenue', pageSize: 15,
+      empty: { icon: 'receipt-text', title: wait ? 'Chargement...' : 'Aucune facture en jeu', text: wait ? '' : 'Aucune facture sur cette semaine.', hint: false },
+      columns: [{ key: 'name', label: 'Personnage', render: x => `<b>${esc(x.name)}</b><br><small class="muted">Char ID ${esc(x.charId)}</small>` },
+        { key: 'emp', label: 'Personnel', sortable: false, render: x => emp(x.charId) ? `${esc(emp(x.charId).name)}<br><small class="muted">${esc(A().roleName(emp(x.charId).roleId))}</small>` : U.badge('Non relié', 'warn') },
+        { key: 'count', label: 'Factures', align: 'right' },
+        { key: 'part', label: 'Part', align: 'right', sortable: false, render: x => total ? Math.round(x.revenue / total * 100) + ' %' : '·' },
+        { key: 'revenue', label: 'Total facturé', align: 'right', render: x => `<b>${money(x.revenue)}</b>` }] });
+    bind();
+  }
+  LSC.game = { rows: (from, to, done) => glifeRows(from, to, done) };
+
   /* =================== DÉCLARATION (semaine) =================== */
   const dst = { wk: 0 };
   function declaration(el) {
@@ -700,6 +743,6 @@
 
   Object.assign(LSC.pages, {
     bilan: { render: bilan }, declaration: { render: declaration }, sales: { render: el => salesPage(el, false) }, mysales: { render: el => salesPage(el, true) },
-    byproduct: { render: byProduct }, invoices: { render: invoices }, bills: { render: bills }, payroll: { render: payroll }, expenses: { render: expenses }
+    byproduct: { render: byProduct }, invoices: { render: invoices }, game: { render: gamePage }, bills: { render: bills }, payroll: { render: payroll }, expenses: { render: expenses }
   });
 })();

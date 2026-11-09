@@ -14,6 +14,7 @@
     { id: 'declaration', label: 'Déclaration', icon: 'file-spreadsheet', perm: 'accounting.view' },
     { id: 'sales', label: 'Toutes les ventes', icon: 'dollar-sign', perm: ['sales.view_all', 'accounting.view'] },
     { id: 'byproduct', label: 'Par produit', icon: 'chart-bar', perm: ['sales.view_all', 'accounting.view'] },
+    { id: 'game', label: 'Factures en jeu', icon: 'receipt-text', perm: 'accounting.view' },
     { id: 'invoices', label: 'Factures partenaires', icon: 'receipt', perm: 'invoices.manage', badge: 'overdueInvoices' },
     { id: 'payroll', label: 'Salaires', icon: 'banknote', perm: 'payroll.manage' },
     { id: 'expenses', label: 'Commandes (frais)', icon: 'shopping-bag', perm: 'expenses.manage' },
@@ -51,7 +52,30 @@
       { label: 'Rôles & permissions', icon: 'shield-check', routes: ['roles'] },
       { label: 'Paramètres', icon: 'settings', routes: ['settings', 'audit'] }] }
   ];
-  const groupOf = route => { for (const s of NAV) for (const i of s.items) if (i.routes.includes(route)) return i; return null; };
+  /* menu du mode « impôts seulement » : plus de prise de service, de salaires ni de stock ;
+   * factures en jeu (API GLife) et partenaires en tête. Les anciens salaires restent consultables (onglet de Frais). */
+  const NAV_TAX = [
+    { title: 'Dashboard', items: [
+      { label: 'Point de vente', icon: 'shopping-cart', routes: ['pos'] },
+      { label: 'Accueil', icon: 'house', routes: ['home'] },
+      { label: 'Mes ventes', icon: 'chart-line', routes: ['mysales'] }] },
+    { title: 'Comptabilité', items: [
+      { label: 'Factures en jeu', icon: 'receipt-text', routes: ['game'] },
+      { label: 'Partenaires', icon: 'handshake', routes: ['invoices'] },
+      { label: 'Bilan', icon: 'chart-pie', routes: ['bilan', 'declaration'] },
+      { label: 'Ventes', icon: 'dollar-sign', routes: ['sales', 'byproduct'] },
+      { label: 'Frais', icon: 'shopping-bag', routes: ['expenses', 'payroll'] }] },
+    { title: 'Ressources humaines', items: [
+      { label: 'Personnel', icon: 'users', routes: ['staff', 'absences', 'warnings', 'archives'] }] },
+    { title: 'Mon entreprise', items: [
+      { label: 'Rôles & permissions', icon: 'shield-check', routes: ['roles'] },
+      { label: 'Paramètres', icon: 'settings', routes: ['settings', 'audit'] }] }
+  ];
+  const TAX_OFF = ['empstats', 'dismiss', 'service', 'inventory'];
+  const taxNow = () => !!(LSC.app && LSC.app.state && LSCServer.taxOnly(LSC.app.state));
+  const nav = () => taxNow() ? NAV_TAX : NAV.map(s => Object.assign({}, s, { items: s.items.filter(i => !i.routes.includes('game')) }));
+  const routeLabel = id => taxNow() && id === 'payroll' ? 'Anciens salaires' : ROUTES[id].label;
+  const groupOf = route => { for (const s of nav()) for (const i of s.items) if (i.routes.includes(route)) return i; return null; };
 
   const App = LSC.app = {
     state: null, me: null, perms: [], permissions: [], route: 'home', onTick: null, loadedFrom: 0, oldest: 0,
@@ -85,7 +109,7 @@
       this.auditFrom = from; this.render();
     },
     can(p) { const ps = Array.isArray(p) ? p : [p]; return this.perms.includes('*') || ps.some(x => this.perms.includes(x)); },
-    allowed(route) { const r = ROUTES[route]; return !!r && (!r.perm || this.can(r.perm)); },
+    allowed(route) { const r = ROUTES[route]; return !!r && (!r.perm || this.can(r.perm)) && !(taxNow() ? TAX_OFF.includes(route) : route === 'game'); },
     meEmp() { return this.state.employees.find(e => e.id === this.me.id); },
     myRole() { return this.state.roles.find(r => r.id === this.me.roleId) || { name: '·', commission: 0 }; },
     emp(id) { return this.state.employees.find(e => e.id === id); },
@@ -195,7 +219,7 @@
     $('#brandSub').textContent = co.subtitle;
     $('#brandLogo').innerHTML = co.logo ? `<img src="${esc(co.logo)}" alt="${esc(co.name)}" onerror="this.parentNode.classList.remove('img');this.parentNode.textContent='LS'">` : 'LS';
     $('#brandLogo').classList.toggle('img', !!co.logo);
-    $('#sidebar').innerHTML = NAV.map(sec => {
+    $('#sidebar').innerHTML = nav().map(sec => {
       const items = sec.items.map(i => Object.assign({ ok: i.routes.filter(r => App.allowed(r)) }, i)).filter(i => i.ok.length);
       if (!items.length) return '';
       return `<div class="nav-sec"><div class="nav-title">${esc(sec.title)}</div>${items.map(i => {
@@ -224,7 +248,7 @@
     main.className = 'main route-' + App.route + (enter ? ' enter' : '');
     /* onglets du groupe (ex. Factures : Clients | Fournisseurs), hors du conteneur de page */
     const g = groupOf(App.route), ok = g ? g.routes.filter(r => App.allowed(r)) : [], b = badges();
-    main.innerHTML = (ok.length > 1 ? `<div class="page-tabs">${ok.map(r => { const x = ROUTES[r], n = x.badge ? b[x.badge] : 0; return `<button class="ptab ${r === App.route ? 'on' : ''}" data-route="${r}">${icon(x.icon)}${esc(x.label)}${n ? `<span class="nav-badge">${n}</span>` : ''}</button>`; }).join('')}</div>` : '') + '<div class="page" id="page"></div>';
+    main.innerHTML = (ok.length > 1 ? `<div class="page-tabs">${ok.map(r => { const x = ROUTES[r], n = x.badge ? b[x.badge] : 0; return `<button class="ptab ${r === App.route ? 'on' : ''}" data-route="${r}">${icon(x.icon)}${esc(routeLabel(r))}${n ? `<span class="nav-badge">${n}</span>` : ''}</button>`; }).join('')}</div>` : '') + '<div class="page" id="page"></div>';
     const el = $('#page');
     try { page.render(el); }
     catch (e) { console.error(e); el.innerHTML = U.empty({ icon: 'bug', title: "Erreur d'affichage", text: e.message, hint: false }); }
@@ -261,7 +285,7 @@
   function renderService() {
     renderPay();
     const b = $('#svcBtn');
-    b.hidden = !App.can('service.self');
+    b.hidden = !App.can('service.self') || taxNow(); // mode impôts : plus de prise de service
     if (b.hidden) return;
     const s = mySession(), paused = isPaused(s);
     b.className = 'svc-btn ' + (s ? (paused ? 'pause' : 'on') : 'off');

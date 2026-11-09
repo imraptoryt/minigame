@@ -9,6 +9,13 @@
   function render(el) {
     const A = LSC.app, S = A.state, me = A.meEmp(), role = A.myRole();
     const r = ST.range('week', '', '', st.wk), z = ST.employee(S, me.id, r), req = ST.prereq(S, me, r.from, r.to), noPay = LSCServer.taxOnly(S, r.from);
+    /* mode impôts : mes factures en jeu de la semaine (API GLife) à la place des heures de service et des objectifs */
+    let game = '';
+    if (noPay) {
+      const to = Math.min(r.to, Date.now()), g = to > r.from && S.company.glifeCompanyId ? LSC.game.rows(r.from, to, () => { if (A.route === 'home') A.render(); }) : null;
+      const mine = g && (g.rows || []).find(x => x.charId === String(me.charId));
+      game = U.stat({ label: 'Mes factures en jeu', value: g && g.wait && !g.rows ? '...' : money(mine ? mine.revenue : 0), sub: g && g.err && !g.rows ? 'API GLife injoignable' : `${mine ? mine.count : 0} facture(s) cette semaine`, icon: 'receipt-text', tone: 'info' });
+    }
     const pay = S.payrolls.filter(p => p.employeeId === me.id && p.status !== 'cancelled' && Date.parse(p.from) < r.to && Date.parse(p.to) > r.from).pop();
     const manual = (S.primes || []).filter(x => x.employeeId === me.id && !x.payrollId && ST.within(r, x.at));
     const hours = Math.round(z.minutes / 60 * 100) / 100;
@@ -24,14 +31,14 @@
 
     el.innerHTML = `<div class="page-head"><div class="who">${U.avatar(me.name, 'lg')}<div><h1>Bonjour ${esc(me.name.split(' ')[0])}</h1><div class="sub">${esc(role.name)} · Char ID ${esc(me.charId || '·')}${me.bankAccount ? ' · Compte ' + esc(me.bankAccount) : ''}</div></div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${st.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div></div></div>
-      ${noPay ? `<div class="alert info" style="margin-bottom:14px">${icon('landmark')}<span>Plus de salaire sur la compta depuis le ${U.fmtDate(S.company.taxMode.from)}. Les réparations, la fourrière et le reste se facturent en jeu.</span></div>` : ''}
+      ${noPay ? `<div class="alert info" style="margin-bottom:14px">${icon('landmark')}<span>Plus de salaire sur la compta depuis le ${U.fmtDate(S.company.taxMode.from)}. Les réparations, la fourrière et le reste se facturent en jeu ; au point de vente : custom, perfs, Vente et partenaires.</span></div>` : ''}
       <div class="grid stats">
         ${U.stat({ label: 'Mon CA', value: money(z.revenue), sub: `${z.count} vente${z.count > 1 ? 's' : ''}`, icon: 'dollar-sign', route: A.allowed('mysales') ? 'mysales' : '' })}
-        ${U.stat({ label: 'Heures de service', value: U.fmtDur(z.minutes), sub: open ? 'en service en ce moment' : 'cette semaine', icon: 'timer', tone: 'info', route: 'service' })}
+        ${noPay ? game : U.stat({ label: 'Heures de service', value: U.fmtDur(z.minutes), sub: open ? 'en service en ce moment' : 'cette semaine', icon: 'timer', tone: 'info', route: 'service' })}
         ${noPay ? '' : U.stat({ label: 'Commission', value: money(p.com), sub: `${role.commission || 0}% des ventes`, icon: 'percent' })}
         ${noPay ? '' : U.stat({ label: 'Primes', value: money(primesTotal), sub: p.primes.length + ' prime(s)', icon: 'gift', tone: 'warn' })}
         ${noPay ? '' : U.stat({ label: pay && pay.status === 'paid' ? 'Salaire versé' : 'Salaire estimé', value: money(p.total), sub: 'salaire + primes', icon: 'banknote', tone: 'info' })}
-        ${U.stat({ label: 'Objectifs', value: req.checks.length ? (req.ok ? 'Atteints' : 'Non atteints') : '·', valueCls: req.checks.length ? (req.ok ? 'ok-t' : 'danger-t') : '', sub: `CA ${money(req.ca)}`, icon: 'target', tone: req.ok ? '' : 'danger' })}
+        ${noPay ? '' : U.stat({ label: 'Objectifs', value: req.checks.length ? (req.ok ? 'Atteints' : 'Non atteints') : '·', valueCls: req.checks.length ? (req.ok ? 'ok-t' : 'danger-t') : '', sub: `CA ${money(req.ca)}`, icon: 'target', tone: req.ok ? '' : 'danger' })}
       </div>
       <div class="grid cols-3 mt">
         ${noPay ? '' : U.panel('Ma paie de la semaine', `<dl class="kv"><dt>Grade</dt><dd>${esc(role.name)}</dd><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd>
@@ -40,8 +47,8 @@
           ${p.bonus ? `<dt>Bonus</dt><dd class="ok-t">+${money(p.bonus)}</dd>` : ''}${p.ded ? `<dt>Retenue</dt><dd class="danger-t">-${money(p.ded)}</dd>` : ''}
           <dt><b>Total</b></dt><dd class="ok-t"><b>${money(p.total)}</b></dd><dt>Statut</dt><dd>${payBadge}</dd></dl>
           ${pay ? '' : '<p class="hint" style="margin:10px 0 0">Estimation : les primes automatiques sont ajoutées par la direction lors du calcul de la paie.</p>'}`, { icon: 'banknote' })}
-        ${U.panel('Objectifs de la semaine', req.checks.length ? `<div class="list">${req.checks.map(c => `<div class="li"><span class="req ${c.ok ? 'ok' : 'ko'}"></span><div><b>${esc(c.label)}</b><small>${esc(c.detail || '')}</small></div><div class="meta">${U.badge(c.ok ? 'OK' : 'Manquant', c.ok ? 'ok' : 'danger')}</div></div>`).join('')}</div>` : U.empty({ icon: 'target', title: 'Aucun objectif', text: 'Aucun prérequis défini pour la paie.', hint: false }), { icon: 'target', right: req.checks.length ? U.badge(req.ok ? 'Atteints' : 'Non atteints', req.ok ? 'ok' : 'danger') : '' })}
-        ${U.panel('Mon service', `<div class="service-card" style="padding:8px 0"><span class="service-state ${open ? 'on' : 'off'}">${U.dot(open ? 'ok' : '')}${open ? 'EN SERVICE' : 'HORS SERVICE'}</span>
+        ${noPay ? '' : U.panel('Objectifs de la semaine', req.checks.length ? `<div class="list">${req.checks.map(c => `<div class="li"><span class="req ${c.ok ? 'ok' : 'ko'}"></span><div><b>${esc(c.label)}</b><small>${esc(c.detail || '')}</small></div><div class="meta">${U.badge(c.ok ? 'OK' : 'Manquant', c.ok ? 'ok' : 'danger')}</div></div>`).join('')}</div>` : U.empty({ icon: 'target', title: 'Aucun objectif', text: 'Aucun prérequis défini pour la paie.', hint: false }), { icon: 'target', right: req.checks.length ? U.badge(req.ok ? 'Atteints' : 'Non atteints', req.ok ? 'ok' : 'danger') : '' })}
+        ${noPay ? '' : U.panel('Mon service', `<div class="service-card" style="padding:8px 0"><span class="service-state ${open ? 'on' : 'off'}">${U.dot(open ? 'ok' : '')}${open ? 'EN SERVICE' : 'HORS SERVICE'}</span>
           <div class="service-timer" style="font-size:34px">${U.fmtDur(z.minutes)}</div><div class="muted">${open ? 'Depuis ' + U.fmtTime(open.start) : 'cette semaine'}</div>
           <div class="service-actions"><button class="btn sm" data-go="service">${icon('history')}Mes services</button></div></div>`, { icon: 'timer' })}
       </div>
@@ -63,7 +70,7 @@
   }
   function alerts(S) {
     const out = [];
-    S.inventory.filter(i => i.qty <= i.min).forEach(i => out.push(['warn', 'package-x', `Stock faible : ${i.name}`, `${i.qty} ${i.unit} restants (min. ${i.min})`, 'inventory']));
+    if (!LSCServer.taxOnly(S)) S.inventory.filter(i => i.qty <= i.min).forEach(i => out.push(['warn', 'package-x', `Stock faible : ${i.name}`, `${i.qty} ${i.unit} restants (min. ${i.min})`, 'inventory']));
     S.invoices.filter(i => ST.invoiceStatus(i) === 'overdue').forEach(i => out.push(['danger', 'file-warning', `Facture partenaire en retard : ${i.ref}`, `${i.customerName} · ${money(i.total)}`, 'invoices']));
     const drafts = S.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled').length;
     if (drafts && LSC.app.can('payroll.manage')) out.push(['info', 'banknote', `${drafts} fiche(s) de paie à traiter`, 'Valider puis payer', 'payroll']);

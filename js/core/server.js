@@ -236,7 +236,7 @@
     return spec.type === 'fixed' ? +spec.value : base * Math.min(+spec.value, 100) / 100;
   }
   function stockOf(db, product) {
-    if (!product.inventoryId) return null;
+    if (!product.inventoryId || taxOnly(db)) return null; // mode impôts : plus de suivi du stock
     const it = db.inventory.find(i => i.id === product.inventoryId);
     return it ? Math.floor(it.qty / (product.consume || 1)) : null;
   }
@@ -400,7 +400,7 @@
     q.items.forEach(i => {
       const pr = db.products.find(x => x.id === i.productId);
       if (!pr.active) fail(pr.name + ' est désactivé');
-      if (pr.inventoryId && db.inventory.some(x => x.id === pr.inventoryId)) need[pr.inventoryId] = (need[pr.inventoryId] || 0) + i.qty * (pr.consume || 1);
+      if (pr.inventoryId && !taxOnly(db, c.now) && db.inventory.some(x => x.id === pr.inventoryId)) need[pr.inventoryId] = (need[pr.inventoryId] || 0) + i.qty * (pr.consume || 1);
     });
     Object.keys(need).forEach(id => {
       const it = db.inventory.find(x => x.id === id);
@@ -507,7 +507,7 @@
     if (banked) c.bank('out', banked, 'remboursement', `Annulation vente #${s.ref}`, s.id);
     s.items.forEach(i => {
       const pr = db.products.find(x => x.id === i.productId);
-      if (pr && pr.inventoryId && db.inventory.some(x => x.id === pr.inventoryId)) c.stock(pr.inventoryId, i.qty * (pr.consume || 1), 'Annulation #' + s.ref, s.id);
+      if (pr && pr.inventoryId && !taxOnly(db, Date.parse(s.createdAt)) && db.inventory.some(x => x.id === pr.inventoryId)) c.stock(pr.inventoryId, i.qty * (pr.consume || 1), 'Annulation #' + s.ref, s.id);
     });
     const paidPay = new Set(db.payrolls.filter(r => r.status === 'paid').map(r => r.id)); // fiche annulée : rien n'a été versé, rien à reprendre
     const regul = db.commissions.filter(x => x.saleId === s.id && x.payrollId && paidPay.has(x.payrollId) && x.amount > 0);
