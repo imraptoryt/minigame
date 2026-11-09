@@ -14,7 +14,7 @@
     { id: 'declaration', label: 'Déclaration', icon: 'file-spreadsheet', perm: 'accounting.view' },
     { id: 'sales', label: 'Toutes les ventes', icon: 'dollar-sign', perm: ['sales.view_all', 'accounting.view'] },
     { id: 'byproduct', label: 'Par produit', icon: 'chart-bar', perm: ['sales.view_all', 'accounting.view'] },
-    { id: 'game', label: 'Factures en jeu', icon: 'receipt-text', perm: 'accounting.view' },
+    { id: 'game', label: 'Factures en jeu', icon: 'receipt-text', minRank: 90 }, // suivi API GLife : Co-PDG / PDG
     { id: 'invoices', label: 'Factures partenaires', icon: 'receipt', perm: 'invoices.manage', badge: 'overdueInvoices' },
     { id: 'payroll', label: 'Salaires', icon: 'banknote', perm: 'payroll.manage' },
     { id: 'expenses', label: 'Commandes (frais)', icon: 'shopping-bag', perm: 'expenses.manage' },
@@ -39,6 +39,7 @@
       { label: 'Accueil', icon: 'house', routes: ['home'] },
       { label: 'Mon activité', icon: 'chart-line', routes: ['mysales', 'empstats'] }] },
     { title: 'Comptabilité', items: [
+      { label: 'Factures en jeu', icon: 'receipt-text', routes: ['game'] },
       { label: 'Bilan', icon: 'chart-pie', routes: ['bilan', 'declaration'] },
       { label: 'Ventes', icon: 'dollar-sign', routes: ['sales', 'byproduct'] },
       { label: 'Partenaires', icon: 'handshake', routes: ['invoices'] },
@@ -73,7 +74,7 @@
   ];
   const TAX_OFF = ['empstats', 'dismiss', 'service', 'inventory'];
   const taxNow = () => !!(LSC.app && LSC.app.state && LSCServer.taxOnly(LSC.app.state));
-  const nav = () => taxNow() ? NAV_TAX : NAV.map(s => Object.assign({}, s, { items: s.items.filter(i => !i.routes.includes('game')) }));
+  const nav = () => taxNow() ? NAV_TAX : NAV;
   const routeLabel = id => taxNow() && id === 'payroll' ? 'Anciens salaires' : ROUTES[id].label;
   const groupOf = route => { for (const s of nav()) for (const i of s.items) if (i.routes.includes(route)) return i; return null; };
 
@@ -109,7 +110,7 @@
       this.auditFrom = from; this.render();
     },
     can(p) { const ps = Array.isArray(p) ? p : [p]; return this.perms.includes('*') || ps.some(x => this.perms.includes(x)); },
-    allowed(route) { const r = ROUTES[route]; return !!r && (!r.perm || this.can(r.perm)) && !(taxNow() ? TAX_OFF.includes(route) : route === 'game'); },
+    allowed(route) { const r = ROUTES[route]; return !!r && (!r.perm || this.can(r.perm)) && !(r.minRank && (this.myRole().rank || 0) < r.minRank) && !(taxNow() && TAX_OFF.includes(route)); },
     meEmp() { return this.state.employees.find(e => e.id === this.me.id); },
     myRole() { return this.state.roles.find(r => r.id === this.me.roleId) || { name: '·', commission: 0 }; },
     emp(id) { return this.state.employees.find(e => e.id === id); },

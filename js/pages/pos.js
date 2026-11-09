@@ -25,8 +25,6 @@
   const thumb = (p, cls) => `<div class="${cls} ${p && p.image ? 'has-img' : ''}">${icon((p && p.icon) || 'wrench')}${p && p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('has-img');this.remove()">` : ''}</div>`;
   const canEdit = () => app().can('products.manage');
   const cats = () => S().company.categories;
-  /* mode impôts : seules les catégories gardées au point de vente sont affichées (le reste se facture en jeu), sauf vente à un partenaire */
-  const shown = () => P.edit || partner() || !LSCServer.taxOnly(S()) ? cats() : cats().filter(c => LSCServer.TAX_CATS.includes(c.id));
   const catOf = id => cats().find(c => c.id === id);
   const subsOf = id => (catOf(id) || {}).subs || [];
   const isVehicleCat = id => !!(catOf(id) || {}).vehicleClass;
@@ -74,15 +72,14 @@
   function filtered() {
     const q = P.q.trim().toLowerCase();
     return sorted().filter(p => (P.edit || (p.active && p.visible)) &&
-      (P.edit || partner() || !LSCServer.taxOnly(S()) || LSCServer.taxSellable(p)) && // mode impôts sans partenaire : Vente + customs spéciales
       (!q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || app().catLabel(p.category).toLowerCase().includes(q)));
   }
   function drawTabs(list) {
     /* onglet « Tous » masquable par chaque employé (Mon compte → Préférences) : on ouvre alors la première catégorie */
-    const noAll = !!(app().meEmp() || {}).posHideAll && shown().length > 0, first = (shown()[0] || {}).id || 'all';
-    if (P.cat !== 'all' && !shown().some(c => c.id === P.cat)) P.cat = noAll ? first : 'all';
+    const noAll = !!(app().meEmp() || {}).posHideAll && cats().length > 0, first = (cats()[0] || {}).id || 'all';
+    if (P.cat !== 'all' && !cats().some(c => c.id === P.cat)) P.cat = noAll ? first : 'all';
     if (noAll && P.cat === 'all') P.cat = first;
-    const all = (noAll ? [] : [{ id: 'all', label: 'Tous', icon: 'layout-grid' }]).concat(shown());
+    const all = (noAll ? [] : [{ id: 'all', label: 'Tous', icon: 'layout-grid' }]).concat(cats());
     root.querySelector('#posCats').innerHTML = all.map(c => `<button class="tab ${P.cat === c.id ? 'on' : ''}" data-cat="${c.id}" title="${esc(c.label)}" ${P.edit && c.id !== 'all' ? 'draggable="true"' : ''}>${P.edit && c.id !== 'all' ? icon('grip-vertical', 'xs') : ''}${icon(c.icon || 'package')}<span class="tab-l">${esc(c.label)}</span>${c.vehicleClass && P.vehicle.cls ? `<b class="tab-vc">Cat. ${P.vehicle.cls}</b>` : ''}</button>`).join('');
     /* sous-catégories de l'onglet sélectionné */
     const subs = P.cat === 'all' ? [] : subsOf(P.cat);
@@ -121,7 +118,7 @@
     if (!root || !root.querySelector('#posGrid')) return;
     const grid = root.querySelector('#posGrid'), list = filtered();
     drawTabs(list);
-    const html = shown().filter(c => P.cat === 'all' || c.id === P.cat).map(c => {
+    const html = cats().filter(c => P.cat === 'all' || c.id === P.cat).map(c => {
       let items = list.filter(p => p.category === c.id);
       const total = items.length;
       if (!items.length && !P.edit) return '';

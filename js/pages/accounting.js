@@ -72,15 +72,43 @@
         ${U.panel('Jour par jour', U.chart({ labels: days.map(d => d.label), series: [{ name: 'Facturé en jeu', values: days.map(d => d.v) }], type: 'bar', height: 220 }), { icon: 'chart-column', cls: 'span-2' })}
         ${U.panel('Meilleurs factureurs', rows.length ? U.hbars(rows.slice(0, 6).map(x => ({ label: (emp(x.charId) || {}).name || x.name, value: x.revenue }))) : U.empty({ title: wait ? 'Chargement...' : 'Aucune facture', hint: false }), { icon: 'trophy' })}
       </div>
-      <div class="panel mt"><div class="panel-body"><div id="gmTable"></div></div></div>`;
+      <div class="panel mt"><div class="panel-body"><div class="section-title" style="margin-top:0">Par personnage <small class="muted" style="text-transform:none;letter-spacing:0">(clic : détail jour par jour)</small></div><div id="gmTable"></div></div></div>
+      <div class="mt">${U.panel('Historique des semaines', '<div id="gmHist">' + U.skeleton('table') + '</div>', { icon: 'history', right: '<span class="muted">8 dernières semaines</span>' })}</div>`;
     U.table(el.querySelector('#gmTable'), { id: 'game', rows, sort: 'revenue', pageSize: 15,
       empty: { icon: 'receipt-text', title: wait ? 'Chargement...' : 'Aucune facture en jeu', text: wait ? '' : 'Aucune facture sur cette semaine.', hint: false },
+      onRow: x => gameDetail(x, r, to),
       columns: [{ key: 'name', label: 'Personnage', render: x => `<b>${esc(x.name)}</b><br><small class="muted">Char ID ${esc(x.charId)}</small>` },
         { key: 'emp', label: 'Personnel', sortable: false, render: x => emp(x.charId) ? `${esc(emp(x.charId).name)}<br><small class="muted">${esc(A().roleName(emp(x.charId).roleId))}</small>` : U.badge('Non relié', 'warn') },
         { key: 'count', label: 'Factures', align: 'right' },
         { key: 'part', label: 'Part', align: 'right', sortable: false, render: x => total ? Math.round(x.revenue / total * 100) + ' %' : '·' },
         { key: 'revenue', label: 'Total facturé', align: 'right', render: x => `<b>${money(x.revenue)}</b>` }] });
+    /* historique : une ligne par semaine (une lecture API par semaine, en cache 5 min) */
+    const hist = [];
+    for (let k = 0; k < 8; k++) {
+      const w = ST.range('week', '', '', gst.wk - k), wt = Math.min(w.to, Date.now());
+      if (!(wt > w.from)) continue;
+      const h = glifeRows(w.from, wt, redraw), hr = h.rows || [];
+      hist.push({ id: 'w' + k, k, label: ST.weekLabel(w), total: hr.reduce((a, x) => a + x.revenue, 0), count: hr.reduce((a, x) => a + x.count, 0), people: hr.length, wait: h.wait && !h.rows, err: h.err && !h.rows });
+    }
+    U.table(el.querySelector('#gmHist'), { id: 'game-hist', rows: hist, sort: 'k', dir: 1, pageSize: 8, compact: true,
+      onRow: x => { gst.wk -= x.k; if (!A().ensure(ST.range('week', '', '', gst.wk).from)) gamePage(el); },
+      columns: [{ key: 'label', label: 'Semaine', sortable: false, render: x => `<b>${esc(x.label)}</b>${x.k === 0 ? ' ' + U.badge('affichée', 'info') : ''}` },
+        { key: 'people', label: 'Personnages', align: 'right', render: x => x.wait ? '...' : x.people },
+        { key: 'count', label: 'Factures', align: 'right', render: x => x.wait ? '...' : x.count },
+        { key: 'total', label: 'Total facturé', align: 'right', render: x => x.err ? U.badge('API injoignable', 'warn') : x.wait ? '...' : `<b>${money(x.total)}</b>` }] });
     bind();
+  }
+  /* détail d'un personnage sur la semaine affichée, jour par jour */
+  function gameDetail(x, r, to) {
+    const s = S(), e = s.employees.find(y => y.charId === x.charId), days = [];
+    for (let t = ST.sod(r.from); t <= to; t = ST.sod(t + ST.DAY * 1.5)) {
+      const d = glifeRows(Math.max(t, r.from), Math.min(ST.sod(t + ST.DAY * 1.5) - 1, to)), m = (d.rows || []).find(y => y.charId === x.charId);
+      days.push({ t, wait: d.wait && !d.rows, count: m ? m.count : 0, revenue: m ? m.revenue : 0 });
+    }
+    U.modal({ title: x.name + (e ? ' · ' + e.name : ''), icon: 'receipt-text', body: `
+      <div class="alert info">${icon('user')}<span>Char ID ${esc(x.charId)} · ${e ? esc(A().roleName(e.roleId)) : 'non relié au personnel'} · <b>${x.count} facture(s), ${money(x.revenue)}</b> sur la semaine</span></div>
+      <table class="tbl compact mt"><thead><tr><th>Jour</th><th class="right">Factures</th><th class="right">Total facturé</th></tr></thead><tbody>
+      ${days.map(d => `<tr><td>${U.fmtDate(new Date(d.t).toISOString())}</td><td class="right">${d.wait ? '...' : d.count}</td><td class="right">${d.wait ? '...' : money(d.revenue)}</td></tr>`).join('')}</tbody></table>` });
   }
   LSC.game = { rows: (from, to, done) => glifeRows(from, to, done) };
 
@@ -594,7 +622,7 @@
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
           ${pyst.wk > 0 || noPay ? '' : `<button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button>`}${noPay ? '' : `<button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>`}
           ${!noPay && pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
-      ${noPay ? `<div class="alert info mt">${icon('landmark')}<span>Depuis le ${U.fmtDate(s.company.taxMode.from)}, plus de salaires sur la compta : seulement les impôts sur les ventes (customs spéciales, partenaires) et les factures en jeu (services et Vente compris). Les semaines d'avant restent consultables avec la flèche.</span></div>` : ''}
+      ${noPay ? `<div class="alert info mt">${icon('landmark')}<span>Depuis le ${U.fmtDate(s.company.taxMode.from)}, plus de salaires sur la compta : les ventes restent saisies au point de vente (sans commission) et les factures en jeu comptent dans les impôts. Les semaines d'avant restent consultables avec la flèche.</span></div>` : ''}
       ${closed && pyst.wk === 0 && !noPay ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent dans cette <b>nouvelle semaine</b>, partout dans la compta.</span></div>` : ''}
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(live, sal)), sub: live.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Primes', value: money(sum(live, prim)), sub: 'hors salaire', icon: 'gift' })}

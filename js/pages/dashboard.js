@@ -31,7 +31,7 @@
 
     el.innerHTML = `<div class="page-head"><div class="who">${U.avatar(me.name, 'lg')}<div><h1>Bonjour ${esc(me.name.split(' ')[0])}</h1><div class="sub">${esc(role.name)} · Char ID ${esc(me.charId || '·')}${me.bankAccount ? ' · Compte ' + esc(me.bankAccount) : ''}</div></div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${st.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div></div></div>
-      ${noPay ? `<div class="alert info" style="margin-bottom:14px">${icon('landmark')}<span>Plus de salaire sur la compta depuis le ${U.fmtDate(S.company.taxMode.from)}. Les réparations, la fourrière et le reste se facturent en jeu ; au point de vente : Services, Vente, Nitro, Drift, Coffre, Cachette, et tout pour les partenaires.</span></div>` : ''}
+      ${noPay ? `<div class="alert info" style="margin-bottom:14px">${icon('landmark')}<span>Plus de salaire sur la compta depuis le ${U.fmtDate(S.company.taxMode.from)}. Tout reste au point de vente, sans commission.</span></div>` : ''}
       <div class="grid stats">
         ${U.stat({ label: 'Mon CA', value: money(z.revenue), sub: `${z.count} vente${z.count > 1 ? 's' : ''}`, icon: 'dollar-sign', route: A.allowed('mysales') ? 'mysales' : '' })}
         ${noPay ? game : U.stat({ label: 'Heures de service', value: U.fmtDur(z.minutes), sub: open ? 'en service en ce moment' : 'cette semaine', icon: 'timer', tone: 'info', route: 'service' })}
