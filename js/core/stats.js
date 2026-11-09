@@ -79,9 +79,9 @@
       if (s.status === 'cancelled') return;
       const t = ts(s.createdAt);
       let revenue = LSCServer.saleCA(s);
-      /* mode impôts : les articles « Vente » (Kärcher, moteur) sont aussi facturés en jeu, ils comptent via la facture (pas deux fois) */
+      /* mode impôts : Services et Vente (Kärcher, moteur) sont aussi facturés en jeu, ils comptent via la facture (pas deux fois) */
       if (!s.partnerId && LSCServer.taxOnly(S, t)) {
-        const sub = (s.items || []).reduce((a, i) => a + i.total, 0), part = (s.items || []).filter(i => i.category === 'vente').reduce((a, i) => a + i.total, 0);
+        const sub = (s.items || []).reduce((a, i) => a + i.total, 0), part = (s.items || []).filter(i => LSCServer.TAX_GAME.includes(i.category)).reduce((a, i) => a + i.total, 0);
         if (part && sub) revenue = Math.max(0, revenue - s.total * part / sub);
       }
       L.push({ t, revenue, factory: LSCServer.saleUsine(s), count: 1 });
