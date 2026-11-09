@@ -203,7 +203,9 @@
    * le point de vente ne garde que quelques catégories (custom, perfs, Vente) sauf pour les partenaires (tout le catalogue),
    * le reste est facturé en jeu (API GLife)
    * et ne compte que pour le CA et les impôts. */
-  const TAX_CATS = ['custom', 'performances', 'vente'];
+  /* sans partenaire : Vente (Kärcher, moteur) + customs spéciales ; avec partenaire : tout le catalogue */
+  const TAX_CATS = ['vente', 'custom'], TAX_SPECIAL = ['prd_nitro', 'prd_drift', 'prd_coffre', 'prd_cachette'];
+  const taxSellable = p => !!p && (p.category === 'vente' || TAX_SPECIAL.includes(p.productId || p.id));
   const taxOnly = (db, t) => { const m = db && db.company && db.company.taxMode; return !!(m && m.from && (t == null ? Date.now() : t) >= Date.parse(m.from)); };
   const roleOf = (db, emp) => db.roles.find(r => r.id === emp.roleId) || { id: null, name: '·', perms: [], commission: 0, rank: 0, salary: 0, hourly: 0 };
   const hasPerm = (role, p) => role.perms.includes('*') || role.perms.includes(p);
@@ -388,7 +390,7 @@
     if (q.missing.length) fail("Un article du panier n'existe plus");
     if (!q.items.length) fail('Le panier est vide');
     if (taxOnly(db, c.now)) {
-      const off = !partner && q.items.find(i => !TAX_CATS.includes(i.category)); // partenaires : tout le catalogue, comme avant
+      const off = !partner && q.items.find(i => !taxSellable(i)); // partenaires : tout le catalogue, comme avant
       if (off) fail(`${off.name} : à facturer en jeu, plus au point de vente`);
       Object.assign(q, { commission: 0, commissionRate: 0 }); // plus de commission sur la compta
     }
@@ -2033,7 +2035,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, taxOnly, TAX_CATS, promotable, autoPromoteDue, autoPromote, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, taxOnly, TAX_CATS, taxSellable, promotable, autoPromoteDue, autoPromote, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });

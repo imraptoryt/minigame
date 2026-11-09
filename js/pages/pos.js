@@ -74,6 +74,7 @@
   function filtered() {
     const q = P.q.trim().toLowerCase();
     return sorted().filter(p => (P.edit || (p.active && p.visible)) &&
+      (P.edit || partner() || !LSCServer.taxOnly(S()) || LSCServer.taxSellable(p)) && // mode impôts sans partenaire : Vente + customs spéciales
       (!q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || app().catLabel(p.category).toLowerCase().includes(q)));
   }
   function drawTabs(list) {
