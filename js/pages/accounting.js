@@ -44,10 +44,11 @@
   /* =================== DÉCLARATION (semaine) =================== */
   const dst = { wk: 0 };
   function declaration(el) {
-    const s = S(), co = s.company, r = ST.range('week', '', '', dst.wk), z = ST.summary(s, r), po = co.payout || { primes: 10, dividends: 40, treasury: 50 };
+    const s = S(), co = s.company, r = ST.range('week', '', '', dst.wk), g = gameTotal(r, () => { if (A().route === 'declaration') A().render(); });
+    const z = ST.summary(s, r, g.total), po = co.payout || { primes: 10, dividends: 40, treasury: 50 };
     const sales = s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt));
     const ca = LSCServer.saleCA, clients = sales.filter(x => !x.partnerId).reduce((a, x) => a + ca(x), 0), partners = sales.filter(x => x.partnerId).reduce((a, x) => a + ca(x), 0);
-    const other = z.revenue - clients - partners; // factures personnalisées payées
+    const other = z.revenue - z.game - clients - partners; // factures personnalisées payées
     const cats = {}, label = id => (co.expenseCategories.find(c => c.id === id) || {}).label || ((s.expenses.find(e => e.category === id) || {}).categoryLabel) || id;
     const nd = new Set(co.expenseCategories.filter(c => c.deductible === false).map(c => c.id));
     s.expenses.filter(e => ST.within(r, e.date)).forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
@@ -76,6 +77,7 @@
         ${col('Ventes', z.revenue, 'receipt',
           grp([row('Ventes aux clients', clients, { b: true })]) +
           grp([row('Ventes aux partenaires', partners, { b: true })]) +
+          (g.on ? grp([row(g.wait ? 'Factures en jeu (chargement...)' : g.err ? 'Factures en jeu (API GLife injoignable)' : `Factures en jeu (${g.count || 0})`, z.game, { b: true })]) : '') +
           (other ? grp([row('Factures personnalisées', other, { b: true })]) : '') +
           grp([row('Coût de revient des ventes', z.factory, { b: true }), row('Nombre de ventes', 0, { sub: true }).replace(/<button[^>]*>[^<]*<\/button>/, `<span class="d-val">${z.count}</span>`)]))}
       </div>
@@ -99,6 +101,14 @@
     const e = gcache[k] = { wait: true, at: Date.now() };
     LSCServer.glifeInvoices(co.glifeCompanyId, from, to).then(rows => { e.rows = rows; }, () => { e.err = true; }).finally(() => { e.wait = false; e.at = Date.now(); if (done) done(); });
     return e;
+  }
+  function gameTotal(r, redraw) {
+    const s = S(), m = s.company.taxMode, id = s.company.glifeCompanyId;
+    if (!m || !id) return { total: 0 };
+    const from = Math.max(r.from, Date.parse(m.from)), to = Math.min(r.to, Date.now());
+    if (!(to > from)) return { total: 0 };
+    const e = glifeRows(from, to, redraw);
+    return { total: (e.rows || []).reduce((a, x) => a + x.revenue, 0), count: (e.rows || []).reduce((a, x) => a + x.count, 0), wait: e.wait && !e.rows, err: e.err, on: true };
   }
   const CUSTOMS = ['custom', 'performances']; // jamais contrôlées : les customs n'apparaissent pas dans l'API
   const checkCats = co => (co.glifeAutoCats || []).filter(id => !CUSTOMS.includes(id));
@@ -154,7 +164,8 @@
     return Math.max(0, Math.round(est - paid));
   }
   function bilan(el) {
-    const s = S(), r = ST.range(bst.period, bst.from, bst.to, bst.wk), z = ST.summary(s, r), o = ST.summary(s, ST.prev(r)), ser = ST.series(s, r);
+    const s = S(), r = ST.range(bst.period, bst.from, bst.to, bst.wk), g = gameTotal(r, () => { if (A().route === 'bilan') A().render(); });
+    const z = ST.summary(s, r, g.total), o = ST.summary(s, ST.prev(r)), ser = ST.series(s, r);
     const top = ST.byProduct(s, r).slice(0, 6), bySeller = {};
     s.sales.filter(x => x.status !== 'cancelled' && ST.within(r, x.createdAt)).forEach(x => { bySeller[x.employeeName] = (bySeller[x.employeeName] || 0) + LSCServer.saleCA(x); });
     const sellers = Object.keys(bySeller).sort((a, b) => bySeller[b] - bySeller[a]).slice(0, 6).map(k => ({ label: k, value: bySeller[k] }));
@@ -163,7 +174,7 @@
     const catLabel = id => (s.company.expenseCategories.find(c => c.id === id) || {}).label || ((s.expenses.find(e => e.category === id) || {}).categoryLabel) || id;
     const pend = teamPrimeLeft(s, r), netP = z.net - pend, taxP = pend ? ST.tax(z.taxable - pend, s.company.taxBrackets).total : z.tax;
     const rows = [
-      ['Chiffre d\'affaires', z.revenue, 'ok'], ['Prix usine des pièces vendues', -z.factory], ['Marge brute (bénéfice)', z.gross, 'b'],
+      ['Chiffre d\'affaires', z.revenue, 'ok'], ...(g.on ? [[g.wait ? 'dont factures en jeu (chargement...)' : g.err ? 'dont factures en jeu (API GLife injoignable)' : 'dont factures en jeu', z.game]] : []), ['Prix usine des pièces vendues', -z.factory], ['Marge brute (bénéfice)', z.gross, 'b'],
       ['Achats de stock', -z.purchases], ['Frais (commandes)', -z.charges - z.bills], ['Salaires', -z.salaries], ['Commissions', -z.commissions],
       ['Total dépenses', -z.expenses, 'b'], ['Bénéfice net', z.net, 'b'],
       ...(pend ? [["Primes d'équipe à verser", -pend], ['Bénéfice net avec primes', netP, 'b'], ['Impôt (barème)', -taxP], ['Bénéfice net après primes et impôt', netP - taxP, 'b']]
@@ -171,7 +182,7 @@
     ];
     el.innerHTML = `<div class="page-head"><div><h1>Bilan</h1></div><div class="actions">${U.periodBar(bst)}</div></div>
       <div class="grid stats">
-        ${U.stat({ label: "Chiffre d'affaires", value: money(z.revenue), trend: ST.trend(z.revenue, o.revenue), icon: 'dollar-sign' })}
+        ${U.stat({ label: "Chiffre d'affaires", value: money(z.revenue), trend: g.on ? undefined : ST.trend(z.revenue, o.revenue), sub: g.on ? `dont ${money(z.game)} facturés en jeu` : undefined, icon: 'dollar-sign' })}
         ${U.stat({ label: 'Dépenses', value: money(z.expenses), trend: ST.trend(z.expenses, o.expenses), inverse: true, sub: 'commissions, salaires, frais, achats', icon: 'arrow-up-right', tone: 'warn' })}
         ${U.stat({ label: 'Bénéfice', value: money(z.gross), sub: 'marge brute', icon: 'trending-up' })}
         ${U.stat({ label: 'Bénéfice net', value: money(z.net), valueCls: z.net < 0 ? 'danger-t' : 'ok-t', trend: ST.trend(z.net, o.net), icon: 'piggy-bank' })}
@@ -529,7 +540,8 @@
     const late = s.payrolls.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && Date.parse(p.to) <= ST.range('week').from);
     /* clôture : faite cette semaine -> la suite compte pour la semaine prochaine */
     const lastClose = ((s.meta || {}).weekCloses || []).slice(-1)[0] || null, closed = !!(lastClose && Date.parse(lastClose.at) >= ST.monday());
-    if (pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
+    const noPay = LSCServer.taxOnly(s, r.from); // plus de salaires sur la compta pour cette semaine
+    if (!noPay && pyst.wk === 0 && !late.length && A().can('payroll.manage') && Date.now() - (pyst.autoAt || 0) > 20000) {
       pyst.autoAt = Date.now();
       A().call('payroll.generate', { auto: true, from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
     }
@@ -537,9 +549,10 @@
     const auto = (s.meta || {}).payrollAutoAt;
     el.innerHTML = `<div class="page-head"><div><h1>Salaires</h1><div class="sub">Recalcul automatique tous les jours et le dimanche à 23h59${auto ? ` · dernier : ${U.fmtDT(auto)}` : ''}.</div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wkn="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wkn="1" title="Semaine suivante" ${pyst.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div>
-          ${pyst.wk > 0 ? '' : `<button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button>`}<button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>
-          ${pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
-      ${closed && pyst.wk === 0 ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent dans cette <b>nouvelle semaine</b>, partout dans la compta.</span></div>` : ''}
+          ${pyst.wk > 0 || noPay ? '' : `<button class="btn sm" id="pyGen" title="La semaine en cours se recalcule toute seule à l'ouverture de la page">${icon('refresh-cw')}Recalculer</button>`}${noPay ? '' : `<button class="btn sm" id="pyPrime">${icon('gift')}Attribuer une prime</button>`}
+          ${!noPay && pyst.wk === 0 && A().can('payroll.manage') && !closed ? `<button class="btn sm primary" id="pyClose" title="Calcule et valide les fiches, envoie le récap sur Discord">${icon('lock')}Clôturer la semaine</button>` : ''}</div></div>
+      ${noPay ? `<div class="alert info mt">${icon('landmark')}<span>Depuis le ${U.fmtDate(s.company.taxMode.from)}, plus de salaires sur la compta : seulement les impôts sur les ventes (custom, perfs, Vente, partenaires) et les factures en jeu. Les semaines d'avant restent consultables avec la flèche.</span></div>` : ''}
+      ${closed && pyst.wk === 0 && !noPay ? `<div class="alert info mt">${icon('lock')}<span>Semaine clôturée le ${U.fmtDT(lastClose.at)} par ${esc(lastClose.by)} : les ventes et services faits depuis comptent dans cette <b>nouvelle semaine</b>, partout dans la compta.</span></div>` : ''}
       <div class="grid stats">${U.stat({ label: 'Salaires (sans primes)', value: money(sum(live, sal)), sub: live.length + ' employé(s)', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Primes', value: money(sum(live, prim)), sub: 'hors salaire', icon: 'gift' })}
         ${U.stat({ label: 'Reste à verser', value: money(sum(unpaid, p => p.total)), sub: unpaid.length + ' fiche(s)', icon: 'hourglass', tone: unpaid.length ? 'warn' : '' })}
@@ -588,7 +601,8 @@
       const res = await A().call('payroll.generate', { from: new Date(r.from).toISOString(), to: new Date(Math.min(r.to, Date.now())).toISOString() });
       if (res.ok) { pyst.tab = 'week'; U.toast(`${res.data.count} fiche(s) de paie calculée(s)`); A().render(); }
     };
-    el.querySelector('#pyPrime').onclick = () => primeForm(null);
+    const pp = el.querySelector('#pyPrime');
+    if (pp) pp.onclick = () => primeForm(null);
     const pc = el.querySelector('#pyClose');
     if (pc) pc.onclick = async () => {
       if (!await U.confirm('Clôturer la semaine ? Les fiches de paie sont calculées et validées (plus modifiables), et le récap part sur Discord. Tout ce qui est fait ensuite comptera pour la semaine prochaine.', { ok: 'Clôturer la semaine' })) return;

@@ -25,6 +25,8 @@
   const thumb = (p, cls) => `<div class="${cls} ${p && p.image ? 'has-img' : ''}">${icon((p && p.icon) || 'wrench')}${p && p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('has-img');this.remove()">` : ''}</div>`;
   const canEdit = () => app().can('products.manage');
   const cats = () => S().company.categories;
+  /* mode impôts : seules les catégories gardées au point de vente sont affichées (le reste se facture en jeu), sauf vente à un partenaire */
+  const shown = () => P.edit || partner() || !LSCServer.taxOnly(S()) ? cats() : cats().filter(c => LSCServer.TAX_CATS.includes(c.id));
   const catOf = id => cats().find(c => c.id === id);
   const subsOf = id => (catOf(id) || {}).subs || [];
   const isVehicleCat = id => !!(catOf(id) || {}).vehicleClass;
@@ -76,10 +78,10 @@
   }
   function drawTabs(list) {
     /* onglet « Tous » masquable par chaque employé (Mon compte → Préférences) : on ouvre alors la première catégorie */
-    const noAll = !!(app().meEmp() || {}).posHideAll && cats().length > 0, first = (cats()[0] || {}).id || 'all';
-    if (P.cat !== 'all' && !cats().some(c => c.id === P.cat)) P.cat = noAll ? first : 'all';
+    const noAll = !!(app().meEmp() || {}).posHideAll && shown().length > 0, first = (shown()[0] || {}).id || 'all';
+    if (P.cat !== 'all' && !shown().some(c => c.id === P.cat)) P.cat = noAll ? first : 'all';
     if (noAll && P.cat === 'all') P.cat = first;
-    const all = (noAll ? [] : [{ id: 'all', label: 'Tous', icon: 'layout-grid' }]).concat(cats());
+    const all = (noAll ? [] : [{ id: 'all', label: 'Tous', icon: 'layout-grid' }]).concat(shown());
     root.querySelector('#posCats').innerHTML = all.map(c => `<button class="tab ${P.cat === c.id ? 'on' : ''}" data-cat="${c.id}" title="${esc(c.label)}" ${P.edit && c.id !== 'all' ? 'draggable="true"' : ''}>${P.edit && c.id !== 'all' ? icon('grip-vertical', 'xs') : ''}${icon(c.icon || 'package')}<span class="tab-l">${esc(c.label)}</span>${c.vehicleClass && P.vehicle.cls ? `<b class="tab-vc">Cat. ${P.vehicle.cls}</b>` : ''}</button>`).join('');
     /* sous-catégories de l'onglet sélectionné */
     const subs = P.cat === 'all' ? [] : subsOf(P.cat);
@@ -118,7 +120,7 @@
     if (!root || !root.querySelector('#posGrid')) return;
     const grid = root.querySelector('#posGrid'), list = filtered();
     drawTabs(list);
-    const html = cats().filter(c => P.cat === 'all' || c.id === P.cat).map(c => {
+    const html = shown().filter(c => P.cat === 'all' || c.id === P.cat).map(c => {
       let items = list.filter(p => p.category === c.id);
       const total = items.length;
       if (!items.length && !P.edit) return '';
@@ -398,7 +400,7 @@
           <button class="icon-btn sm danger" data-del="${i.productId}" title="Supprimer (Suppr)">${icon('trash-2', 'sm')}</button></div></div>`;
     }).join('') : U.empty({ icon: 'shopping-basket', title: 'Panier vide', text: 'Cliquez sur un service pour l\'ajouter.', hint: false });
     root.querySelector('#cartSum').innerHTML = `<div class="sum">
-        <div class="sum-row" title="Bénéfice de la vente (total − prix usine). Le % du grade s'applique uniquement au salaire."><span>Commission :</span><b>${money(q.commissionBase)}</b></div>
+        ${LSCServer.taxOnly(S()) ? '' : `<div class="sum-row" title="Bénéfice de la vente (total − prix usine). Le % du grade s'applique uniquement au salaire."><span>Commission :</span><b>${money(q.commissionBase)}</b></div>`}
         <div class="sum-row"><span>Prix usine :</span><b>${money(q.factory)}</b></div>
         ${q.discount || q.markup ? `<div class="sum-row"><span>Sous-total :</span><b>${money(q.subtotal)}</b></div>` : ''}
         <div class="sum-row click ${q.discount ? 'neg' : ''}" data-act="discount" title="Appliquer / modifier une réduction"><span>Réduction${P.discount ? ` (${P.discount.type === 'percent' ? P.discount.value + '%' : 'fixe'})` : ''} :</span><span><b>${q.discount ? '-' : ''}${money(q.discount)}</b><span class="edit">${icon('pencil', 'xs')}</span></span></div>

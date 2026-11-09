@@ -8,7 +8,7 @@
    * Les statistiques de l'entreprise sont dans Bilan. */
   function render(el) {
     const A = LSC.app, S = A.state, me = A.meEmp(), role = A.myRole();
-    const r = ST.range('week', '', '', st.wk), z = ST.employee(S, me.id, r), req = ST.prereq(S, me, r.from, r.to);
+    const r = ST.range('week', '', '', st.wk), z = ST.employee(S, me.id, r), req = ST.prereq(S, me, r.from, r.to), noPay = LSCServer.taxOnly(S, r.from);
     const pay = S.payrolls.filter(p => p.employeeId === me.id && p.status !== 'cancelled' && Date.parse(p.from) < r.to && Date.parse(p.to) > r.from).pop();
     const manual = (S.primes || []).filter(x => x.employeeId === me.id && !x.payrollId && ST.within(r, x.at));
     const hours = Math.round(z.minutes / 60 * 100) / 100;
@@ -24,16 +24,17 @@
 
     el.innerHTML = `<div class="page-head"><div class="who">${U.avatar(me.name, 'lg')}<div><h1>Bonjour ${esc(me.name.split(' ')[0])}</h1><div class="sub">${esc(role.name)} · Char ID ${esc(me.charId || '·')}${me.bankAccount ? ' · Compte ' + esc(me.bankAccount) : ''}</div></div></div>
         <div class="actions"><div class="week-nav"><button class="icon-btn sm" data-wk="-1" title="Semaine précédente">${icon('chevron-left')}</button><span>${esc(ST.weekLabel(r))}</span><button class="icon-btn sm" data-wk="1" title="Semaine suivante" ${st.wk >= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button></div></div></div>
+      ${noPay ? `<div class="alert info" style="margin-bottom:14px">${icon('landmark')}<span>Plus de salaire sur la compta depuis le ${U.fmtDate(S.company.taxMode.from)}. Les réparations, la fourrière et le reste se facturent en jeu.</span></div>` : ''}
       <div class="grid stats">
         ${U.stat({ label: 'Mon CA', value: money(z.revenue), sub: `${z.count} vente${z.count > 1 ? 's' : ''}`, icon: 'dollar-sign', route: A.allowed('mysales') ? 'mysales' : '' })}
         ${U.stat({ label: 'Heures de service', value: U.fmtDur(z.minutes), sub: open ? 'en service en ce moment' : 'cette semaine', icon: 'timer', tone: 'info', route: 'service' })}
-        ${U.stat({ label: 'Commission', value: money(p.com), sub: `${role.commission || 0}% des ventes`, icon: 'percent' })}
-        ${U.stat({ label: 'Primes', value: money(primesTotal), sub: p.primes.length + ' prime(s)', icon: 'gift', tone: 'warn' })}
-        ${U.stat({ label: pay && pay.status === 'paid' ? 'Salaire versé' : 'Salaire estimé', value: money(p.total), sub: 'salaire + primes', icon: 'banknote', tone: 'info' })}
+        ${noPay ? '' : U.stat({ label: 'Commission', value: money(p.com), sub: `${role.commission || 0}% des ventes`, icon: 'percent' })}
+        ${noPay ? '' : U.stat({ label: 'Primes', value: money(primesTotal), sub: p.primes.length + ' prime(s)', icon: 'gift', tone: 'warn' })}
+        ${noPay ? '' : U.stat({ label: pay && pay.status === 'paid' ? 'Salaire versé' : 'Salaire estimé', value: money(p.total), sub: 'salaire + primes', icon: 'banknote', tone: 'info' })}
         ${U.stat({ label: 'Objectifs', value: req.checks.length ? (req.ok ? 'Atteints' : 'Non atteints') : '·', valueCls: req.checks.length ? (req.ok ? 'ok-t' : 'danger-t') : '', sub: `CA ${money(req.ca)}`, icon: 'target', tone: req.ok ? '' : 'danger' })}
       </div>
       <div class="grid cols-3 mt">
-        ${U.panel('Ma paie de la semaine', `<dl class="kv"><dt>Grade</dt><dd>${esc(role.name)}</dd><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd>
+        ${noPay ? '' : U.panel('Ma paie de la semaine', `<dl class="kv"><dt>Grade</dt><dd>${esc(role.name)}</dd><dt>Salaire fixe</dt><dd>${money(p.salary)}</dd>
           ${role.hourly || p.hourly ? `<dt>Heures (${U.fmtDur(z.minutes)} × ${money(role.hourly || 0)})</dt><dd>${money(p.hourly)}</dd>` : ''}<dt>Commissions</dt><dd>${money(p.com)}</dd>
           ${p.primes.map(x => `<dt class="muted">Prime · ${esc(x.label)}</dt><dd class="ok-t">+${money(x.amount)}</dd>`).join('')}
           ${p.bonus ? `<dt>Bonus</dt><dd class="ok-t">+${money(p.bonus)}</dd>` : ''}${p.ded ? `<dt>Retenue</dt><dd class="danger-t">-${money(p.ded)}</dd>` : ''}

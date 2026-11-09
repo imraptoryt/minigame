@@ -75,7 +75,17 @@
   function ledger(S) {
     const L = [];
     /* CA sans le prix usine, sauf catégorie « Vente » (donc impôts aussi) */
-    S.sales.forEach(s => { if (s.status !== 'cancelled') L.push({ t: ts(s.createdAt), revenue: LSCServer.saleCA(s), factory: LSCServer.saleUsine(s), count: 1 }); });
+    S.sales.forEach(s => {
+      if (s.status === 'cancelled') return;
+      const t = ts(s.createdAt);
+      let revenue = LSCServer.saleCA(s);
+      /* mode impôts : les articles « Vente » (Kärcher, moteur) sont aussi facturés en jeu, ils comptent via la facture (pas deux fois) */
+      if (!s.partnerId && LSCServer.taxOnly(S, t)) {
+        const sub = (s.items || []).reduce((a, i) => a + i.total, 0), part = (s.items || []).filter(i => i.category === 'vente').reduce((a, i) => a + i.total, 0);
+        if (part && sub) revenue = Math.max(0, revenue - s.total * part / sub);
+      }
+      L.push({ t, revenue, factory: LSCServer.saleUsine(s), count: 1 });
+    });
     S.invoices.forEach(i => { if (i.status === 'paid' && !i.saleId) L.push({ t: ts(i.paidAt), revenue: i.total, count: 0 }); });
     const nd = new Set((S.company.expenseCategories || []).filter(c => c.deductible === false).map(c => c.id));
     S.expenses.forEach(e => L.push({ t: ts(e.date), charges: e.amount, chargesND: nd.has(e.category) ? e.amount : 0, cat: e.category }));
@@ -108,9 +118,11 @@
     return z;
   }
   const zero = () => { const z = {}; KEYS.forEach(k => { z[k] = 0; }); return z; };
-  function summary(S, r) {
+  /* game : total facturé en jeu sur la période (API GLife, mode impôts), ajouté au CA */
+  function summary(S, r, game) {
     const z = zero();
     ledger(S).forEach(e => { if (e.t >= r.from && e.t <= r.to) KEYS.forEach(k => { if (e[k]) z[k] += e[k]; }); });
+    z.game = +game || 0; z.revenue += z.game;
     return finish(z, S);
   }
   function series(S, r) {

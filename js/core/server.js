@@ -199,6 +199,12 @@
   const firstName = n => String(n || '').split(' ')[0];
   function fail(msg) { const e = new Error(msg); e.userError = true; throw e; }
   function find(list, id, label) { const x = list.find(i => i.id === id); if (!x) fail(label + ' introuvable'); return x; }
+  /* Mode « impôts seulement » (à partir d'une date) : plus de salaires ni de commissions sur la compta,
+   * le point de vente ne garde que quelques catégories (custom, perfs, Vente) sauf pour les partenaires (tout le catalogue),
+   * le reste est facturé en jeu (API GLife)
+   * et ne compte que pour le CA et les impôts. */
+  const TAX_CATS = ['custom', 'performances', 'vente'];
+  const taxOnly = (db, t) => { const m = db && db.company && db.company.taxMode; return !!(m && m.from && (t == null ? Date.now() : t) >= Date.parse(m.from)); };
   const roleOf = (db, emp) => db.roles.find(r => r.id === emp.roleId) || { id: null, name: '·', perms: [], commission: 0, rank: 0, salary: 0, hourly: 0 };
   const hasPerm = (role, p) => role.perms.includes('*') || role.perms.includes(p);
   const customerName = c => c ? (c.firstName + ' ' + c.lastName).trim() : 'Client de passage';
@@ -381,6 +387,11 @@
     const q = quote(db, { items: p.items, partnerId: partner && partner.id, discount: p.discount, markup: p.markup, vehicleClass: (p.vehicle || {}).class }, sellerRole.commission);
     if (q.missing.length) fail("Un article du panier n'existe plus");
     if (!q.items.length) fail('Le panier est vide');
+    if (taxOnly(db, c.now)) {
+      const off = !partner && q.items.find(i => !TAX_CATS.includes(i.category)); // partenaires : tout le catalogue, comme avant
+      if (off) fail(`${off.name} : à facturer en jeu, plus au point de vente`);
+      Object.assign(q, { commission: 0, commissionRate: 0 }); // plus de commission sur la compta
+    }
     /* Mode de paiement décidé par le serveur : partenaire -> à facturer, sinon paiement direct */
     const mode = saleMode(db, partner);
     const method = (db.company.paymentMethods || []).find(m => m.id === mode.payment);
@@ -534,6 +545,7 @@
     const mode = saleMode(db, null), method = (db.company.paymentMethods || []).find(m => m.id === mode.payment) || { id: mode.payment };
     Object.assign(s, { partnerId: null, partnerName: null, customerName: 'Client', payment: method.id, status: method.id === 'invoice' ? 'pending' : 'paid', invoiceId: null, partnerRemovedBy: c.me.name, partnerRemovedAt: c.iso });
     /* commission (pas encore versée) recalculée, à la date de la vente */
+    if (taxOnly(db, Date.parse(s.createdAt))) Object.assign(s, { commission: 0, commissionRate: 0 });
     db.commissions = db.commissions.filter(x => !(x.saleId === s.id && !x.payrollId));
     if (s.commission > 0) db.commissions.push({ id: uid('com'), employeeId: s.employeeId, saleId: s.id, ref: s.ref, amount: s.commission, rate: s.commissionRate, createdAt: s.createdAt, payrollId: null });
     if (method.bank) c.bank('in', s.total, 'vente', `Vente #${s.ref}`, s.id);
@@ -1046,6 +1058,7 @@
     const closeAt = Date.parse((db.meta || {}).weekStart || '') || 0;
     if (!p.closing && closeAt > from && closeAt <= to + 1000) return { count: 0, closed: true }; // semaine clôturée : la suite compte pour la semaine prochaine
     if (closeAt && closeAt < from && closeAt > from - 7 * DAY) from = closeAt; // ce qui a été fait depuis la dernière clôture
+    if (!p.closing && taxOnly(db, from)) return { count: 0, off: true }; // plus de salaires sur la compta
     const caMap = {};
     db.sales.forEach(s => { if (s.status !== 'cancelled' && Date.parse(s.createdAt) >= from && Date.parse(s.createdAt) <= to) caMap[s.employeeId] = (caMap[s.employeeId] || 0) + saleCA(s); });
     db.employees.forEach(e => { if (e.archived) delete caMap[e.id]; });
@@ -1122,6 +1135,7 @@
     const actor = db.employees.find(e => !e.archived && hasPerm(roleOf(db, e), '*'));
     if (!actor) return { skip: 'aucun compte de direction' };
     const mon = parisMonday(now);
+    if (taxOnly(db, mon)) return { skip: 'plus de salaires sur la compta' };
     if ((db.payrolls || []).some(x => x.status !== 'paid' && x.status !== 'cancelled' && Date.parse(x.to) < mon)) return { skip: 'salaires de la semaine passée à payer d\'abord' };
     return { actorId: actor.id, payload: { auto: true, from: new Date(mon).toISOString(), to: new Date(now).toISOString() } };
   }
@@ -1132,6 +1146,7 @@
     const e = db && db.employees.find(x => x.id === actorId && !x.archived);
     if (!e) return null;
     now = now || Date.now();
+    if (taxOnly(db, openFrom(db, now))) return null;
     const from = openFrom(db, now), to = now, r = v => Math.round(v * 100) / 100, held = new Set();
     db.payrolls.filter(x => x.status === 'validated').forEach(x => [].concat(x.commissionIds || [], x.sessionIds || [], (x.primes || []).map(y => y.primeId)).forEach(id => { if (id) held.add(id); }));
     const caMap = {};
@@ -1153,6 +1168,7 @@
   A['week.close'] = (c, p) => {
     c.need('payroll.manage');
     const db = c.db, from = openFrom(db, c.now), to = c.now;
+    if (taxOnly(db, to)) fail('Plus de salaires sur la compta : rien à clôturer');
     if (to - from < 60e3) fail('La semaine vient déjà d\'être clôturée');
     const late = db.payrolls.filter(x => x.status === 'validated');
     if (late.length) fail(`${late.length} salaire(s) de la clôture précédente pas encore payé(s) : marquez-les payés d'abord`);
@@ -1704,6 +1720,11 @@
     });
     if (Array.isArray(s.dismissChecklist)) co.dismissChecklist = s.dismissChecklist.map(x => ({ id: safeId(x.id, 30) || uid('dc'), label: str(x.label, 120) })).filter(x => x.label).slice(0, 20);
     if (s.glifeCompanyId != null) co.glifeCompanyId = Math.floor(num(s.glifeCompanyId, 0, 1e9)) || 0;
+    if (s.taxMode !== undefined) {
+      const t = s.taxMode && Date.parse(s.taxMode.from);
+      if (s.taxMode && !isFinite(t)) fail('Mode impôts : date de début invalide');
+      co.taxMode = s.taxMode ? { from: new Date(t).toISOString() } : null;
+    }
     if (s.modelClasses && typeof s.modelClasses === 'object') {
       const mc = {};
       Object.keys(s.modelClasses).slice(0, 6000).forEach(k => { const m = vkey(str(k, 60)), n = Math.floor(+s.modelClasses[k]); if (m && n >= 0 && n <= 5) mc[m] = Math.max(1, n); });
@@ -2012,7 +2033,7 @@
   }
 
   return {
-    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, promotable, autoPromoteDue, autoPromote, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
+    config, PERMISSIONS, COLLECTIONS, ACTIONS: Object.keys(A), handle, view, payrollPlan, payEstimate, taxOnly, TAX_CATS, promotable, autoPromoteDue, autoPromote, saleCA, saleUsine, register, login, setPassword, maintenance, glifeInvoices, glifeRecap, GTA_CLASSES, GTA_DEFAULT, vkey, ROWS, ROW_REF, rowOpen, needs, rowScope, WINDOW, ARCHIVE, emptyDb, defaultCompany, runEffects, saleMode, sha256,
     quote, unitPrice, stockOf, minutesOf, roundTo, hasPerm, roleOf
   };
 });
