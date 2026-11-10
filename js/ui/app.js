@@ -267,7 +267,11 @@
   }
 
   /* ---------- prise de service (minuteur des heures de travail) ---------- */
-  const mySession = () => App.state.sessions.find(x => x.employeeId === App.me.id && !x.end);
+  /* mode impôts : minuteur seulement visuel, gardé dans ce navigateur (rien n'est envoyé ni enregistré) */
+  const LOCAL_SVC = () => 'lsc_svc_' + App.me.id;
+  const localSvc = () => { try { return JSON.parse(localStorage.getItem(LOCAL_SVC())) || null; } catch (e) { return null; } };
+  const setLocalSvc = v => { try { if (v) localStorage.setItem(LOCAL_SVC(), JSON.stringify(v)); else localStorage.removeItem(LOCAL_SVC()); } catch (e) { /* stockage indisponible */ } renderService(); };
+  const mySession = () => taxNow() ? localSvc() : App.state.sessions.find(x => x.employeeId === App.me.id && !x.end);
   const isPaused = s => !!(s && s.pauses && s.pauses.length && !s.pauses[s.pauses.length - 1].end);
   function sessionSeconds(s) {
     const now = Date.now();
@@ -286,7 +290,7 @@
   function renderService() {
     renderPay();
     const b = $('#svcBtn');
-    b.hidden = !App.can('service.self') || taxNow(); // mode impôts : plus de prise de service
+    b.hidden = !App.can('service.self');
     if (b.hidden) return;
     const s = mySession(), paused = isPaused(s);
     b.className = 'svc-btn ' + (s ? (paused ? 'pause' : 'on') : 'off');
@@ -295,9 +299,23 @@
       : `${icon('play')}<span>Prise de service</span>`;
   }
   async function serviceClick() {
-    const s = mySession();
-    if (!s) { await App.call('service.start', {}, 'Service commencé · le minuteur tourne'); return; }
+    const s = mySession(), local = taxNow();
+    if (!s) { if (local) { setLocalSvc({ start: new Date().toISOString(), pauses: [] }); U.toast('Service commencé · le minuteur tourne'); } else await App.call('service.start', {}, 'Service commencé · le minuteur tourne'); return; }
     const paused = isPaused(s);
+    if (local) {
+      const p = U.popover($('#svcBtn'), `<div class="pop-head"><span>${paused ? 'En pause' : 'En service'} depuis ${U.fmtTime(s.start)}</span></div>
+        <button class="pop-item" data-svc="pause">${icon(paused ? 'play' : 'pause')}<span><b>${paused ? 'Reprendre le service' : 'Faire une pause'}</b><small>Le temps de pause n'est pas compté</small></span></button>
+        <button class="pop-item" data-svc="end">${icon('square')}<span><b>Terminer le service</b><small>Minuteur seulement visuel : rien n'est enregistré</small></span></button>`, 'narrow');
+      p.addEventListener('click', e => {
+        const a = e.target.closest('[data-svc]');
+        if (!a) return;
+        U.closePopover();
+        const now = new Date().toISOString();
+        if (a.dataset.svc === 'pause') { const z = s.pauses || []; if (paused) z[z.length - 1].end = now; else z.push({ start: now, end: null }); setLocalSvc(Object.assign({}, s, { pauses: z })); }
+        else { U.toast('Service terminé · ' + hms(sessionSeconds(s))); setLocalSvc(null); }
+      });
+      return;
+    }
     const p = U.popover($('#svcBtn'), `<div class="pop-head"><span>${paused ? 'En pause' : 'En service'} depuis ${U.fmtTime(s.start)}</span></div>
       <button class="pop-item" data-svc="pause">${icon(paused ? 'play' : 'pause')}<span><b>${paused ? 'Reprendre le service' : 'Faire une pause'}</b><small>Le temps de pause n'est pas compté</small></span></button>
       <button class="pop-item" data-svc="end">${icon('square')}<span><b>Terminer le service</b><small>Les heures sont enregistrées pour la paie</small></span></button>
